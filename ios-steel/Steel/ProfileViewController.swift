@@ -10,9 +10,7 @@ final class ProfileViewController: UIViewController {
     private let avatarView = UIImageView()
     private let nameField = UITextField()
     private let streakLabel = UILabel()
-    private let streakPauseLabel = UILabel()
     private let statsStack = UIStackView()
-    private var reminderPickers: [UIDatePicker] = []
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -66,8 +64,6 @@ final class ProfileViewController: UIViewController {
         setupHeader()
         setupStreak()
         setupStats()
-        setupStreakPauseSection()
-        setupReminders()
     }
 
     private func setupHeader() {
@@ -118,85 +114,6 @@ final class ProfileViewController: UIViewController {
         statsStack.spacing = 0
         card.contentView.addSubview(statsStack)
         statsStack.snp.makeConstraints { $0.edges.equalToSuperview() }
-        contentStack.addArrangedSubview(card)
-    }
-
-    private func setupStreakPauseSection() {
-        let title = sectionTitle("СЕРИЯ")
-        contentStack.addArrangedSubview(title)
-
-        let card = makeCard()
-        let stack = UIStackView()
-        stack.axis = .vertical
-        stack.spacing = 0
-        card.contentView.addSubview(stack)
-        stack.snp.makeConstraints { $0.edges.equalToSuperview() }
-
-        let pauseLabel = UILabel()
-        pauseLabel.text = "Пауза серии"
-        pauseLabel.font = UIFont.preferredFont(forTextStyle: .body)
-        pauseLabel.textColor = .label
-
-        let pauseToggle = UISwitch()
-        pauseToggle.onTintColor = .systemOrange
-        pauseToggle.isOn = DataManager.shared.settings.streakPaused
-        pauseToggle.addTarget(self, action: #selector(streakPauseChanged(_:)), for: .valueChanged)
-
-        let pauseRow = UIStackView(arrangedSubviews: [pauseLabel, UIView(), pauseToggle])
-        pauseRow.alignment = .center
-        pauseRow.isLayoutMarginsRelativeArrangement = true
-        pauseRow.layoutMargins = .init(top: 14, left: 16, bottom: 14, right: 16)
-        stack.addArrangedSubview(pauseRow)
-
-        streakPauseLabel.font = UIFont.preferredFont(forTextStyle: .caption1)
-        streakPauseLabel.textColor = .secondaryLabel
-        streakPauseLabel.numberOfLines = 2
-        let descRow = UIStackView(arrangedSubviews: [streakPauseLabel])
-        descRow.isLayoutMarginsRelativeArrangement = true
-        descRow.layoutMargins = .init(top: 0, left: 16, bottom: 12, right: 16)
-        stack.addArrangedSubview(descRow)
-
-        contentStack.addArrangedSubview(card)
-    }
-
-    private func setupReminders() {
-        let title = sectionTitle("НАПОМИНАНИЯ")
-        contentStack.addArrangedSubview(title)
-
-        let card = makeCard()
-        let stack = UIStackView()
-        stack.axis = .vertical
-        stack.spacing = 0
-        card.contentView.addSubview(stack)
-        stack.snp.makeConstraints { $0.edges.equalToSuperview() }
-
-        let hours = DataManager.shared.settings.reminderHours
-        let labels = ["Утро", "Вечер", "Ночь"]
-        for index in 0..<3 {
-            let picker = UIDatePicker()
-            picker.datePickerMode = .time
-            picker.preferredDatePickerStyle = .compact
-            picker.minuteInterval = 5
-            picker.tag = index
-            picker.addTarget(self, action: #selector(reminderChanged(_:)), for: .valueChanged)
-            var comps = DateComponents()
-            comps.hour = index < hours.count ? hours[index] : [9, 19, 22][index]
-            comps.minute = 0
-            picker.date = Calendar.current.date(from: comps) ?? Date()
-            reminderPickers.append(picker)
-
-            let label = UILabel()
-            label.text = index < labels.count ? labels[index] : "Напоминание"
-            label.font = UIFont.preferredFont(forTextStyle: .body)
-            label.textColor = .label
-
-            let row = UIStackView(arrangedSubviews: [label, UIView(), picker])
-            row.alignment = .center
-            row.isLayoutMarginsRelativeArrangement = true
-            row.layoutMargins = .init(top: 14, left: 16, bottom: 14, right: 16)
-            stack.addArrangedSubview(row)
-            if index < 2 { stack.addArrangedSubview(separator()) }
-        }
         contentStack.addArrangedSubview(card)
     }
 
@@ -251,11 +168,7 @@ final class ProfileViewController: UIViewController {
         let vc = SettingsViewController()
         let nav = UINavigationController(rootViewController: vc)
         nav.navigationBar.prefersLargeTitles = true
-        if let sheet = nav.sheetPresentationController {
-            sheet.detents = [.medium(), .large()]
-            sheet.prefersGrabberVisible = true
-            sheet.preferredCornerRadius = 28
-        }
+        nav.modalPresentationStyle = .fullScreen
         present(nav, animated: true)
     }
 
@@ -263,12 +176,6 @@ final class ProfileViewController: UIViewController {
         let settings = DataManager.shared.settings
         nameField.text = settings.userName
         streakLabel.text = "\(settings.streakDays)"
-
-        if settings.streakPaused {
-            streakPauseLabel.text = "Серия на паузе — не сбросится за пропуск дня"
-        } else {
-            streakPauseLabel.text = "Серия активна — пропуск дня обнулит серию"
-        }
 
         statsStack.arrangedSubviews.forEach { $0.removeFromSuperview() }
         let cleanDays = DataManager.shared.fetchHabits().map(\.cleanDays).max() ?? 0
@@ -298,22 +205,6 @@ final class ProfileViewController: UIViewController {
         sheet.addAction(UIAlertAction(title: "Отмена", style: .cancel))
         sheet.popoverPresentationController?.sourceView = avatarView
         present(sheet, animated: true)
-    }
-
-    @objc private func reminderChanged(_ picker: UIDatePicker) {
-        let hours = reminderPickers.map { Calendar.current.component(.hour, from: $0.date) }
-        DataManager.shared.updateSettings { $0.reminderHours = hours }
-        NotificationManager.shared.rescheduleAll()
-    }
-
-    @objc private func streakPauseChanged(_ toggle: UISwitch) {
-        let today = DataManager.shared.dayKey(for: Date())
-        DataManager.shared.updateSettings {
-            $0.streakPaused = toggle.isOn
-            $0.streakPausedSince = toggle.isOn ? today : ""
-        }
-        SPIndicator.present(title: toggle.isOn ? "Серия на паузе" : "Серия активна", preset: .done, haptic: .success)
-        refresh()
     }
 }
 

@@ -1,6 +1,8 @@
 import UIKit
 
 final class MainTabBarController: UITabBarController, UITabBarControllerDelegate {
+    private var longPressGesture: UILongPressGestureRecognizer?
+
     override func viewDidLoad() {
         super.viewDidLoad()
         delegate = self
@@ -35,31 +37,33 @@ final class MainTabBarController: UITabBarController, UITabBarControllerDelegate
         setupLongPressOnTodayTab()
     }
 
-    private func setupLongPressOnTodayTab() {
-        guard let todayItem = tabBar.items?.first else { return }
-        let todayTabView = tabBar.subviews.first { view in
-            if let label = view.subviews.compactMap({ $0 as? UILabel }).first {
-                return label.text == todayItem.title
-            }
-            return false
+    override func viewDidLayoutSubviews() {
+        super.viewDidLayoutSubviews()
+        if longPressGesture == nil {
+            setupLongPressOnTodayTab()
         }
-        guard let targetView = todayTabView else {
-            if let firstSubview = tabBar.subviews.first {
-                addLongPress(to: firstSubview)
-            }
-            return
-        }
-        addLongPress(to: targetView)
     }
 
-    private func addLongPress(to view: UIView) {
-        let longPress = UILongPressGestureRecognizer(target: self, action: #selector(handleTodayLongPress(_:)))
-        longPress.minimumPressDuration = 0.3
-        view.addGestureRecognizer(longPress)
+    private func setupLongPressOnTodayTab() {
+        if let existing = longPressGesture {
+            tabBar.removeGestureRecognizer(existing)
+        }
+
+        guard let todayItem = tabBar.items?.first else { return }
+
+        let tabBarButtons = tabBar.subviews.filter { $0 is UIControl }
+        guard let firstButton = tabBarButtons.first else { return }
+
+        let gesture = UILongPressGestureRecognizer(target: self, action: #selector(handleTodayLongPress(_:)))
+        gesture.minimumPressDuration = 0.3
+        firstButton.addGestureRecognizer(gesture)
+        longPressGesture = gesture
     }
 
     @objc private func handleTodayLongPress(_ gesture: UILongPressGestureRecognizer) {
-        guard gesture.state == .began, selectedIndex == 0 else { return }
+        guard gesture.state == .began else { return }
+        guard selectedIndex == 0 else { return }
+
         if let nav = viewControllers?.first as? UINavigationController,
            let todayVC = nav.viewControllers.first as? TodayViewController {
             todayVC.toggleActionBar()

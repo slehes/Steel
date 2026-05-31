@@ -6,20 +6,6 @@ final class NotificationManager {
     static let shared = NotificationManager()
     private init() {}
 
-    private let reminderMessages = [
-        "Хватит лениться. Тренировка не сделает себя сама.",
-        "Тело ждёт нагрузки. Ты ждёшь завтра? Его нет.",
-        "Время ковать сталь. Начинай.",
-        "День проходит. Задания ждут. Ты — нет?",
-        "Каждый пропуск — шаг назад. Шагни вперёд.",
-    ]
-
-    private let streakWarningMessages = [
-        "Серия под угрозой! Завершить день — 1 нажатие.",
-        "Не сдавайся. Серия на кону. Закрой день.",
-        "Ещё немного — и серия сгорит. Действуй.",
-    ]
-
     func requestAuthorization() {
         UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge]) { _, _ in }
     }
@@ -33,17 +19,20 @@ final class NotificationManager {
         let incompleteTasks = tasks.filter { !$0.isCompleted }
         let allDone = !tasks.isEmpty && incompleteTasks.isEmpty
 
+        let incompleteMessage = "У вас еще не все тренировки выполнены"
+
         if hours.count > 0 {
-            scheduleReminder(hour: hours[0], identifier: "steel.reminder.morning", messages: reminderMessages)
+            let messages = allDone ? ["День закрыт. Отдыхай — завтра новый бой."] : [incompleteMessage]
+            scheduleReminder(hour: hours[0], identifier: "steel.reminder.morning", messages: messages)
         }
 
         if hours.count > 1 {
-            let messages = allDone ? ["День закрыт. Отдыхай — завтра новый бой."] : streakWarningMessages + reminderMessages
+            let messages = allDone ? ["День закрыт. Отдыхай — завтра новый бой."] : [incompleteMessage]
             scheduleReminder(hour: hours[1], identifier: "steel.reminder.evening", messages: messages)
         }
 
         if hours.count > 2 {
-            let messages = allDone ? ["Красавчик. Серия сохранена. Спокойной ночи."] : streakWarningMessages
+            let messages = allDone ? ["Красавчик. Серия сохранена. Спокойной ночи."] : [incompleteMessage]
             scheduleReminder(hour: hours[2], identifier: "steel.reminder.night", messages: messages)
         }
     }
@@ -54,13 +43,26 @@ final class NotificationManager {
         comps.minute = 0
 
         let content = UNMutableNotificationContent()
-        content.title = "⚔️ Steel"
+        content.title = "Steel"
         content.body = messages.randomElement() ?? messages[0]
         content.sound = .default
         content.categoryIdentifier = "STEEL_REMINDER"
 
         let trigger = UNCalendarNotificationTrigger(dateMatching: comps, repeats: true)
         let request = UNNotificationRequest(identifier: identifier, content: content, trigger: trigger)
+        UNUserNotificationCenter.current().add(request)
+    }
+
+    func scheduleCustomReminder(seconds: TimeInterval, message: String) {
+        let content = UNMutableNotificationContent()
+        content.title = "Steel"
+        content.body = message
+        content.sound = .default
+        content.categoryIdentifier = "STEEL_CUSTOM"
+
+        let trigger = UNTimeIntervalNotificationTrigger(timeInterval: max(seconds, 1), repeats: false)
+        let id = "steel.custom.\(UUID().uuidString)"
+        let request = UNNotificationRequest(identifier: id, content: content, trigger: trigger)
         UNUserNotificationCenter.current().add(request)
     }
 
@@ -79,8 +81,8 @@ final class NotificationManager {
               warnTime > now else { return }
 
         let content = UNMutableNotificationContent()
-        content.title = "⚠️ Серия сгорит!"
-        content.body = "Остался 1 час. Завершить день — 1 нажатие."
+        content.title = "Серия сгорит!"
+        content.body = "У вас еще не все тренировки выполнены. Остался 1 час."
         content.sound = .defaultCritical
         content.categoryIdentifier = "STEEL_STREAK_WARNING"
 
