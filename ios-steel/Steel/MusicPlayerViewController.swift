@@ -1,6 +1,7 @@
 import UIKit
 import SnapKit
 import AVFoundation
+import UniformTypeIdentifiers
 
 final class MusicPlayerViewController: UIViewController {
     private let backgroundView = PersonalBackgroundView()

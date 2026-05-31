@@ -1,6 +1,7 @@
 import UIKit
 import SnapKit
 import SPIndicator
+import UniformTypeIdentifiers
 
 final class SettingsViewController: UIViewController {
     private let scrollView = UIScrollView()
