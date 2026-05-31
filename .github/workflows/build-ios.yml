@@ -8,25 +8,21 @@ on:
 jobs:
   build:
     name: Build Steel IPA
-    runs-on: macos-14
+    runs-on: macos-15
 
     steps:
       - name: 📥 Checkout
         uses: actions/checkout@v4
 
-      - name: 🛠 Setup Xcode
-        uses: maxim-lobanov/setup-xcode@v1
-        with:
-          xcode-version: '15.4'
-
-      - name: 📦 Resolve Dependencies
-        working-directory: ios-steel
+      - name: 🛠 Select Xcode 16
         run: |
-          if [ -f Package.swift ]; then
-            swift package resolve
-          fi
+          sudo xcode-select -s /Applications/Xcode_16.2.app/Contents/Developer
+          xcodebuild -version
 
-      - name: 🔨 Build Archive
+      - name: 📦 Install xcpretty
+        run: gem install xcpretty
+
+      - name: 🔨 Build Archive (no signing)
         working-directory: ios-steel
         run: |
           xcodebuild archive \
@@ -37,40 +33,55 @@ jobs:
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGN_IDENTITY="" \
-            | xcpretty || true
+            COMPILER_INDEX_STORE_ENABLE=NO \
+            2>&1 | tee build.log | xcpretty || {
+              echo "❌ Build failed. Showing last 100 lines of build log:"
+              tail -100 build.log
+              exit 1
+            }
 
       - name: 📦 Export IPA
         working-directory: ios-steel
         run: |
           mkdir -p build/ipa-output/Payload
+          # Try standard path first
+          APP_PATH=""
           if [ -d build/Steel.xcarchive/Products/Applications/Steel.app ]; then
-            cp -r build/Steel.xcarchive/Products/Applications/Steel.app build/ipa-output/Payload/
+            APP_PATH="build/Steel.xcarchive/Products/Applications/Steel.app"
+          else
+            # Search for .app in archive
+            APP_PATH=$(find build/Steel.xcarchive -name "*.app" -type d | head -1)
+          fi
+          
+          if [ -n "$APP_PATH" ]; then
+            cp -r "$APP_PATH" build/ipa-output/Payload/
             cd build/ipa-output
             zip -r Steel.ipa Payload/
             echo "✅ IPA created successfully!"
+            ls -lh Steel.ipa
           else
-            echo "⚠️ Archive did not produce .app bundle. Checking archive structure..."
-            find build/Steel.xcarchive -type f -name "*.app" 2>/dev/null || echo "No .app found"
-            ls -la build/Steel.xcarchive/Products/ 2>/dev/null || echo "No Products dir"
+            echo "⚠️ No .app found in archive. Dumping archive structure:"
+            find build/Steel.xcarchive -type d | head -30
+            echo "❌ Cannot create IPA without .app bundle"
+            exit 1
           fi
 
       - name: 📤 Upload IPA Artifact
         uses: actions/upload-artifact@v4
-        if: always()
         with:
           name: Steel-iOS-IPA
           path: ios-steel/build/ipa-output/Steel.ipa
           retention-days: 30
 
-      - name: 📋 Build Log Summary
+      - name: 📋 Build Summary
         if: always()
         working-directory: ios-steel
         run: |
-          echo "## Build Summary" >> $GITHUB_STEP_SUMMARY
+          echo "## 🔨 Build Summary" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           if [ -f build/ipa-output/Steel.ipa ]; then
             SIZE=$(du -h build/ipa-output/Steel.ipa | cut -f1)
             echo "✅ **IPA built successfully!** Size: ${SIZE}" >> $GITHUB_STEP_SUMMARY
           else
-            echo "⚠️ IPA was not produced. Check build logs above." >> $GITHUB_STEP_SUMMARY
+            echo "⚠️ IPA was not produced. Check build logs." >> $GITHUB_STEP_SUMMARY
           fi
