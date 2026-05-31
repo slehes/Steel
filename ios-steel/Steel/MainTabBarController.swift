@@ -26,11 +26,23 @@ final class MainTabBarController: UITabBarController, UITabBarControllerDelegate
 
         viewControllers = [today, habits, profile]
 
-        let appearance = UITabBarAppearance()
-        appearance.configureWithDefaultBackground()
-        tabBar.standardAppearance = appearance
-        tabBar.scrollEdgeAppearance = appearance
+        // Liquid glass style tab bar and navigation bar
+        let tabAppearance = UITabBarAppearance()
+        tabAppearance.configureWithDefaultBackground()
+        tabAppearance.backgroundEffect = UIBlurEffect(style: .systemUltraThinMaterial)
+        tabAppearance.backgroundColor = UIColor.systemBackground.withAlphaComponent(0.6)
+        tabBar.standardAppearance = tabAppearance
+        tabBar.scrollEdgeAppearance = tabAppearance
         tabBar.tintColor = .label
+
+        let navAppearance = UINavigationBarAppearance()
+        navAppearance.configureWithDefaultBackground()
+        navAppearance.backgroundEffect = UIBlurEffect(style: .systemUltraThinMaterial)
+        navAppearance.backgroundColor = UIColor.systemBackground.withAlphaComponent(0.6)
+        UINavigationBar.appearance().standardAppearance = navAppearance
+        UINavigationBar.appearance().scrollEdgeAppearance = navAppearance
+        UINavigationBar.appearance().compactAppearance = navAppearance
+        UINavigationBar.appearance().tintColor = .label
     }
 
     private func makeNav(root: UIViewController, title: String, image: String, selected: String) -> UINavigationController {

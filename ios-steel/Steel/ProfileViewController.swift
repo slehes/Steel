@@ -7,12 +7,9 @@ final class ProfileViewController: UIViewController {
     private let scrollView = UIScrollView()
     private let contentStack = UIStackView()
     private let backgroundView = PersonalBackgroundView()
-    private let headerContainer = UIView()
-    private let pinnedTitleLabel = UILabel()
 
     private let avatarView = UIImageView()
     private let nameField = UITextField()
-    private let musicPreviewButton = UIButton(type: .system)
     private let streakLabel = UILabel()
     private let statsStack = UIStackView()
     private var reminderPickers: [UIDatePicker] = []
@@ -20,36 +17,27 @@ final class ProfileViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         view.backgroundColor = .systemGroupedBackground
+        title = "Профиль"
+        navigationItem.largeTitleDisplayMode = .always
         setupBackground()
-        navigationItem.largeTitleDisplayMode = .never
-        setupHeader()
+        setupRightButton()
         setup()
         NotificationCenter.default.addObserver(self, selector: #selector(refresh), name: .steelSettingsChanged, object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(refresh), name: .steelTasksChanged, object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(refresh), name: .steelHabitsChanged, object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(reloadBackground), name: .steelBackgroundChanged, object: nil)
-
-        MusicManager.shared.onSongChanged = { [weak self] in
-            DispatchQueue.main.async { self?.updateMusicPreview() }
-        }
-        MusicManager.shared.onPlaybackStateChanged = { [weak self] in
-            DispatchQueue.main.async { self?.updateMusicPreview() }
-        }
     }
 
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
         backgroundView.apply(BackgroundManager.shared.config)
         backgroundView.resumeVideo()
-        navigationController?.navigationBar.isHidden = true
         refresh()
-        updateMusicPreview()
     }
 
     override func viewWillDisappear(_ animated: Bool) {
         super.viewWillDisappear(animated)
         backgroundView.pauseVideo()
-        navigationController?.navigationBar.isHidden = false
     }
 
     private func setupBackground() {
@@ -58,33 +46,14 @@ final class ProfileViewController: UIViewController {
         backgroundView.apply(BackgroundManager.shared.config)
     }
 
-    private func setupHeader() {
-        headerContainer.backgroundColor = .clear
-        view.addSubview(headerContainer)
-        headerContainer.snp.makeConstraints {
-            $0.top.equalTo(view.safeAreaLayoutGuide)
-            $0.leading.trailing.equalToSuperview()
-            $0.height.equalTo(52)
-        }
-
-        pinnedTitleLabel.text = "Профиль"
-        pinnedTitleLabel.font = UIFont.systemFont(ofSize: 34, weight: .bold)
-        pinnedTitleLabel.textColor = .label
-        headerContainer.addSubview(pinnedTitleLabel)
-        pinnedTitleLabel.snp.makeConstraints {
-            $0.centerY.equalToSuperview()
-            $0.leading.equalToSuperview().inset(20)
-        }
-
-        let settingsButton = UIButton(type: .system)
-        settingsButton.setImage(UIImage(systemName: "gearshape.fill"), for: .normal)
-        settingsButton.tintColor = .label
-        settingsButton.addTarget(self, action: #selector(openSettings), for: .touchUpInside)
-        headerContainer.addSubview(settingsButton)
-        settingsButton.snp.makeConstraints {
-            $0.centerY.equalToSuperview()
-            $0.trailing.equalToSuperview().inset(20)
-        }
+    private func setupRightButton() {
+        let settingsButton = UIBarButtonItem(
+            image: UIImage(systemName: "gearshape.fill"),
+            style: .plain,
+            target: self,
+            action: #selector(openSettings)
+        )
+        navigationItem.rightBarButtonItem = settingsButton
     }
 
     private func setup() {
@@ -92,8 +61,6 @@ final class ProfileViewController: UIViewController {
         scrollView.snp.makeConstraints { $0.edges.equalToSuperview() }
         scrollView.alwaysBounceVertical = true
         scrollView.delaysContentTouches = false
-        scrollView.contentInset.top = 56
-        scrollView.scrollIndicatorInsets.top = 56
 
         contentStack.axis = .vertical
         contentStack.spacing = 24
@@ -106,13 +73,9 @@ final class ProfileViewController: UIViewController {
         }
 
         setupHeaderSection()
-        setupMusicPreview()
         setupStreak()
         setupStats()
         setupReminders()
-
-        // Bring header to front so it receives touches above scrollView
-        view.bringSubviewToFront(headerContainer)
     }
 
     private func setupHeaderSection() {
@@ -140,58 +103,6 @@ final class ProfileViewController: UIViewController {
         header.alignment = .center
         header.spacing = 8
         contentStack.addArrangedSubview(header)
-    }
-
-    private func setupMusicPreview() {
-        musicPreviewButton.backgroundColor = UIColor(white: 0.15, alpha: 0.7)
-        musicPreviewButton.layer.cornerRadius = 14
-        musicPreviewButton.layer.cornerCurve = .continuous
-        musicPreviewButton.clipsToBounds = true
-        musicPreviewButton.addTarget(self, action: #selector(openMusicPlayer), for: .touchUpInside)
-
-        musicPreviewButton.snp.makeConstraints { $0.height.equalTo(44) }
-
-        let noteIcon = UIImageView(image: UIImage(systemName: "music.note"))
-        noteIcon.tintColor = .systemBlue
-        noteIcon.contentMode = .center
-        noteIcon.snp.makeConstraints { $0.size.equalTo(20) }
-
-        let arrowIcon = UIImageView(image: UIImage(systemName: "chevron.right"))
-        arrowIcon.tintColor = UIColor(white: 0.5, alpha: 1)
-        arrowIcon.contentMode = .center
-        arrowIcon.snp.makeConstraints { $0.size.equalTo(12) }
-
-        let label = UILabel()
-        label.font = UIFont.systemFont(ofSize: 14, weight: .medium)
-        label.textColor = .white
-        label.tag = 100
-
-        let stack = UIStackView(arrangedSubviews: [noteIcon, label, UIView(), arrowIcon])
-        stack.alignment = .center
-        stack.spacing = 8
-        stack.isLayoutMarginsRelativeArrangement = true
-        stack.layoutMargins = .init(top: 0, left: 12, bottom: 0, right: 12)
-
-        musicPreviewButton.addSubview(stack)
-        stack.snp.makeConstraints { $0.edges.equalToSuperview() }
-
-        contentStack.addArrangedSubview(musicPreviewButton)
-        updateMusicPreview()
-    }
-
-    private func updateMusicPreview() {
-        guard let label = musicPreviewButton.viewWithTag(100) as? UILabel else { return }
-        let songs = MusicManager.shared.songs
-        if songs.isEmpty {
-            musicPreviewButton.isHidden = true
-        } else {
-            musicPreviewButton.isHidden = false
-            if let song = MusicManager.shared.currentSong {
-                label.text = "\(song.title) - \(song.artist)"
-            } else {
-                label.text = songs.map { $0.title }.joined(separator: ", ")
-            }
-        }
     }
 
     private func setupStreak() {
@@ -328,13 +239,6 @@ final class ProfileViewController: UIViewController {
         nav.navigationBar.prefersLargeTitles = true
         nav.modalPresentationStyle = .fullScreen
         present(nav, animated: true)
-    }
-
-    @objc private func openMusicPlayer() {
-        UIImpactFeedbackGenerator(style: .light).impactOccurred()
-        let vc = MusicPlayerViewController()
-        vc.modalPresentationStyle = .fullScreen
-        present(vc, animated: true)
     }
 
     @objc private func refresh() {

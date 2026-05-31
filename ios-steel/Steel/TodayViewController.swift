@@ -10,17 +10,16 @@ final class TodayViewController: UIViewController {
     private var collectionView: UICollectionView!
     private let actionBar = UIVisualEffectView(effect: UIBlurEffect(style: .systemThickMaterial))
     private let finishButton = UIButton(type: .system)
-    private let headerContainer = UIView()
-    private let pinnedTitleLabel = UILabel()
-    private let hideActionBarButton = UIButton(type: .system)
     private var actionBarHidden = false
     private var actionBarOriginalBottom: Constraint?
 
     override func viewDidLoad() {
         super.viewDidLoad()
         view.backgroundColor = .systemBackground
+        title = "Сегодня"
+        navigationItem.largeTitleDisplayMode = .always
         setupBackground()
-        setupHeader()
+        setupRightButtons()
         setupCollection()
         setupActionBar()
         observe()
@@ -31,14 +30,12 @@ final class TodayViewController: UIViewController {
         super.viewWillAppear(animated)
         backgroundView.apply(BackgroundManager.shared.config)
         backgroundView.resumeVideo()
-        navigationController?.navigationBar.isHidden = true
         reload()
     }
 
     override func viewWillDisappear(_ animated: Bool) {
         super.viewWillDisappear(animated)
         backgroundView.pauseVideo()
-        navigationController?.navigationBar.isHidden = false
     }
 
     private func setupBackground() {
@@ -47,51 +44,27 @@ final class TodayViewController: UIViewController {
         backgroundView.apply(BackgroundManager.shared.config)
     }
 
-    private func setupHeader() {
-        headerContainer.backgroundColor = .clear
-        view.addSubview(headerContainer)
-        headerContainer.snp.makeConstraints {
-            $0.top.equalTo(view.safeAreaLayoutGuide)
-            $0.leading.trailing.equalToSuperview()
-            $0.height.equalTo(52)
-        }
-
-        pinnedTitleLabel.text = "Сегодня"
-        pinnedTitleLabel.font = UIFont.systemFont(ofSize: 34, weight: .bold)
-        pinnedTitleLabel.textColor = .label
-        headerContainer.addSubview(pinnedTitleLabel)
-        pinnedTitleLabel.snp.makeConstraints {
-            $0.centerY.equalToSuperview()
-            $0.leading.equalToSuperview().inset(20)
-        }
-
-        let plusButton = UIButton(type: .system)
-        plusButton.setImage(UIImage(systemName: "plus"), for: .normal)
-        plusButton.tintColor = .label
-        plusButton.addTarget(self, action: #selector(addTask), for: .touchUpInside)
-
-        let bgButton = UIButton(type: .system)
-        bgButton.setImage(UIImage(systemName: "photo.on.rectangle.angled"), for: .normal)
-        bgButton.tintColor = .label
-        bgButton.addTarget(self, action: #selector(chooseBackground), for: .touchUpInside)
-
-        let rightStack = UIStackView(arrangedSubviews: [bgButton, plusButton])
-        rightStack.spacing = 16
-        headerContainer.addSubview(rightStack)
-        rightStack.snp.makeConstraints {
-            $0.centerY.equalToSuperview()
-            $0.trailing.equalToSuperview().inset(20)
-        }
-
-        hideActionBarButton.setImage(UIImage(systemName: "chevron.down"), for: .normal)
-        hideActionBarButton.tintColor = .secondaryLabel
-        hideActionBarButton.addTarget(self, action: #selector(toggleActionBarButton), for: .touchUpInside)
-        headerContainer.addSubview(hideActionBarButton)
-        hideActionBarButton.snp.makeConstraints {
-            $0.centerY.equalToSuperview()
-            $0.trailing.equalTo(rightStack.snp.leading).offset(-16)
-            $0.size.equalTo(24)
-        }
+    private func setupRightButtons() {
+        let bgButton = UIBarButtonItem(
+            image: UIImage(systemName: "photo.on.rectangle.angled"),
+            style: .plain,
+            target: self,
+            action: #selector(chooseBackground)
+        )
+        let plusButton = UIBarButtonItem(
+            image: UIImage(systemName: "plus"),
+            style: .plain,
+            target: self,
+            action: #selector(addTask)
+        )
+        let hideButton = UIBarButtonItem(
+            image: UIImage(systemName: "chevron.down"),
+            style: .plain,
+            target: self,
+            action: #selector(toggleActionBarButton)
+        )
+        hideButton.tag = 100
+        navigationItem.rightBarButtonItems = [plusButton, bgButton, hideButton]
     }
 
     private func setupCollection() {
@@ -122,13 +95,9 @@ final class TodayViewController: UIViewController {
         collectionView.dataSource = self
         collectionView.register(TaskCell.self, forCellWithReuseIdentifier: TaskCell.reuseID)
         collectionView.register(ProgressHeaderView.self, forSupplementaryViewOfKind: UICollectionView.elementKindSectionHeader, withReuseIdentifier: ProgressHeaderView.reuseID)
-        collectionView.contentInset.top = 56
         collectionView.contentInset.bottom = 140
         view.addSubview(collectionView)
         collectionView.snp.makeConstraints { $0.edges.equalToSuperview() }
-
-        // Bring header to front so it receives touches above collectionView
-        view.bringSubviewToFront(headerContainer)
     }
 
     private func setupActionBar() {
@@ -194,14 +163,17 @@ final class TodayViewController: UIViewController {
     }
 
     private func updateActionBarPosition(animated: Bool) {
-        let offset: CGFloat = actionBarHidden ? 160 : -8
+        // Slide DOWN (below screen) when hidden, UP to normal position when visible
+        let offset: CGFloat = actionBarHidden ? 200 : -8
         actionBar.snp.updateConstraints {
             $0.bottom.equalTo(view.safeAreaLayoutGuide).inset(offset)
         }
         collectionView.contentInset.bottom = actionBarHidden ? 20 : 140
 
-        let imageName = actionBarHidden ? "chevron.up" : "chevron.down"
-        hideActionBarButton.setImage(UIImage(systemName: imageName), for: .normal)
+        // Update chevron icon
+        if let hideButton = navigationItem.rightBarButtonItems?.first(where: { $0.tag == 100 }) {
+            hideButton.image = UIImage(systemName: actionBarHidden ? "chevron.up" : "chevron.down")
+        }
 
         if animated {
             UIView.animate(withDuration: 0.3, delay: 0, options: .curveEaseInOut) {

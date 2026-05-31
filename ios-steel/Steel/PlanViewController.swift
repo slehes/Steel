@@ -44,6 +44,7 @@ final class PlanViewController: UIViewController {
         view.hero.isEnabled = true
         view.addSubview(scrollView)
         scrollView.snp.makeConstraints { $0.edges.equalToSuperview() }
+        scrollView.alwaysBounceVertical = true
 
         let card = UIView()
         card.backgroundColor = .secondarySystemBackground
@@ -61,11 +62,16 @@ final class PlanViewController: UIViewController {
         titleLabel.text = "Программа"
         titleLabel.font = UIFont.preferredFont(forTextStyle: .title2).withWeight(.bold)
         titleLabel.textColor = .label
+        titleLabel.numberOfLines = 0
 
         bodyLabel.numberOfLines = 0
         bodyLabel.font = UIFont.preferredFont(forTextStyle: .body)
         bodyLabel.adjustsFontForContentSizeCategory = true
         bodyLabel.textColor = .label
+        bodyLabel.lineBreakMode = .byWordWrapping
+
+        let maxWidth = UIScreen.main.bounds.width - 40 - 44 // screen - card insets - stack padding
+        bodyLabel.preferredMaxLayoutWidth = maxWidth
 
         let stack = UIStackView(arrangedSubviews: [titleLabel, bodyLabel])
         stack.axis = .vertical
