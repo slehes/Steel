@@ -314,9 +314,9 @@ extension ProfileViewController: UITextFieldDelegate {
 }
 
 extension ProfileViewController: PHPickerViewControllerDelegate {
-    func picker(_ picker: PHPickerViewController, didFinish picking: [PHPickerResult]) {
+    func picker(_ picker: PHPickerViewController, didFinishPicking results: [PHPickerResult]) {
         picker.dismiss(animated: true)
-        guard let result = picking.first else { return }
+        guard let result = results.first else { return }
         if result.itemProvider.canLoadObject(ofClass: UIImage.self) {
             result.itemProvider.loadObject(ofClass: UIImage.self) { [weak self] image, _ in
                 DispatchQueue.main.async {
