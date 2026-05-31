@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="banner.png" alt="Steel Banner" width="100%">
+<img src="icon.png" alt="Steel Banner" width="100%">
 
 # ⚔️ Steel
 
