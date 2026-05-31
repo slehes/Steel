@@ -28,6 +28,7 @@ final class ProfileViewController: UIViewController {
         setup()
         NotificationCenter.default.addObserver(self, selector: #selector(refresh), name: .steelSettingsChanged, object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(refresh), name: .steelTasksChanged, object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(refresh), name: .steelHabitsChanged, object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(reloadBackground), name: .steelBackgroundChanged, object: nil)
     }
 
@@ -53,6 +54,7 @@ final class ProfileViewController: UIViewController {
         view.addSubview(scrollView)
         scrollView.snp.makeConstraints { $0.edges.equalToSuperview() }
         scrollView.alwaysBounceVertical = true
+        scrollView.delaysContentTouches = false
 
         contentStack.axis = .vertical
         contentStack.spacing = 24
@@ -110,6 +112,8 @@ final class ProfileViewController: UIViewController {
         stack.spacing = 2
         card.contentView.addSubview(stack)
         stack.snp.makeConstraints { $0.edges.equalToSuperview().inset(20) }
+        card.isUserInteractionEnabled = true
+        card.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(openStreakDetails)))
         contentStack.addArrangedSubview(card)
     }
 
@@ -218,15 +222,28 @@ final class ProfileViewController: UIViewController {
         present(nav, animated: true)
     }
 
+    @objc private func openStreakDetails() {
+        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+        let vc = StreakDiagnosticsViewController()
+        let nav = UINavigationController(rootViewController: vc)
+        nav.navigationBar.prefersLargeTitles = true
+        nav.modalPresentationStyle = .fullScreen
+        present(nav, animated: true)
+    }
+
     @objc private func refresh() {
         let settings = DataManager.shared.settings
         nameField.text = settings.userName
         streakLabel.text = "\(settings.streakDays)"
 
         statsStack.arrangedSubviews.forEach { $0.removeFromSuperview() }
-        let cleanDays = DataManager.shared.fetchHabits().map(\.cleanDays).max() ?? 0
+        let tasks = DataManager.shared.fetchTasks()
+        let habits = DataManager.shared.fetchHabits()
+        let totalItems = tasks.count + habits.count
+        let cleanDays = habits.map(\.cleanDays).max() ?? 0
         let rows = [
-            ("Всего заданий", "\(settings.totalCompletedTasks)"),
+            ("Всего заданий", "\(totalItems)"),
+            ("Выполнено всего", "\(settings.totalCompletedTasks)"),
             ("Частое упражнение", settings.mostFrequentExercise),
             ("Дней без срыва", "\(cleanDays)"),
         ]

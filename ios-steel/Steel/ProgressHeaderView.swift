@@ -41,7 +41,7 @@ final class ProgressHeaderView: UICollectionReusableView {
             $0.bottom.equalToSuperview().inset(8)
         }
 
-        fill.backgroundColor = .label
+        fill.backgroundColor = .systemOrange
         fill.layer.cornerRadius = 5
         track.addSubview(fill)
         fill.snp.makeConstraints {
@@ -59,7 +59,7 @@ final class ProgressHeaderView: UICollectionReusableView {
         fillWidth?.update(offset: targetWidth)
 
         if animated {
-            UIView.animate(withDuration: 0.6, delay: 0, usingSpringWithDamping: 0.7, initialSpringVelocity: 0.5, options: .curveEaseOut) {
+            UIView.animate(withDuration: 1.2, delay: 0, usingSpringWithDamping: 0.6, initialSpringVelocity: 0.2, options: .curveEaseInOut) {
                 self.layoutIfNeeded()
             }
         } else {

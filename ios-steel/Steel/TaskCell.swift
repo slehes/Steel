@@ -10,7 +10,6 @@ final class TaskCell: UICollectionViewCell {
     private let titleLabel = UILabel()
     private let detailLabel = UILabel()
     private let lottieView = LottieAnimationView(name: "success")
-    private let checkmarkOverlay = UIImageView()
 
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -74,17 +73,6 @@ final class TaskCell: UICollectionViewCell {
             $0.center.equalTo(iconView)
             $0.width.height.equalTo(90)
         }
-
-        checkmarkOverlay.contentMode = .scaleAspectFit
-        checkmarkOverlay.preferredSymbolConfiguration = UIImage.SymbolConfiguration(pointSize: 30, weight: .semibold)
-        checkmarkOverlay.tintColor = .systemGreen
-        checkmarkOverlay.alpha = 0
-        checkmarkOverlay.isUserInteractionEnabled = false
-        content.addSubview(checkmarkOverlay)
-        checkmarkOverlay.snp.makeConstraints {
-            $0.center.equalTo(iconView)
-            $0.width.height.equalTo(34)
-        }
     }
 
     func configure(with task: DailyTask) {
@@ -98,25 +86,24 @@ final class TaskCell: UICollectionViewCell {
 
         detailLabel.text = task.isCompleted ? "Готово" : task.displayDetail
         glass.alpha = task.isCompleted ? 0.7 : 1
-        checkmarkOverlay.alpha = 0
     }
 
     func configureAnimated(with task: DailyTask, wasCompleted: Bool) {
         if !wasCompleted {
-            UIView.animate(withDuration: 0.25, delay: 0, options: .curveEaseOut) {
-                self.iconView.alpha = 0.3
-                self.iconView.transform = CGAffineTransform(scaleX: 0.8, y: 0.8)
+            UIView.animate(withDuration: 0.4, delay: 0, usingSpringWithDamping: 0.7, initialSpringVelocity: 0.3, options: .curveEaseInOut) {
+                self.iconView.alpha = 0.2
+                self.iconView.transform = CGAffineTransform(scaleX: 0.6, y: 0.6)
             } completion: { _ in
                 self.iconView.image = UIImage(systemName: "checkmark.circle.fill")
                 self.iconView.tintColor = .systemGreen
 
-                UIView.animate(withDuration: 0.35, delay: 0, usingSpringWithDamping: 0.5, initialSpringVelocity: 0.8, options: .curveEaseOut) {
+                UIView.animate(withDuration: 0.6, delay: 0, usingSpringWithDamping: 0.4, initialSpringVelocity: 0.6, options: .curveEaseOut) {
                     self.iconView.alpha = 1
                     self.iconView.transform = .identity
                 }
             }
 
-            UIView.animate(withDuration: 0.3, delay: 0.1, options: .curveEaseOut) {
+            UIView.animate(withDuration: 0.5, delay: 0.15, usingSpringWithDamping: 0.8, initialSpringVelocity: 0.3, options: .curveEaseOut) {
                 self.glass.alpha = 0.7
                 let attrs: [NSAttributedString.Key: Any] = [
                     .strikethroughStyle: NSUnderlineStyle.single.rawValue,
@@ -134,20 +121,20 @@ final class TaskCell: UICollectionViewCell {
                 iconView.addSymbolEffect(.bounce)
             }
         } else {
-            UIView.animate(withDuration: 0.25, delay: 0, options: .curveEaseOut) {
-                self.iconView.alpha = 0.3
-                self.iconView.transform = CGAffineTransform(scaleX: 0.8, y: 0.8)
+            UIView.animate(withDuration: 0.4, delay: 0, usingSpringWithDamping: 0.7, initialSpringVelocity: 0.3, options: .curveEaseInOut) {
+                self.iconView.alpha = 0.2
+                self.iconView.transform = CGAffineTransform(scaleX: 0.6, y: 0.6)
             } completion: { _ in
                 self.iconView.image = UIImage(systemName: task.iconName)
                 self.iconView.tintColor = .label
 
-                UIView.animate(withDuration: 0.35, delay: 0, usingSpringWithDamping: 0.5, initialSpringVelocity: 0.8, options: .curveEaseOut) {
+                UIView.animate(withDuration: 0.6, delay: 0, usingSpringWithDamping: 0.4, initialSpringVelocity: 0.6, options: .curveEaseOut) {
                     self.iconView.alpha = 1
                     self.iconView.transform = .identity
                 }
             }
 
-            UIView.animate(withDuration: 0.3, delay: 0.1, options: .curveEaseOut) {
+            UIView.animate(withDuration: 0.5, delay: 0.15, usingSpringWithDamping: 0.8, initialSpringVelocity: 0.3, options: .curveEaseOut) {
                 self.glass.alpha = 1
                 let attrs: [NSAttributedString.Key: Any] = [.foregroundColor: UIColor.label]
                 self.titleLabel.attributedText = NSAttributedString(string: task.title, attributes: attrs)
@@ -170,7 +157,6 @@ final class TaskCell: UICollectionViewCell {
         super.prepareForReuse()
         lottieView.stop()
         lottieView.currentProgress = 0
-        checkmarkOverlay.alpha = 0
         iconView.alpha = 1
         iconView.transform = .identity
     }

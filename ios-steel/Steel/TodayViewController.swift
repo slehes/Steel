@@ -81,6 +81,7 @@ final class TodayViewController: UIViewController {
         collectionView = UICollectionView(frame: .zero, collectionViewLayout: layout)
         collectionView.backgroundColor = .clear
         collectionView.alwaysBounceVertical = true
+        collectionView.delaysContentTouches = false
         collectionView.delegate = self
         collectionView.dataSource = self
         collectionView.register(TaskCell.self, forCellWithReuseIdentifier: TaskCell.reuseID)
@@ -154,7 +155,7 @@ final class TodayViewController: UIViewController {
             $0.bottom.equalTo(view.safeAreaLayoutGuide).inset(offset)
         }
         collectionView.contentInset.bottom = actionBarHidden ? 20 : 120
-        UIView.animate(withDuration: 0.3, delay: 0, options: .curveEaseInOut) {
+        UIView.animate(withDuration: 0.5, delay: 0, usingSpringWithDamping: 0.75, initialSpringVelocity: 0.5, options: .curveEaseInOut) {
             self.view.layoutIfNeeded()
         }
     }
@@ -244,7 +245,7 @@ extension TodayViewController: UICollectionViewDataSource, UICollectionViewDeleg
             header.configure(done: progress.done, total: progress.total, animated: true)
         }
 
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { [weak self] in
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) { [weak self] in
             self?.tasks = DataManager.shared.fetchTasks()
             collectionView.reloadItems(at: [indexPath])
         }

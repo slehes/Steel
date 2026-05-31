@@ -5,6 +5,7 @@ import SPIndicator
 final class SettingsViewController: UIViewController {
     private let scrollView = UIScrollView()
     private let contentStack = UIStackView()
+    private let backgroundView = PersonalBackgroundView()
 
     private static let russianRegions: [(String, String)] = [
         ("Москва", "Europe/Moscow"),
@@ -49,9 +50,25 @@ final class SettingsViewController: UIViewController {
         navigationItem.rightBarButtonItem = UIBarButtonItem(barButtonSystemItem: .close, target: self, action: #selector(close))
 
         setup()
+        NotificationCenter.default.addObserver(self, selector: #selector(reloadBackground), name: .steelBackgroundChanged, object: nil)
+    }
+
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        backgroundView.apply(BackgroundManager.shared.config)
+        backgroundView.resumeVideo()
+    }
+
+    override func viewWillDisappear(_ animated: Bool) {
+        super.viewWillDisappear(animated)
+        backgroundView.pauseVideo()
     }
 
     private func setup() {
+        view.addSubview(backgroundView)
+        backgroundView.snp.makeConstraints { $0.edges.equalToSuperview() }
+        backgroundView.apply(BackgroundManager.shared.config)
+
         view.addSubview(scrollView)
         scrollView.snp.makeConstraints { $0.edges.equalToSuperview() }
         scrollView.alwaysBounceVertical = true
@@ -103,6 +120,10 @@ final class SettingsViewController: UIViewController {
     private func currentRegionSubtitle() -> String {
         let city = DataManager.shared.settings.regionCity
         return city.isEmpty ? "Москва" : city
+    }
+
+    @objc private func reloadBackground() {
+        backgroundView.apply(BackgroundManager.shared.config)
     }
 
     @objc private func close() {
