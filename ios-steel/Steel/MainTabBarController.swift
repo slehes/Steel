@@ -1,7 +1,7 @@
 import UIKit
 
 final class MainTabBarController: UITabBarController, UITabBarControllerDelegate {
-    private var longPressOverlay: UIView?
+    private var longPressGesture: UILongPressGestureRecognizer?
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -33,35 +33,30 @@ final class MainTabBarController: UITabBarController, UITabBarControllerDelegate
         tabBar.standardAppearance = appearance
         tabBar.scrollEdgeAppearance = appearance
         tabBar.tintColor = .label
-    }
 
-    override func viewDidLayoutSubviews() {
-        super.viewDidLayoutSubviews()
-        setupLongPressOverlay()
-    }
-
-    private func setupLongPressOverlay() {
-        longPressOverlay?.removeFromSuperview()
-
-        let tabBarButtons = tabBar.subviews.filter { $0 is UIControl }
-        guard let firstButton = tabBarButtons.first else { return }
-
-        let overlay = UIView(frame: firstButton.frame)
-        overlay.backgroundColor = .clear
-        let longPress = UILongPressGestureRecognizer(target: self, action: #selector(handleTodayLongPress(_:)))
+        let longPress = UILongPressGestureRecognizer(target: self, action: #selector(handleLongPress(_:)))
         longPress.minimumPressDuration = 0.3
-        overlay.addGestureRecognizer(longPress)
-        tabBar.addSubview(overlay)
-        longPressOverlay = overlay
+        tabBar.addGestureRecognizer(longPress)
+        longPressGesture = longPress
     }
 
-    @objc private func handleTodayLongPress(_ gesture: UILongPressGestureRecognizer) {
+    @objc private func handleLongPress(_ gesture: UILongPressGestureRecognizer) {
         guard gesture.state == .began else { return }
-        guard selectedIndex == 0 else { return }
 
-        if let nav = viewControllers?.first as? UINavigationController,
-           let todayVC = nav.viewControllers.first as? TodayViewController {
-            todayVC.toggleActionBar()
+        let location = gesture.location(in: tabBar)
+        guard let items = tabBar.items, !items.isEmpty else { return }
+
+        let tabBarWidth = tabBar.bounds.width
+        let itemCount = CGFloat(items.count)
+        let itemWidth = tabBarWidth / itemCount
+
+        let firstItemRect = CGRect(x: 0, y: 0, width: itemWidth, height: tabBar.bounds.height)
+
+        if firstItemRect.contains(location) {
+            if let nav = viewControllers?.first as? UINavigationController,
+               let todayVC = nav.viewControllers.first as? TodayViewController {
+                todayVC.toggleActionBar()
+            }
         }
     }
 

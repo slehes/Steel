@@ -10,6 +10,7 @@ final class ProfileViewController: UIViewController {
 
     private let avatarView = UIImageView()
     private let nameField = UITextField()
+    private let musicPreviewButton = UIButton(type: .system)
     private let streakLabel = UILabel()
     private let statsStack = UIStackView()
     private var reminderPickers: [UIDatePicker] = []
@@ -30,6 +31,13 @@ final class ProfileViewController: UIViewController {
         NotificationCenter.default.addObserver(self, selector: #selector(refresh), name: .steelTasksChanged, object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(refresh), name: .steelHabitsChanged, object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(reloadBackground), name: .steelBackgroundChanged, object: nil)
+
+        MusicManager.shared.onSongChanged = { [weak self] in
+            DispatchQueue.main.async { self?.updateMusicPreview() }
+        }
+        MusicManager.shared.onPlaybackStateChanged = { [weak self] in
+            DispatchQueue.main.async { self?.updateMusicPreview() }
+        }
     }
 
     override func viewWillAppear(_ animated: Bool) {
@@ -37,6 +45,7 @@ final class ProfileViewController: UIViewController {
         backgroundView.apply(BackgroundManager.shared.config)
         backgroundView.resumeVideo()
         refresh()
+        updateMusicPreview()
     }
 
     override func viewWillDisappear(_ animated: Bool) {
@@ -66,6 +75,7 @@ final class ProfileViewController: UIViewController {
         }
 
         setupHeader()
+        setupMusicPreview()
         setupStreak()
         setupStats()
         setupReminders()
@@ -93,6 +103,53 @@ final class ProfileViewController: UIViewController {
         header.alignment = .center
         header.spacing = 8
         contentStack.addArrangedSubview(header)
+    }
+
+    private func setupMusicPreview() {
+        musicPreviewButton.backgroundColor = UIColor(white: 0.15, alpha: 0.7)
+        musicPreviewButton.layer.cornerRadius = 14
+        musicPreviewButton.layer.cornerCurve = .continuous
+        musicPreviewButton.clipsToBounds = true
+        musicPreviewButton.addTarget(self, action: #selector(openMusicPlayer), for: .touchUpInside)
+
+        musicPreviewButton.snp.makeConstraints { $0.height.equalTo(44) }
+
+        let noteIcon = UIImageView(image: UIImage(systemName: "music.note"))
+        noteIcon.tintColor = .systemBlue
+        noteIcon.contentMode = .center
+        noteIcon.snp.makeConstraints { $0.size.equalTo(20) }
+
+        let arrowIcon = UIImageView(image: UIImage(systemName: "chevron.right"))
+        arrowIcon.tintColor = UIColor(white: 0.5, alpha: 1)
+        arrowIcon.contentMode = .center
+        arrowIcon.snp.makeConstraints { $0.size.equalTo(12) }
+
+        let label = UILabel()
+        label.text = "Добавить песню"
+        label.font = UIFont.systemFont(ofSize: 14, weight: .medium)
+        label.textColor = .white
+        label.tag = 100
+
+        let stack = UIStackView(arrangedSubviews: [noteIcon, label, UIView(), arrowIcon])
+        stack.alignment = .center
+        stack.spacing = 8
+        stack.isLayoutMarginsRelativeArrangement = true
+        stack.layoutMargins = .init(top: 0, left: 12, bottom: 0, right: 12)
+
+        musicPreviewButton.addSubview(stack)
+        stack.snp.makeConstraints { $0.edges.equalToSuperview() }
+
+        contentStack.addArrangedSubview(musicPreviewButton)
+    }
+
+    private func updateMusicPreview() {
+        guard let label = musicPreviewButton.viewWithTag(100) as? UILabel else { return }
+        let song = MusicManager.shared.currentSong
+        if let song = song {
+            label.text = "\(song.title) - \(song.artist)"
+        } else {
+            label.text = "Добавить песню"
+        }
     }
 
     private func setupStreak() {
@@ -229,6 +286,13 @@ final class ProfileViewController: UIViewController {
         nav.navigationBar.prefersLargeTitles = true
         nav.modalPresentationStyle = .fullScreen
         present(nav, animated: true)
+    }
+
+    @objc private func openMusicPlayer() {
+        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+        let vc = MusicPlayerViewController()
+        vc.modalPresentationStyle = .fullScreen
+        present(vc, animated: true)
     }
 
     @objc private func refresh() {
