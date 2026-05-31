@@ -8,8 +8,15 @@ enum KeychainHelper {
     private static let bgConfigKey = "steel.background.config"
     private static let bgImageDataKey = "steel.background.imageData"
 
+    // Full data backup keys
+    private static let settingsBackupKey = "steel.backup.settings"
+    private static let tasksBackupKey = "steel.backup.tasks"
+    private static let habitsBackupKey = "steel.backup.habits"
+    private static let avatarBackupKey = "steel.backup.avatar"
+
     static func bootstrap() {
         restoreBackgroundIfNeeded()
+        restoreAllDataIfNeeded()
     }
 
     static var groqAPIKey: String {
@@ -30,7 +37,6 @@ enum KeychainHelper {
 
     // MARK: - Background Persistence (survives reinstall)
 
-    /// Save background config and image data to Keychain
     static func saveBackgroundToKeychain(config: BackgroundConfig, imageData: Data?) {
         if let configData = try? JSONEncoder().encode(config) {
             keychain.set(configData, forKey: bgConfigKey)
@@ -42,7 +48,6 @@ enum KeychainHelper {
         }
     }
 
-    /// Get saved background config from Keychain
     static var savedBackgroundConfig: BackgroundConfig? {
         guard let data = keychain.getData(bgConfigKey),
               let config = try? JSONDecoder().decode(BackgroundConfig.self, from: data) else {
@@ -51,38 +56,153 @@ enum KeychainHelper {
         return config
     }
 
-    /// Get saved background image data from Keychain
     static var savedBackgroundImageData: Data? {
         keychain.getData(bgImageDataKey)
     }
 
-    /// Clear background data from Keychain
     static func clearBackgroundFromKeychain() {
         keychain.delete(bgConfigKey)
         keychain.delete(bgImageDataKey)
     }
 
-    /// Restore background from Keychain if file was lost (e.g. after reinstall)
     private static func restoreBackgroundIfNeeded() {
         guard let config = savedBackgroundConfig else { return }
 
-        // Check if file already exists
         if !config.fileName.isEmpty {
             let fileURL = BackgroundManager.backgroundsDirectory.appendingPathComponent(config.fileName)
             if FileManager.default.fileExists(atPath: fileURL.path) {
-                return // File exists, no need to restore
+                return
             }
 
-            // File missing - restore from Keychain image data
             if config.kind == .photo, let imageData = savedBackgroundImageData {
                 try? imageData.write(to: fileURL, options: .atomic)
-                // Restore config to UserDefaults
                 DataManager.shared.updateSettings { $0.background = config }
                 NotificationCenter.default.post(name: .steelBackgroundChanged, object: nil)
             } else {
-                // Video or missing data - can't restore, clear
                 clearBackgroundFromKeychain()
             }
         }
+    }
+
+    // MARK: - Full Data Backup (survives reinstall)
+
+    /// Backup all app data to Keychain so it survives app deletion and reinstall
+    static func backupAllData() {
+        // Backup settings
+        if let settingsData = try? JSONEncoder().encode(DataManager.shared.settings) {
+            keychain.set(settingsData, forKey: settingsBackupKey)
+        }
+
+        // Backup tasks
+        let tasks = DataManager.shared.fetchTasks()
+        let taskDTOs = tasks.map { TaskDTO(from: $0) }
+        if let tasksData = try? JSONEncoder().encode(taskDTOs) {
+            keychain.set(tasksData, forKey: tasksBackupKey)
+        }
+
+        // Backup habits
+        let habits = DataManager.shared.fetchHabits()
+        let habitDTOs = habits.map { HabitDTO(from: $0) }
+        if let habitsData = try? JSONEncoder().encode(habitDTOs) {
+            keychain.set(habitsData, forKey: habitsBackupKey)
+        }
+    }
+
+    /// Save avatar image data to Keychain
+    static func saveAvatarToKeychain(_ imageData: Data) {
+        keychain.set(imageData, forKey: avatarBackupKey)
+    }
+
+    /// Get saved avatar image data from Keychain
+    static var savedAvatarData: Data? {
+        keychain.getData(avatarBackupKey)
+    }
+
+    /// Clear avatar from Keychain
+    static func clearAvatarFromKeychain() {
+        keychain.delete(avatarBackupKey)
+    }
+
+    /// Restore all data from Keychain if SwiftData is empty (after reinstall)
+    private static func restoreAllDataIfNeeded() {
+        let existingTasks = DataManager.shared.fetchTasks()
+        let existingHabits = DataManager.shared.fetchHabits()
+
+        // Only restore if data is empty (fresh install) and backup exists
+        if existingTasks.isEmpty, let tasksData = keychain.getData(tasksBackupKey),
+           let taskDTOs = try? JSONDecoder().decode([TaskDTO].self, from: tasksData) {
+            for dto in taskDTOs {
+                DataManager.shared.addTaskFromDTO(dto)
+            }
+        }
+
+        if existingHabits.isEmpty, let habitsData = keychain.getData(habitsBackupKey),
+           let habitDTOs = try? JSONDecoder().decode([HabitDTO].self, from: habitsData) {
+            for dto in habitDTOs {
+                DataManager.shared.addHabitFromDTO(dto)
+            }
+        }
+
+        // Restore settings if they seem like defaults (fresh install)
+        if let settingsData = keychain.getData(settingsBackupKey),
+           let backupSettings = try? JSONDecoder().decode(AppSettings.self, from: settingsData) {
+            let current = DataManager.shared.settings
+            // If current settings look like defaults (no completed tasks, streak 0), restore backup
+            if current.totalCompletedTasks == 0 && current.streakDays == 0 && current.lastDayKey.isEmpty {
+                // Restore only non-default values
+                DataManager.shared.updateSettings {
+                    $0.totalCompletedTasks = backupSettings.totalCompletedTasks
+                    $0.exerciseCounts = backupSettings.exerciseCounts
+                    $0.streakDays = backupSettings.streakDays
+                    $0.lastCompletedDayKey = backupSettings.lastCompletedDayKey
+                    $0.lastDayKey = backupSettings.lastDayKey
+                    $0.userName = backupSettings.userName
+                    $0.streakPaused = backupSettings.streakPaused
+                    $0.streakPausedSince = backupSettings.streakPausedSince
+                    $0.regionCity = backupSettings.regionCity
+                    $0.regionTimeZone = backupSettings.regionTimeZone
+                    $0.userTrainingLocation = backupSettings.userTrainingLocation
+                    if backupSettings.background.kind != .none {
+                        $0.background = backupSettings.background
+                    }
+                }
+            }
+        }
+    }
+}
+
+// MARK: - Data Transfer Objects for Keychain backup
+
+struct TaskDTO: Codable {
+    let title: String
+    let amount: Int
+    let unit: String
+    let iconName: String
+    let isCompleted: Bool
+    let totalCompletions: Int
+
+    init(from task: DailyTask) {
+        self.title = task.title
+        self.amount = task.amount
+        self.unit = task.unit
+        self.iconName = task.iconName
+        self.isCompleted = task.isCompleted
+        self.totalCompletions = task.totalCompletions
+    }
+}
+
+struct HabitDTO: Codable {
+    let title: String
+    let iconName: String
+    let bestStreak: Int
+    let relapseCount: Int
+    let streakStart: Date
+
+    init(from habit: Habit) {
+        self.title = habit.title
+        self.iconName = habit.iconName
+        self.bestStreak = habit.bestStreak
+        self.relapseCount = habit.relapseCount
+        self.streakStart = habit.streakStart
     }
 }

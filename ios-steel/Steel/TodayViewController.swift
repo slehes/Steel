@@ -11,6 +11,7 @@ final class TodayViewController: UIViewController {
     private let actionBar = UIVisualEffectView(effect: UIBlurEffect(style: .systemThickMaterial))
     private let finishButton = UIButton(type: .system)
     private var actionBarHidden = false
+    private let motivationLabel = UILabel()
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -21,6 +22,7 @@ final class TodayViewController: UIViewController {
         setupRightButtons()
         setupCollection()
         setupActionBar()
+        setupMotivation()
         observe()
         reload()
     }
@@ -106,7 +108,6 @@ final class TodayViewController: UIViewController {
         actionBar.layer.borderWidth = 0.5
         actionBar.layer.borderColor = UIColor.separator.cgColor
         view.addSubview(actionBar)
-        // Constrain bottom to safeAreaLayoutGuide so action bar sits above tab bar
         actionBar.snp.makeConstraints {
             $0.leading.trailing.equalToSuperview().inset(16)
             $0.height.equalTo(124)
@@ -139,6 +140,23 @@ final class TodayViewController: UIViewController {
         finishButton.snp.makeConstraints { $0.height.equalTo(48) }
     }
 
+    private func setupMotivation() {
+        motivationLabel.font = UIFont.systemFont(ofSize: 14, weight: .medium)
+        motivationLabel.textColor = .secondaryLabel
+        motivationLabel.textAlignment = .center
+        motivationLabel.numberOfLines = 0
+        view.addSubview(motivationLabel)
+        motivationLabel.snp.makeConstraints {
+            $0.bottom.equalTo(actionBar.snp.top).offset(-12)
+            $0.leading.trailing.equalToSuperview().inset(24)
+        }
+        updateMotivation()
+    }
+
+    private func updateMotivation() {
+        motivationLabel.text = DataManager.shared.motivationalMessage
+    }
+
     private func makeMiniButton(title: String, icon: String, action: Selector) -> UIButton {
         var config = UIButton.Configuration.gray()
         config.title = title
@@ -154,6 +172,11 @@ final class TodayViewController: UIViewController {
     private func observe() {
         NotificationCenter.default.addObserver(self, selector: #selector(reload), name: .steelTasksChanged, object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(reloadBackground), name: .steelBackgroundChanged, object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(xpChanged), name: .steelXPChanged, object: nil)
+    }
+
+    @objc private func xpChanged() {
+        updateMotivation()
     }
 
     func toggleActionBar() {
@@ -163,15 +186,12 @@ final class TodayViewController: UIViewController {
     }
 
     private func updateActionBarPosition(animated: Bool) {
-        // When visible: offset -8 (8 points above safe area bottom = above tab bar)
-        // When hidden: offset +200 (200 points BELOW safe area bottom = off screen below tab bar)
         let offset: CGFloat = actionBarHidden ? 200 : -8
         actionBar.snp.updateConstraints {
             $0.bottom.equalTo(view.safeAreaLayoutGuide.snp.bottom).offset(offset)
         }
         collectionView.contentInset.bottom = actionBarHidden ? 20 : 140
 
-        // Update chevron icon
         if let hideButton = navigationItem.rightBarButtonItems?.first(where: { $0.tag == 100 }) {
             hideButton.image = UIImage(systemName: actionBarHidden ? "chevron.up" : "chevron.down")
         }
@@ -192,6 +212,7 @@ final class TodayViewController: UIViewController {
     @objc private func reload() {
         tasks = DataManager.shared.fetchTasks()
         collectionView.reloadData()
+        updateMotivation()
     }
 
     @objc private func reloadBackground() {
@@ -237,7 +258,11 @@ final class TodayViewController: UIViewController {
         UIImpactFeedbackGenerator.tap(.heavy)
         DataManager.shared.completeDay()
         let streak = DataManager.shared.settings.streakDays
-        SPIndicator.present(title: "День закрыт", message: "Серия: \(streak)", preset: .done, haptic: .success)
+        if progress.done == progress.total {
+            SPIndicator.present(title: "Идеальный день!", message: "Серия: \(streak) | +50 XP бонус", preset: .done, haptic: .success)
+        } else {
+            SPIndicator.present(title: "День закрыт", message: "Серия: \(streak)", preset: .done, haptic: .success)
+        }
     }
 }
 

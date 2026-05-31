@@ -5,30 +5,29 @@ import Lottie
 final class TaskCell: UICollectionViewCell {
     static let reuseID = "TaskCell"
 
-    private let glass = UIVisualEffectView(effect: UIBlurEffect(style: .systemThinMaterial))
+    private let glass = UIVisualEffectView(effect: UIBlurEffect(style: .systemUltraThinMaterial))
     private let iconView = UIImageView()
     private let titleLabel = UILabel()
     private let detailLabel = UILabel()
     private let lottieView = LottieAnimationView(name: "success")
+    private let xpBadge = UILabel()
 
     override init(frame: CGRect) {
         super.init(frame: frame)
         setup()
     }
 
-    required init?(coder: NSCoder) {
-        super.init(coder: coder)
-        setup()
-    }
+    required init?(coder: NSCoder) { fatalError() }
 
     private func setup() {
         contentView.applyCardShadow()
 
+        glass.backgroundColor = UIColor.secondarySystemBackground.withAlphaComponent(0.5)
         glass.layer.cornerRadius = 22
         glass.layer.cornerCurve = .continuous
         glass.clipsToBounds = true
         glass.layer.borderWidth = 0.5
-        glass.layer.borderColor = UIColor.separator.cgColor
+        glass.layer.borderColor = UIColor.white.withAlphaComponent(0.15).cgColor
         contentView.addSubview(glass)
         glass.snp.makeConstraints { $0.edges.equalToSuperview() }
 
@@ -45,10 +44,17 @@ final class TaskCell: UICollectionViewCell {
         detailLabel.adjustsFontForContentSizeCategory = true
         detailLabel.textColor = .secondaryLabel
 
+        // XP badge
+        xpBadge.font = UIFont.systemFont(ofSize: 11, weight: .bold)
+        xpBadge.textColor = .systemOrange
+        xpBadge.textAlignment = .center
+        xpBadge.isHidden = true
+
         let content = glass.contentView
         content.addSubview(iconView)
         content.addSubview(titleLabel)
         content.addSubview(detailLabel)
+        content.addSubview(xpBadge)
 
         iconView.snp.makeConstraints {
             $0.top.leading.equalToSuperview().inset(18)
@@ -64,6 +70,10 @@ final class TaskCell: UICollectionViewCell {
             $0.trailing.equalToSuperview().inset(12)
             $0.top.equalTo(titleLabel.snp.bottom).offset(2)
             $0.bottom.lessThanOrEqualToSuperview().inset(16)
+        }
+        xpBadge.snp.makeConstraints {
+            $0.top.equalToSuperview().inset(18)
+            $0.trailing.equalToSuperview().inset(14)
         }
 
         lottieView.contentMode = .scaleAspectFit
@@ -98,6 +108,14 @@ final class TaskCell: UICollectionViewCell {
 
         detailLabel.text = task.isCompleted ? "Готово" : task.displayDetail
         glass.alpha = task.isCompleted ? 0.7 : 1
+
+        // Show XP badge
+        if task.isCompleted {
+            xpBadge.text = "+15 XP"
+            xpBadge.isHidden = false
+        } else {
+            xpBadge.isHidden = true
+        }
     }
 
     func configureAnimated(with task: DailyTask, wasCompleted: Bool) {
@@ -121,6 +139,16 @@ final class TaskCell: UICollectionViewCell {
                 ]
                 self.titleLabel.attributedText = NSAttributedString(string: task.title, attributes: attrs)
                 self.detailLabel.text = "Готово"
+            }
+
+            // Show XP with animation
+            xpBadge.text = "+15 XP"
+            xpBadge.isHidden = false
+            xpBadge.alpha = 0
+            xpBadge.transform = CGAffineTransform(scaleX: 0.5, y: 0.5)
+            UIView.animate(withDuration: 0.5, delay: 0.3, usingSpringWithDamping: 0.6, initialSpringVelocity: 0.5, options: .curveEaseOut) {
+                self.xpBadge.alpha = 1
+                self.xpBadge.transform = .identity
             }
 
             lottieView.play { [weak self] _ in
@@ -148,6 +176,13 @@ final class TaskCell: UICollectionViewCell {
                 self.titleLabel.attributedText = NSAttributedString(string: task.title, attributes: attrs)
                 self.detailLabel.text = task.displayDetail
             }
+
+            // Hide XP with fade out
+            UIView.animate(withDuration: 0.3) {
+                self.xpBadge.alpha = 0
+            } completion: { _ in
+                self.xpBadge.isHidden = true
+            }
         }
     }
 
@@ -158,5 +193,7 @@ final class TaskCell: UICollectionViewCell {
         iconView.alpha = 1
         iconView.transform = .identity
         glass.alpha = 1
+        xpBadge.isHidden = true
+        xpBadge.alpha = 1
     }
 }

@@ -4,13 +4,15 @@ import SnapKit
 final class HabitCell: UICollectionViewCell {
     static let reuseID = "HabitCell"
 
-    private let glass = UIVisualEffectView(effect: UIBlurEffect(style: .systemThinMaterial))
+    private let glass = UIVisualEffectView(effect: UIBlurEffect(style: .systemUltraThinMaterial))
     private let iconView = UIImageView()
     private let titleLabel = UILabel()
     private let daysLabel = UILabel()
+    private let daysCaption = UILabel()
     private let relapseButton = UIButton(type: .system)
     private let track = UIView()
     private let fill = UIView()
+    private let shimmerView = UIView()
     private var fillWidth: Constraint?
 
     var onRelapse: (() -> Void)?
@@ -24,11 +26,12 @@ final class HabitCell: UICollectionViewCell {
 
     private func setup() {
         contentView.applyCardShadow()
+        glass.backgroundColor = UIColor.secondarySystemBackground.withAlphaComponent(0.5)
         glass.layer.cornerRadius = 22
         glass.layer.cornerCurve = .continuous
         glass.clipsToBounds = true
         glass.layer.borderWidth = 0.5
-        glass.layer.borderColor = UIColor.separator.cgColor
+        glass.layer.borderColor = UIColor.white.withAlphaComponent(0.15).cgColor
         contentView.addSubview(glass)
         glass.snp.makeConstraints { $0.edges.equalToSuperview() }
 
@@ -59,7 +62,16 @@ final class HabitCell: UICollectionViewCell {
         content.addSubview(daysLabel)
         daysLabel.snp.makeConstraints {
             $0.leading.equalToSuperview().inset(18)
-            $0.top.equalTo(iconView.snp.bottom).offset(10)
+            $0.top.equalTo(iconView.snp.bottom).offset(6)
+        }
+
+        daysCaption.font = UIFont.preferredFont(forTextStyle: .caption1)
+        daysCaption.textColor = .secondaryLabel
+        daysCaption.text = "дней чисто"
+        content.addSubview(daysCaption)
+        daysCaption.snp.makeConstraints {
+            $0.leading.equalTo(daysLabel.snp.trailing).offset(6)
+            $0.bottom.equalTo(daysLabel.snp.bottom).offset(-4)
         }
 
         track.backgroundColor = .systemFill
@@ -72,12 +84,23 @@ final class HabitCell: UICollectionViewCell {
             $0.top.equalTo(daysLabel.snp.bottom).offset(10)
             $0.height.equalTo(8)
         }
-        fill.backgroundColor = .label
+
+        fill.backgroundColor = .systemOrange
         fill.layer.cornerRadius = 4
         track.addSubview(fill)
         fill.snp.makeConstraints {
             $0.leading.top.bottom.equalToSuperview()
             fillWidth = $0.width.equalTo(0).constraint
+        }
+
+        // Shimmer
+        shimmerView.backgroundColor = UIColor.white.withAlphaComponent(0.25)
+        shimmerView.isHidden = true
+        fill.addSubview(shimmerView)
+        shimmerView.snp.makeConstraints {
+            $0.top.bottom.equalToSuperview()
+            $0.width.equalToSuperview()
+            $0.leading.equalToSuperview()
         }
 
         var config = UIButton.Configuration.gray()
@@ -104,8 +127,50 @@ final class HabitCell: UICollectionViewCell {
 
         let best = max(habit.bestStreak, 30)
         let ratio = best > 0 ? min(1, CGFloat(habit.cleanDays) / CGFloat(best)) : 0
+
         layoutIfNeeded()
-        fillWidth?.update(offset: track.bounds.width * ratio)
+        let targetWidth = track.bounds.width * ratio
+        fillWidth?.update(offset: targetWidth)
+
+        // Smooth slow animation for fill bar
+        UIView.animate(withDuration: 2.0, delay: 0, usingSpringWithDamping: 0.8, initialSpringVelocity: 0.3, options: .curveEaseInOut) {
+            self.layoutIfNeeded()
+        } completion: { _ in
+            if ratio > 0 {
+                self.playShimmer()
+            }
+        }
+
+        // Color based on progress
+        if ratio >= 1.0 {
+            fill.backgroundColor = .systemGreen
+        } else if ratio >= 0.5 {
+            fill.backgroundColor = .systemOrange
+        } else {
+            fill.backgroundColor = .systemOrange
+        }
+    }
+
+    private func playShimmer() {
+        shimmerView.isHidden = false
+        shimmerView.snp.remakeConstraints {
+            $0.top.bottom.equalToSuperview()
+            $0.width.equalToSuperview()
+            $0.leading.equalToSuperview().offset(-self.fill.bounds.width)
+        }
+        layoutIfNeeded()
+
+        shimmerView.snp.remakeConstraints {
+            $0.top.bottom.equalToSuperview()
+            $0.width.equalToSuperview()
+            $0.trailing.equalToSuperview()
+        }
+
+        UIView.animate(withDuration: 1.0, delay: 0, options: .curveEaseInOut) {
+            self.layoutIfNeeded()
+        } completion: { _ in
+            self.shimmerView.isHidden = true
+        }
     }
 
     @objc private func relapseTapped() {

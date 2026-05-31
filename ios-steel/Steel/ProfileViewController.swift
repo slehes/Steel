@@ -11,6 +11,10 @@ final class ProfileViewController: UIViewController {
     private let avatarView = UIImageView()
     private let nameField = UITextField()
     private let streakLabel = UILabel()
+    private let levelLabel = UILabel()
+    private let xpBarTrack = UIView()
+    private let xpBarFill = UIView()
+    private let xpLabel = UILabel()
     private let statsStack = UIStackView()
     private var reminderPickers: [UIDatePicker] = []
 
@@ -26,12 +30,14 @@ final class ProfileViewController: UIViewController {
         NotificationCenter.default.addObserver(self, selector: #selector(refresh), name: .steelTasksChanged, object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(refresh), name: .steelHabitsChanged, object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(reloadBackground), name: .steelBackgroundChanged, object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(refresh), name: .steelXPChanged, object: nil)
     }
 
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
         backgroundView.apply(BackgroundManager.shared.config)
         backgroundView.resumeVideo()
+        loadAvatar()
         refresh()
     }
 
@@ -73,6 +79,7 @@ final class ProfileViewController: UIViewController {
         }
 
         setupHeaderSection()
+        setupLevelCard()
         setupStreak()
         setupStats()
         setupReminders()
@@ -86,7 +93,7 @@ final class ProfileViewController: UIViewController {
         avatarView.clipsToBounds = true
         avatarView.layer.cornerRadius = 42
         avatarView.layer.borderWidth = 2
-        avatarView.layer.borderColor = UIColor.secondarySystemFill.cgColor
+        avatarView.layer.borderColor = UIColor.systemOrange.withAlphaComponent(0.6).cgColor
         avatarView.isUserInteractionEnabled = true
         avatarView.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(changeAvatar)))
         avatarView.snp.makeConstraints { $0.size.equalTo(84) }
@@ -105,8 +112,63 @@ final class ProfileViewController: UIViewController {
         contentStack.addArrangedSubview(header)
     }
 
+    // MARK: - Level / XP Card (Liquid Glass)
+
+    private func setupLevelCard() {
+        let card = makeLiquidGlassCard()
+        let stack = UIStackView()
+        stack.axis = .vertical
+        stack.spacing = 12
+        stack.alignment = .fill
+        card.contentView.addSubview(stack)
+        stack.snp.makeConstraints { $0.edges.equalToSuperview().inset(20) }
+
+        let topRow = UIStackView()
+        topRow.alignment = .center
+        topRow.spacing = 10
+
+        let levelIcon = UIImageView(image: UIImage(systemName: "star.fill", withConfiguration: UIImage.SymbolConfiguration(pointSize: 20, weight: .bold)))
+        levelIcon.tintColor = .systemYellow
+
+        levelLabel.font = UIFont.systemFont(ofSize: 22, weight: .heavy)
+        levelLabel.textColor = .label
+
+        let spacer = UIView()
+
+        xpLabel.font = UIFont.preferredFont(forTextStyle: .subheadline)
+        xpLabel.textColor = .secondaryLabel
+        xpLabel.textAlignment = .right
+
+        topRow.addArrangedSubviews([levelIcon, levelLabel, spacer, xpLabel])
+
+        // XP progress bar
+        xpBarTrack.backgroundColor = .systemGray5
+        xpBarTrack.layer.cornerRadius = 6
+        xpBarTrack.clipsToBounds = true
+        xpBarTrack.snp.makeConstraints { $0.height.equalTo(12) }
+
+        xpBarFill.backgroundColor = .systemOrange
+        xpBarFill.layer.cornerRadius = 6
+        xpBarFill.snp.makeConstraints { $0.width.equalTo(0) }
+        xpBarTrack.addSubview(xpBarFill)
+        xpBarFill.snp.makeConstraints {
+            $0.leading.top.bottom.equalToSuperview()
+            $0.trailing.lessThanOrEqualToSuperview()
+        }
+
+        // Motivational message
+        let msgLabel = UILabel()
+        msgLabel.font = UIFont.preferredFont(forTextStyle: .caption1)
+        msgLabel.textColor = .tertiaryLabel
+        msgLabel.textAlignment = .center
+        msgLabel.tag = 300
+
+        stack.addArrangedSubviews([topRow, xpBarTrack, msgLabel])
+        contentStack.addArrangedSubview(card)
+    }
+
     private func setupStreak() {
-        let card = makeCard()
+        let card = makeLiquidGlassCard()
         streakLabel.font = UIFont.systemFont(ofSize: 44, weight: .heavy)
         streakLabel.textColor = .label
         streakLabel.textAlignment = .center
@@ -128,7 +190,7 @@ final class ProfileViewController: UIViewController {
     }
 
     private func setupStats() {
-        let card = makeCard()
+        let card = makeLiquidGlassCard()
         statsStack.axis = .vertical
         statsStack.spacing = 0
         card.contentView.addSubview(statsStack)
@@ -140,7 +202,7 @@ final class ProfileViewController: UIViewController {
         let title = sectionTitle("НАПОМИНАНИЯ")
         contentStack.addArrangedSubview(title)
 
-        let card = makeCard()
+        let card = makeLiquidGlassCard()
         let stack = UIStackView()
         stack.axis = .vertical
         stack.spacing = 0
@@ -177,12 +239,14 @@ final class ProfileViewController: UIViewController {
         contentStack.addArrangedSubview(card)
     }
 
-    private func makeCard() -> UIVisualEffectView {
-        let card = UIVisualEffectView(effect: UIBlurEffect(style: .systemThinMaterial))
-        card.backgroundColor = .secondarySystemBackground
-        card.layer.cornerRadius = 18
+    private func makeLiquidGlassCard() -> UIVisualEffectView {
+        let card = UIVisualEffectView(effect: UIBlurEffect(style: .systemUltraThinMaterial))
+        card.backgroundColor = UIColor.secondarySystemBackground.withAlphaComponent(0.5)
+        card.layer.cornerRadius = 20
         card.layer.cornerCurve = .continuous
         card.clipsToBounds = true
+        card.layer.borderWidth = 0.5
+        card.layer.borderColor = UIColor.white.withAlphaComponent(0.15).cgColor
         return card
     }
 
@@ -246,6 +310,25 @@ final class ProfileViewController: UIViewController {
         nameField.text = settings.userName
         streakLabel.text = "\(settings.streakDays)"
 
+        // Level & XP
+        levelLabel.text = "Уровень \(DataManager.shared.level)"
+        xpLabel.text = "\(DataManager.shared.xpToNextLevel) XP до след."
+
+        // Animate XP bar
+        view.layoutIfNeeded()
+        let targetWidth = xpBarTrack.bounds.width * DataManager.shared.levelProgress
+        xpBarFill.snp.updateConstraints {
+            $0.width.equalTo(targetWidth)
+        }
+        UIView.animate(withDuration: 2.0, delay: 0, usingSpringWithDamping: 0.7, initialSpringVelocity: 0.3, options: .curveEaseInOut) {
+            self.view.layoutIfNeeded()
+        }
+
+        // Motivational message
+        if let msgLabel = view.viewWithTag(300) as? UILabel {
+            msgLabel.text = DataManager.shared.motivationalMessage
+        }
+
         statsStack.arrangedSubviews.forEach { $0.removeFromSuperview() }
         let tasks = DataManager.shared.fetchTasks()
         let habits = DataManager.shared.fetchHabits()
@@ -266,6 +349,42 @@ final class ProfileViewController: UIViewController {
         backgroundView.apply(BackgroundManager.shared.config)
     }
 
+    // MARK: - Avatar Persistence
+
+    private func loadAvatar() {
+        // First try Keychain (survives reinstall)
+        if let avatarData = KeychainHelper.savedAvatarData,
+           let img = UIImage(data: avatarData) {
+            avatarView.image = img
+            avatarView.contentMode = .scaleAspectFill
+            return
+        }
+        // Then try documents directory
+        let docs = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+        let avatarURL = docs.appendingPathComponent("avatar.jpg")
+        if let data = try? Data(contentsOf: avatarURL),
+           let img = UIImage(data: data) {
+            avatarView.image = img
+            avatarView.contentMode = .scaleAspectFill
+            return
+        }
+        // Default
+        avatarView.image = UIImage(systemName: "person.crop.circle.fill")
+        avatarView.contentMode = .center
+    }
+
+    private func saveAvatar(_ image: UIImage) {
+        // Save to documents directory
+        if let data = image.jpegData(compressionQuality: 0.85) {
+            let docs = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+            let avatarURL = docs.appendingPathComponent("avatar.jpg")
+            try? data.write(to: avatarURL, options: .atomic)
+
+            // Also save to Keychain for reinstall persistence
+            KeychainHelper.saveAvatarToKeychain(data)
+        }
+    }
+
     @objc private func changeAvatar() {
         UIImpactFeedbackGenerator.tap(.light)
         let alert = UIAlertController(title: "Аватар", message: nil, preferredStyle: .actionSheet)
@@ -278,6 +397,11 @@ final class ProfileViewController: UIViewController {
         alert.addAction(UIAlertAction(title: "Сбросить", style: .destructive) { [weak self] _ in
             self?.avatarView.image = UIImage(systemName: "person.crop.circle.fill")
             self?.avatarView.contentMode = .center
+            // Delete saved avatar
+            let docs = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+            let avatarURL = docs.appendingPathComponent("avatar.jpg")
+            try? FileManager.default.removeItem(at: avatarURL)
+            KeychainHelper.clearAvatarFromKeychain()
         })
         alert.addAction(UIAlertAction(title: "Отмена", style: .cancel))
         alert.popoverPresentationController?.sourceView = avatarView
@@ -333,6 +457,7 @@ extension ProfileViewController: PHPickerViewControllerDelegate {
                     if let img = image as? UIImage {
                         self?.avatarView.image = img
                         self?.avatarView.contentMode = .scaleAspectFill
+                        self?.saveAvatar(img)
                     }
                 }
             }
@@ -348,6 +473,7 @@ extension ProfileViewController: UIDocumentPickerDelegate {
         if let data = try? Data(contentsOf: url), let img = UIImage(data: data) {
             avatarView.image = img
             avatarView.contentMode = .scaleAspectFill
+            saveAvatar(img)
         }
     }
 }

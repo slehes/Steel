@@ -171,11 +171,13 @@ final class AppearanceViewController: UIViewController {
     }
 
     private func makeCard() -> UIVisualEffectView {
-        let card = UIVisualEffectView(effect: UIBlurEffect(style: .systemThinMaterial))
-        card.backgroundColor = .secondarySystemBackground
-        card.layer.cornerRadius = 18
+        let card = UIVisualEffectView(effect: UIBlurEffect(style: .systemUltraThinMaterial))
+        card.backgroundColor = UIColor.secondarySystemBackground.withAlphaComponent(0.5)
+        card.layer.cornerRadius = 20
         card.layer.cornerCurve = .continuous
         card.clipsToBounds = true
+        card.layer.borderWidth = 0.5
+        card.layer.borderColor = UIColor.white.withAlphaComponent(0.15).cgColor
         return card
     }
 
