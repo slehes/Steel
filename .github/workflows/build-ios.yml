@@ -1,0 +1,76 @@
+name: Build iOS IPA
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build Steel IPA
+    runs-on: macos-14
+
+    steps:
+      - name: 📥 Checkout
+        uses: actions/checkout@v4
+
+      - name: 🛠 Setup Xcode
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: '15.4'
+
+      - name: 📦 Resolve Dependencies
+        working-directory: ios-steel
+        run: |
+          if [ -f Package.swift ]; then
+            swift package resolve
+          fi
+
+      - name: 🔨 Build Archive
+        working-directory: ios-steel
+        run: |
+          xcodebuild archive \
+            -project Steel.xcodeproj \
+            -scheme Steel \
+            -archivePath build/Steel.xcarchive \
+            -destination "generic/platform=iOS" \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            | xcpretty || true
+
+      - name: 📦 Export IPA
+        working-directory: ios-steel
+        run: |
+          mkdir -p build/ipa-output/Payload
+          if [ -d build/Steel.xcarchive/Products/Applications/Steel.app ]; then
+            cp -r build/Steel.xcarchive/Products/Applications/Steel.app build/ipa-output/Payload/
+            cd build/ipa-output
+            zip -r Steel.ipa Payload/
+            echo "✅ IPA created successfully!"
+          else
+            echo "⚠️ Archive did not produce .app bundle. Checking archive structure..."
+            find build/Steel.xcarchive -type f -name "*.app" 2>/dev/null || echo "No .app found"
+            ls -la build/Steel.xcarchive/Products/ 2>/dev/null || echo "No Products dir"
+          fi
+
+      - name: 📤 Upload IPA Artifact
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: Steel-iOS-IPA
+          path: ios-steel/build/ipa-output/Steel.ipa
+          retention-days: 30
+
+      - name: 📋 Build Log Summary
+        if: always()
+        working-directory: ios-steel
+        run: |
+          echo "## Build Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          if [ -f build/ipa-output/Steel.ipa ]; then
+            SIZE=$(du -h build/ipa-output/Steel.ipa | cut -f1)
+            echo "✅ **IPA built successfully!** Size: ${SIZE}" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "⚠️ IPA was not produced. Check build logs above." >> $GITHUB_STEP_SUMMARY
+          fi
