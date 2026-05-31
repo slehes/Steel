@@ -110,6 +110,9 @@ final class ProfileViewController: UIViewController {
         setupStreak()
         setupStats()
         setupReminders()
+
+        // Bring header to front so it receives touches above scrollView
+        view.bringSubviewToFront(headerContainer)
     }
 
     private func setupHeaderSection() {
@@ -119,8 +122,11 @@ final class ProfileViewController: UIViewController {
         avatarView.contentMode = .scaleAspectFill
         avatarView.clipsToBounds = true
         avatarView.layer.cornerRadius = 42
+        avatarView.layer.borderWidth = 2
+        avatarView.layer.borderColor = UIColor.secondarySystemFill.cgColor
         avatarView.isUserInteractionEnabled = true
         avatarView.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(changeAvatar)))
+        avatarView.snp.makeConstraints { $0.size.equalTo(84) }
 
         nameField.font = UIFont.systemFont(ofSize: 24, weight: .bold)
         nameField.textColor = .label
@@ -156,7 +162,6 @@ final class ProfileViewController: UIViewController {
         arrowIcon.snp.makeConstraints { $0.size.equalTo(12) }
 
         let label = UILabel()
-        label.text = "Добавить песню"
         label.font = UIFont.systemFont(ofSize: 14, weight: .medium)
         label.textColor = .white
         label.tag = 100
@@ -171,15 +176,21 @@ final class ProfileViewController: UIViewController {
         stack.snp.makeConstraints { $0.edges.equalToSuperview() }
 
         contentStack.addArrangedSubview(musicPreviewButton)
+        updateMusicPreview()
     }
 
     private func updateMusicPreview() {
         guard let label = musicPreviewButton.viewWithTag(100) as? UILabel else { return }
-        let song = MusicManager.shared.currentSong
-        if let song = song {
-            label.text = "\(song.title) - \(song.artist)"
+        let songs = MusicManager.shared.songs
+        if songs.isEmpty {
+            musicPreviewButton.isHidden = true
         } else {
-            label.text = "Добавить песню"
+            musicPreviewButton.isHidden = false
+            if let song = MusicManager.shared.currentSong {
+                label.text = "\(song.title) - \(song.artist)"
+            } else {
+                label.text = songs.map { $0.title }.joined(separator: ", ")
+            }
         }
     }
 

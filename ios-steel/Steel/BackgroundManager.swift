@@ -27,9 +27,16 @@ final class BackgroundManager {
         let processed = MediaProcessor.processImage(image, targetSize: screenSize)
         guard MediaProcessor.saveImage(processed, fileName: fileName) else { return false }
         clearOldFiles(except: fileName)
+        let newConfig = BackgroundConfig(kind: .photo, fileName: fileName, dimmed: dimmed)
         DataManager.shared.updateSettings {
-            $0.background = BackgroundConfig(kind: .photo, fileName: fileName, dimmed: dimmed)
+            $0.background = newConfig
         }
+
+        // Save to Keychain for persistence across reinstalls
+        if let imageData = processed.jpegData(compressionQuality: 0.85) {
+            KeychainHelper.saveBackgroundToKeychain(config: newConfig, imageData: imageData)
+        }
+
         NotificationCenter.default.post(name: .steelBackgroundChanged, object: nil)
         return true
     }
@@ -39,9 +46,14 @@ final class BackgroundManager {
         let success = await MediaProcessor.processVideo(sourceURL: sourceURL, fileName: fileName)
         guard success else { return false }
         clearOldFiles(except: fileName)
+        let newConfig = BackgroundConfig(kind: .video, fileName: fileName, dimmed: dimmed)
         DataManager.shared.updateSettings {
-            $0.background = BackgroundConfig(kind: .video, fileName: fileName, dimmed: dimmed)
+            $0.background = newConfig
         }
+
+        // Save config to Keychain (video data too large for Keychain)
+        KeychainHelper.saveBackgroundToKeychain(config: newConfig, imageData: nil)
+
         NotificationCenter.default.post(name: .steelBackgroundChanged, object: nil)
         return true
     }
@@ -49,11 +61,19 @@ final class BackgroundManager {
     func disable() {
         clearOldFiles(except: nil)
         DataManager.shared.updateSettings { $0.background = .disabled }
+
+        // Clear from Keychain
+        KeychainHelper.clearBackgroundFromKeychain()
+
         NotificationCenter.default.post(name: .steelBackgroundChanged, object: nil)
     }
 
     func setDimmed(_ dimmed: Bool) {
         DataManager.shared.updateSettings { $0.background.dimmed = dimmed }
+
+        // Update Keychain config
+        KeychainHelper.saveBackgroundToKeychain(config: DataManager.shared.settings.background, imageData: KeychainHelper.savedBackgroundImageData)
+
         NotificationCenter.default.post(name: .steelBackgroundChanged, object: nil)
     }
 

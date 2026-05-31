@@ -91,6 +91,9 @@ final class HabitsViewController: UIViewController {
         collectionView.contentInset.top = 56
         view.addSubview(collectionView)
         collectionView.snp.makeConstraints { $0.edges.equalToSuperview() }
+
+        // Bring header to front so it receives touches above collectionView
+        view.bringSubviewToFront(headerContainer)
     }
 
     @objc private func reload() {

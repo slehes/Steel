@@ -126,6 +126,9 @@ final class TodayViewController: UIViewController {
         collectionView.contentInset.bottom = 140
         view.addSubview(collectionView)
         collectionView.snp.makeConstraints { $0.edges.equalToSuperview() }
+
+        // Bring header to front so it receives touches above collectionView
+        view.bringSubviewToFront(headerContainer)
     }
 
     private func setupActionBar() {
