@@ -8,6 +8,7 @@ final class ProgressHeaderView: UICollectionReusableView {
     private let track = UIView()
     private let fill = UIView()
     private var fillWidth: Constraint?
+    private var currentRatio: CGFloat = 0
 
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -49,13 +50,22 @@ final class ProgressHeaderView: UICollectionReusableView {
         }
     }
 
-    func configure(done: Int, total: Int) {
+    func configure(done: Int, total: Int, animated: Bool) {
         label.text = "Прогресс  \(done)/\(total)"
         let ratio = total > 0 ? CGFloat(done) / CGFloat(total) : 0
+
         layoutIfNeeded()
-        fillWidth?.update(offset: track.bounds.width * ratio)
-        UIView.animate(withDuration: 0.35, delay: 0, options: .curveEaseOut) {
-            self.layoutIfNeeded()
+        let targetWidth = track.bounds.width * ratio
+        fillWidth?.update(offset: targetWidth)
+
+        if animated {
+            UIView.animate(withDuration: 0.6, delay: 0, usingSpringWithDamping: 0.7, initialSpringVelocity: 0.5, options: .curveEaseOut) {
+                self.layoutIfNeeded()
+            }
+        } else {
+            layoutIfNeeded()
         }
+
+        currentRatio = ratio
     }
 }

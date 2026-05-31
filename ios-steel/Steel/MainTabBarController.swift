@@ -73,7 +73,7 @@ final class MainTabBarController: UITabBarController, UITabBarControllerDelegate
     private func makeNav(root: UIViewController, title: String, image: String, selected: String) -> UINavigationController {
         root.title = title
         let nav = UINavigationController(rootViewController: root)
-        nav.navigationBar.prefersLargeTitles = true
+        nav.navigationBar.prefersLargeTitles = false
         nav.tabBarItem = UITabBarItem(
             title: title,
             image: UIImage(systemName: image),

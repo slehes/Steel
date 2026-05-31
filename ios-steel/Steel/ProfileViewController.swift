@@ -6,6 +6,7 @@ final class ProfileViewController: UIViewController {
     private let scrollView = UIScrollView()
     private let contentStack = UIStackView()
     private let backgroundView = PersonalBackgroundView()
+    private let pinnedTitleLabel = UILabel()
 
     private let avatarView = UIImageView()
     private let nameField = UITextField()
@@ -16,7 +17,8 @@ final class ProfileViewController: UIViewController {
         super.viewDidLoad()
         view.backgroundColor = .systemGroupedBackground
         setupBackground()
-        navigationItem.largeTitleDisplayMode = .always
+        setupPinnedTitle()
+        navigationItem.largeTitleDisplayMode = .never
         navigationItem.rightBarButtonItem = UIBarButtonItem(
             image: UIImage(systemName: "gearshape.fill"),
             style: .plain,
@@ -47,9 +49,24 @@ final class ProfileViewController: UIViewController {
         backgroundView.apply(BackgroundManager.shared.config)
     }
 
+    private func setupPinnedTitle() {
+        pinnedTitleLabel.text = "Профиль"
+        pinnedTitleLabel.font = UIFont.systemFont(ofSize: 34, weight: .bold)
+        pinnedTitleLabel.textColor = .label
+        view.addSubview(pinnedTitleLabel)
+        pinnedTitleLabel.snp.makeConstraints {
+            $0.top.equalTo(view.safeAreaLayoutGuide)
+            $0.leading.trailing.equalToSuperview().inset(20)
+            $0.height.equalTo(44)
+        }
+    }
+
     private func setup() {
         view.addSubview(scrollView)
-        scrollView.snp.makeConstraints { $0.edges.equalToSuperview() }
+        scrollView.snp.makeConstraints {
+            $0.top.equalTo(pinnedTitleLabel.snp.bottom)
+            $0.leading.trailing.bottom.equalToSuperview()
+        }
         scrollView.alwaysBounceVertical = true
 
         contentStack.axis = .vertical
@@ -124,14 +141,6 @@ final class ProfileViewController: UIViewController {
         card.layer.cornerCurve = .continuous
         card.clipsToBounds = true
         return card
-    }
-
-    private func sectionTitle(_ text: String) -> UILabel {
-        let label = UILabel()
-        label.text = text
-        label.font = UIFont.preferredFont(forTextStyle: .footnote)
-        label.textColor = .secondaryLabel
-        return label
     }
 
     private func separator() -> UIView {

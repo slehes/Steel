@@ -13,10 +13,13 @@ final class TodayViewController: UIViewController {
     private var actionBarHidden = false
     private var actionBarOriginalBottom: Constraint?
 
+    private let pinnedTitleLabel = UILabel()
+
     override func viewDidLoad() {
         super.viewDidLoad()
         view.backgroundColor = .systemBackground
         setupBackground()
+        setupPinnedTitle()
         setupNavigation()
         setupCollection()
         setupActionBar()
@@ -42,8 +45,20 @@ final class TodayViewController: UIViewController {
         backgroundView.apply(BackgroundManager.shared.config)
     }
 
+    private func setupPinnedTitle() {
+        pinnedTitleLabel.text = "Сегодня"
+        pinnedTitleLabel.font = UIFont.systemFont(ofSize: 34, weight: .bold)
+        pinnedTitleLabel.textColor = .label
+        view.addSubview(pinnedTitleLabel)
+        pinnedTitleLabel.snp.makeConstraints {
+            $0.top.equalTo(view.safeAreaLayoutGuide)
+            $0.leading.trailing.equalToSuperview().inset(20)
+            $0.height.equalTo(44)
+        }
+    }
+
     private func setupNavigation() {
-        navigationItem.largeTitleDisplayMode = .always
+        navigationItem.largeTitleDisplayMode = .never
         navigationItem.rightBarButtonItem = UIBarButtonItem(
             image: UIImage(systemName: "plus"),
             style: .plain,
@@ -87,7 +102,10 @@ final class TodayViewController: UIViewController {
         collectionView.register(ProgressHeaderView.self, forSupplementaryViewOfKind: UICollectionView.elementKindSectionHeader, withReuseIdentifier: ProgressHeaderView.reuseID)
         collectionView.contentInset.bottom = 120
         view.addSubview(collectionView)
-        collectionView.snp.makeConstraints { $0.edges.equalToSuperview() }
+        collectionView.snp.makeConstraints {
+            $0.top.equalTo(pinnedTitleLabel.snp.bottom)
+            $0.leading.trailing.bottom.equalToSuperview()
+        }
     }
 
     private func setupActionBar() {
@@ -225,7 +243,7 @@ extension TodayViewController: UICollectionViewDataSource, UICollectionViewDeleg
     func collectionView(_ collectionView: UICollectionView, viewForSupplementaryElementOfKind kind: String, at indexPath: IndexPath) -> UICollectionReusableView {
         let header = collectionView.dequeueReusableSupplementaryView(ofKind: kind, withReuseIdentifier: ProgressHeaderView.reuseID, for: indexPath) as! ProgressHeaderView
         let progress = DataManager.shared.taskProgress
-        header.configure(done: progress.done, total: progress.total)
+        header.configure(done: progress.done, total: progress.total, animated: false)
         return header
     }
 
@@ -234,14 +252,20 @@ extension TodayViewController: UICollectionViewDataSource, UICollectionViewDeleg
         let wasCompleted = task.isCompleted
         DataManager.shared.toggleTask(task)
         UIImpactFeedbackGenerator.tap(.medium)
-        if !wasCompleted, let cell = collectionView.cellForItem(at: indexPath) as? TaskCell {
-            cell.playCompletion()
+
+        if let cell = collectionView.cellForItem(at: indexPath) as? TaskCell {
+            let updatedTask = tasks[indexPath.item]
+            cell.configureAnimated(with: task, wasCompleted: wasCompleted)
         }
-        tasks = DataManager.shared.fetchTasks()
-        collectionView.reloadItems(at: [indexPath])
+
+        let progress = DataManager.shared.taskProgress
         if let header = collectionView.supplementaryView(forElementKind: UICollectionView.elementKindSectionHeader, at: IndexPath(item: 0, section: 0)) as? ProgressHeaderView {
-            let progress = DataManager.shared.taskProgress
-            header.configure(done: progress.done, total: progress.total)
+            header.configure(done: progress.done, total: progress.total, animated: true)
+        }
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { [weak self] in
+            self?.tasks = DataManager.shared.fetchTasks()
+            collectionView.reloadItems(at: [indexPath])
         }
     }
 

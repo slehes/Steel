@@ -10,6 +10,7 @@ final class TaskCell: UICollectionViewCell {
     private let titleLabel = UILabel()
     private let detailLabel = UILabel()
     private let lottieView = LottieAnimationView(name: "success")
+    private let checkmarkOverlay = UIImageView()
 
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -73,10 +74,22 @@ final class TaskCell: UICollectionViewCell {
             $0.center.equalTo(iconView)
             $0.width.height.equalTo(90)
         }
+
+        checkmarkOverlay.contentMode = .scaleAspectFit
+        checkmarkOverlay.preferredSymbolConfiguration = UIImage.SymbolConfiguration(pointSize: 30, weight: .semibold)
+        checkmarkOverlay.tintColor = .systemGreen
+        checkmarkOverlay.alpha = 0
+        checkmarkOverlay.isUserInteractionEnabled = false
+        content.addSubview(checkmarkOverlay)
+        checkmarkOverlay.snp.makeConstraints {
+            $0.center.equalTo(iconView)
+            $0.width.height.equalTo(34)
+        }
     }
 
     func configure(with task: DailyTask) {
         iconView.image = UIImage(systemName: task.isCompleted ? "checkmark.circle.fill" : task.iconName)
+        iconView.tintColor = task.isCompleted ? .systemGreen : .label
 
         let attributes: [NSAttributedString.Key: Any] = task.isCompleted
             ? [.strikethroughStyle: NSUnderlineStyle.single.rawValue, .foregroundColor: UIColor.secondaryLabel]
@@ -85,6 +98,62 @@ final class TaskCell: UICollectionViewCell {
 
         detailLabel.text = task.isCompleted ? "Готово" : task.displayDetail
         glass.alpha = task.isCompleted ? 0.7 : 1
+        checkmarkOverlay.alpha = 0
+    }
+
+    func configureAnimated(with task: DailyTask, wasCompleted: Bool) {
+        if !wasCompleted {
+            UIView.animate(withDuration: 0.25, delay: 0, options: .curveEaseOut) {
+                self.iconView.alpha = 0.3
+                self.iconView.transform = CGAffineTransform(scaleX: 0.8, y: 0.8)
+            } completion: { _ in
+                self.iconView.image = UIImage(systemName: "checkmark.circle.fill")
+                self.iconView.tintColor = .systemGreen
+
+                UIView.animate(withDuration: 0.35, delay: 0, usingSpringWithDamping: 0.5, initialSpringVelocity: 0.8, options: .curveEaseOut) {
+                    self.iconView.alpha = 1
+                    self.iconView.transform = .identity
+                }
+            }
+
+            UIView.animate(withDuration: 0.3, delay: 0.1, options: .curveEaseOut) {
+                self.glass.alpha = 0.7
+                let attrs: [NSAttributedString.Key: Any] = [
+                    .strikethroughStyle: NSUnderlineStyle.single.rawValue,
+                    .foregroundColor: UIColor.secondaryLabel
+                ]
+                self.titleLabel.attributedText = NSAttributedString(string: task.title, attributes: attrs)
+                self.detailLabel.text = "Готово"
+            }
+
+            lottieView.play { [weak self] _ in
+                self?.lottieView.currentProgress = 0
+            }
+
+            if #available(iOS 17.0, *) {
+                iconView.addSymbolEffect(.bounce)
+            }
+        } else {
+            UIView.animate(withDuration: 0.25, delay: 0, options: .curveEaseOut) {
+                self.iconView.alpha = 0.3
+                self.iconView.transform = CGAffineTransform(scaleX: 0.8, y: 0.8)
+            } completion: { _ in
+                self.iconView.image = UIImage(systemName: task.iconName)
+                self.iconView.tintColor = .label
+
+                UIView.animate(withDuration: 0.35, delay: 0, usingSpringWithDamping: 0.5, initialSpringVelocity: 0.8, options: .curveEaseOut) {
+                    self.iconView.alpha = 1
+                    self.iconView.transform = .identity
+                }
+            }
+
+            UIView.animate(withDuration: 0.3, delay: 0.1, options: .curveEaseOut) {
+                self.glass.alpha = 1
+                let attrs: [NSAttributedString.Key: Any] = [.foregroundColor: UIColor.label]
+                self.titleLabel.attributedText = NSAttributedString(string: task.title, attributes: attrs)
+                self.detailLabel.text = task.displayDetail
+            }
+        }
     }
 
     func playCompletion() {
@@ -101,5 +170,8 @@ final class TaskCell: UICollectionViewCell {
         super.prepareForReuse()
         lottieView.stop()
         lottieView.currentProgress = 0
+        checkmarkOverlay.alpha = 0
+        iconView.alpha = 1
+        iconView.transform = .identity
     }
 }
