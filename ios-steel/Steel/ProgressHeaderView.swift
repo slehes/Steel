@@ -16,7 +16,7 @@ final class ProgressHeaderView: UICollectionReusableView {
         setup()
     }
 
-    required init(coder: NSCoder) {
+    required init?(coder: NSCoder) {
         super.init(coder: coder)
         setup()
     }
