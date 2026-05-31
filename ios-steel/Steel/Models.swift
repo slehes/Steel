@@ -123,6 +123,7 @@ struct AppSettings: Codable {
     var streakPausedSince: String
     var regionCity: String
     var regionTimeZone: String
+    var userTrainingLocation: String
 
     static let `default` = AppSettings(
         userName: "Воин",
@@ -139,7 +140,8 @@ struct AppSettings: Codable {
         streakPaused: false,
         streakPausedSince: "",
         regionCity: "Москва",
-        regionTimeZone: "Europe/Moscow"
+        regionTimeZone: "Europe/Moscow",
+        userTrainingLocation: ""
     )
 
     var mostFrequentExercise: String {

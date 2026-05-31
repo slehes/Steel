@@ -1,6 +1,7 @@
 import UIKit
 import SnapKit
 import SPIndicator
+import Network
 
 final class AIChatViewController: UIViewController {
     private let tableView = UITableView()
@@ -9,9 +10,11 @@ final class AIChatViewController: UIViewController {
     private let textField = UITextField()
     private let sendButton = UIButton(type: .system)
     private let typingLabel = UILabel()
+    private let offlineBadge = UILabel()
 
     private var messages: [ChatMessageModel] = []
     private var isThinking = false
+    private var isOffline = false
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -29,10 +32,12 @@ final class AIChatViewController: UIViewController {
             action: #selector(close)
         )
         setupBackground()
+        setupOfflineBadge()
         setupTable()
         setupInputBar()
         loadMessages()
         registerKeyboard()
+        checkConnectivity()
         NotificationCenter.default.addObserver(self, selector: #selector(reloadBackground), name: .steelBackgroundChanged, object: nil)
     }
 
@@ -40,6 +45,7 @@ final class AIChatViewController: UIViewController {
         super.viewWillAppear(animated)
         backgroundView.apply(BackgroundManager.shared.config)
         backgroundView.resumeVideo()
+        checkConnectivity()
     }
 
     override func viewWillDisappear(_ animated: Bool) {
@@ -51,6 +57,37 @@ final class AIChatViewController: UIViewController {
         view.addSubview(backgroundView)
         backgroundView.snp.makeConstraints { $0.edges.equalToSuperview() }
         backgroundView.apply(BackgroundManager.shared.config)
+    }
+
+    private func setupOfflineBadge() {
+        offlineBadge.text = "Оффлайн"
+        offlineBadge.font = UIFont.systemFont(ofSize: 11, weight: .medium)
+        offlineBadge.textColor = .white
+        offlineBadge.backgroundColor = .systemOrange
+        offlineBadge.textAlignment = .center
+        offlineBadge.layer.cornerRadius = 10
+        offlineBadge.clipsToBounds = true
+        offlineBadge.isHidden = true
+        view.addSubview(offlineBadge)
+        offlineBadge.snp.makeConstraints {
+            $0.top.equalTo(view.safeAreaLayoutGuide).inset(8)
+            $0.centerX.equalToSuperview()
+            $0.width.equalTo(70)
+            $0.height.equalTo(20)
+        }
+    }
+
+    private func checkConnectivity() {
+        let monitor = NWPathMonitor()
+        let queue = DispatchQueue(label: "connectivity")
+        monitor.pathUpdateHandler = { [weak self] path in
+            DispatchQueue.main.async {
+                let offline = path.status != .satisfied
+                self?.isOffline = offline
+                self?.offlineBadge.isHidden = !offline
+            }
+        }
+        monitor.start(queue: queue)
     }
 
     private func setupTable() {
@@ -121,7 +158,7 @@ final class AIChatViewController: UIViewController {
     private func loadMessages() {
         messages = DataManager.shared.fetchMessages()
         if messages.isEmpty {
-            let greeting = "Готов меняться? Расскажи, что хочешь изменить, и мы обсудим план."
+            let greeting = "Готов меняться? Скажи, что хочешь изменить, и мы обсудим план."
             DataManager.shared.addMessage(greeting, isUser: false)
             messages = DataManager.shared.fetchMessages()
         }
@@ -186,11 +223,46 @@ final class AIChatViewController: UIViewController {
         messages.suffix(20).map { GroqTurn(role: $0.isUser ? "user" : "assistant", content: $0.text) }
     }
 
+    private var userIsHome: Bool? {
+        let settings = DataManager.shared.settings
+        return settings.userTrainingLocation == "home" ? true : settings.userTrainingLocation == "gym" ? false : nil
+    }
+
     private func handleConversation(userText: String) async {
-        if KeychainHelper.groqAPIKey.isEmpty {
-            appendMessage("API ключ не задан. Зайди в Настройки → Провайдеры → введи Groq API Key (получи на console.groq.com).", isUser: false)
+        // Offline mode: use local AI
+        if isOffline || KeychainHelper.groqAPIKey.isEmpty {
+            setThinking(true)
+            defer { setThinking(false) }
+
+            // Simulate thinking delay
+            try? await Task.sleep(nanoseconds: 600_000_000)
+
+            let response = OfflineAI.respond(to: userText, isHome: userIsHome)
+
+            // Remember training location
+            let lower = userText.lowercased()
+            if lower.contains("дом") || lower.contains("дома") || lower.contains("домашн") {
+                DataManager.shared.updateSettings { $0.userTrainingLocation = "home" }
+            } else if lower.contains("зал") || lower.contains("спортзал") || lower.contains("зале") {
+                DataManager.shared.updateSettings { $0.userTrainingLocation = "gym" }
+            }
+
+            if !response.message.isEmpty {
+                appendMessage(response.message, isUser: false)
+            }
+            for command in response.commands {
+                if let feedback = CommandExecutor.execute(command) {
+                    UIImpactFeedbackGenerator.tap(.medium)
+                    SPIndicator.present(title: feedback.title, preset: .done, haptic: .success)
+                    if feedback.opensBackgroundPicker {
+                        BackgroundPicker.shared.present(from: self)
+                    }
+                }
+            }
             return
         }
+
+        // Online mode: use Groq API
         setThinking(true)
         defer { setThinking(false) }
         do {
@@ -200,7 +272,17 @@ final class AIChatViewController: UIViewController {
             }
             await process(commands: result.commands)
         } catch {
-            appendMessage("Связь с тренером оборвалась. Попробуй ещё раз.", isUser: false)
+            // Fallback to offline
+            let response = OfflineAI.respond(to: userText, isHome: userIsHome)
+            if !response.message.isEmpty {
+                appendMessage(response.message, isUser: false)
+            }
+            for command in response.commands {
+                if let feedback = CommandExecutor.execute(command) {
+                    UIImpactFeedbackGenerator.tap(.medium)
+                    SPIndicator.present(title: feedback.title, preset: .done, haptic: .success)
+                }
+            }
         }
     }
 
@@ -231,7 +313,7 @@ final class AIChatViewController: UIViewController {
             }
 
             let digest = buildDigest(result)
-            let followup = "Я прочитал сайт \(url). Запрос пользователя: \"\(query)\". Вот извлечённые данные:\n\(digest)\n\nНа основе этих данных дай краткий ответ на русском языке и при необходимости команды (ADD_TASK и т.д.). Формат JSON как обычно."
+            let followup = "Я прочитал сайт \(url). Запрос: \"\(query)\". Данные:\n\(digest)\n\nДай краткий ответ на русском. Формат JSON."
             var turns = history()
             turns.append(GroqTurn(role: "user", content: followup))
             let result2 = try await GroqAI.send(history: turns)
@@ -245,7 +327,7 @@ final class AIChatViewController: UIViewController {
                 }
             }
         } catch {
-            appendMessage("Не смог прочитать сайт. Дай другую ссылку.", isUser: false)
+            appendMessage("Не смог прочитать сайт. Нет подключения к интернету.", isUser: false)
         }
     }
 
