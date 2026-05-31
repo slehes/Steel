@@ -14,15 +14,11 @@ jobs:
       - name: 📥 Checkout
         uses: actions/checkout@v4
 
-      - name: 🛠 List available Xcode versions & Select
+      - name: 🛠 Select Xcode 26 (Swift 6.2+)
         run: |
-          ls /Applications/ | grep Xcode
-          # Use the latest available Xcode
-          sudo xcode-select -s /Applications/Xcode_16.2.app/Contents/Developer || true
-          sudo xcode-select -s /Applications/Xcode_16.1.app/Contents/Developer || true
-          sudo xcode-select -s /Applications/Xcode_16.app/Contents/Developer || true
-          echo "Selected Xcode:"
+          sudo xcode-select -s /Applications/Xcode_26.3.app/Contents/Developer
           xcodebuild -version
+          swift --version
 
       - name: 📋 Show Schemes
         working-directory: ios-steel
@@ -43,7 +39,6 @@ jobs:
             CODE_SIGN_IDENTITY="" \
             COMPILER_INDEX_STORE_ENABLE=NO \
             2>&1 | tee build.log
-        # Don't pipe through xcpretty so we can see all errors
 
       - name: 📦 Export IPA
         working-directory: ios-steel
