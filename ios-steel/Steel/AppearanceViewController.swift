@@ -6,6 +6,7 @@ import UniformTypeIdentifiers
 final class AppearanceViewController: UIViewController {
     private let scrollView = UIScrollView()
     private let contentStack = UIStackView()
+    private let backgroundView = PersonalBackgroundView()
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -18,7 +19,23 @@ final class AppearanceViewController: UIViewController {
         NotificationCenter.default.addObserver(self, selector: #selector(refreshBackground), name: .steelBackgroundChanged, object: nil)
     }
 
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        backgroundView.apply(BackgroundManager.shared.config)
+        backgroundView.resumeVideo()
+    }
+
+    override func viewWillDisappear(_ animated: Bool) {
+        super.viewWillDisappear(animated)
+        backgroundView.pauseVideo()
+    }
+
     private func setup() {
+        view.addSubview(backgroundView)
+        backgroundView.snp.makeConstraints { $0.edges.equalToSuperview() }
+        backgroundView.apply(BackgroundManager.shared.config)
+
+        scrollView.backgroundColor = .clear
         view.addSubview(scrollView)
         scrollView.snp.makeConstraints { $0.edges.equalToSuperview() }
         scrollView.alwaysBounceVertical = true
@@ -149,7 +166,9 @@ final class AppearanceViewController: UIViewController {
         }
     }
 
-    @objc private func refreshBackground() {}
+    @objc private func refreshBackground() {
+        backgroundView.apply(BackgroundManager.shared.config)
+    }
 
     private func makeCard() -> UIVisualEffectView {
         let card = UIVisualEffectView(effect: UIBlurEffect(style: .systemThinMaterial))

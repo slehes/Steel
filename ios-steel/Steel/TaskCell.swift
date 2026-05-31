@@ -79,8 +79,10 @@ final class TaskCell: UICollectionViewCell {
         get { super.isHighlighted }
         set {
             super.isHighlighted = newValue
-            UIView.animate(withDuration: 0.1) {
-                self.glass.alpha = newValue ? 0.6 : 1.0
+            UIView.animate(withDuration: 0.15) {
+                self.glass.contentView.backgroundColor = newValue
+                    ? UIColor.systemGray4.withAlphaComponent(0.6)
+                    : .clear
             }
         }
     }

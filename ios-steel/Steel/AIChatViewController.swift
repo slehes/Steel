@@ -158,7 +158,15 @@ final class AIChatViewController: UIViewController {
     private func loadMessages() {
         messages = DataManager.shared.fetchMessages()
         if messages.isEmpty {
-            let greeting = "Готов меняться? Скажи, что хочешь изменить, и мы обсудим план."
+            let loc = DataManager.shared.settings.userTrainingLocation
+            let greeting: String
+            if loc.isEmpty {
+                greeting = "Готов меняться? Скажи, ты занимаешься дома или в спортзале? Это поможет подобрать программу."
+            } else if loc == "home" {
+                greeting = "Готов меняться? Я помню, что ты занимаешься дома. Что хочешь изменить?"
+            } else {
+                greeting = "Готов меняться? Я помню, что ты занимаешься в зале. Что хочешь изменить?"
+            }
             DataManager.shared.addMessage(greeting, isUser: false)
             messages = DataManager.shared.fetchMessages()
         }
@@ -181,7 +189,7 @@ final class AIChatViewController: UIViewController {
 
     @objc private func newChat() {
         UIImpactFeedbackGenerator(style: .light).impactOccurred()
-        let alert = UIAlertController(title: "Новый чат", message: "Начать новый чат? Контекст предыдущих сообщений сохранится для памяти ИИ.", preferredStyle: .alert)
+        let alert = UIAlertController(title: "Новый чат", message: "Начать новый чат? ИИ запомнит контекст из предыдущих бесед.", preferredStyle: .alert)
         alert.addAction(UIAlertAction(title: "Отмена", style: .cancel))
         alert.addAction(UIAlertAction(title: "Новый чат", style: .default) { [weak self] _ in
             guard let self = self else { return }
@@ -189,7 +197,15 @@ final class AIChatViewController: UIViewController {
                 DataManager.shared.context.delete(msg)
             }
             try? DataManager.shared.context.save()
-            let greeting = "Начнём заново. Что хочешь обсудить?"
+            let loc = DataManager.shared.settings.userTrainingLocation
+            let greeting: String
+            if loc.isEmpty {
+                greeting = "Начнём заново. Ты занимаешься дома или в спортзале?"
+            } else if loc == "home" {
+                greeting = "Начнём заново. Я помню — ты тренируешься дома. Что обсудим?"
+            } else {
+                greeting = "Начнём заново. Я помню — ты тренируешься в зале. Что обсудим?"
+            }
             DataManager.shared.addMessage(greeting, isUser: false)
             self.messages = DataManager.shared.fetchMessages()
             self.tableView.reloadData()
@@ -229,23 +245,22 @@ final class AIChatViewController: UIViewController {
     }
 
     private func handleConversation(userText: String) async {
+        // Remember training location from user message
+        let lower = userText.lowercased()
+        if lower.contains("дом") || lower.contains("дома") || lower.contains("домашн") {
+            DataManager.shared.updateSettings { $0.userTrainingLocation = "home" }
+        } else if lower.contains("зал") || lower.contains("спортзал") || lower.contains("зале") || lower.contains("тренажёр") {
+            DataManager.shared.updateSettings { $0.userTrainingLocation = "gym" }
+        }
+
         // Offline mode: use local AI
         if isOffline || KeychainHelper.groqAPIKey.isEmpty {
             setThinking(true)
             defer { setThinking(false) }
 
-            // Simulate thinking delay
             try? await Task.sleep(nanoseconds: 600_000_000)
 
             let response = OfflineAI.respond(to: userText, isHome: userIsHome)
-
-            // Remember training location
-            let lower = userText.lowercased()
-            if lower.contains("дом") || lower.contains("дома") || lower.contains("домашн") {
-                DataManager.shared.updateSettings { $0.userTrainingLocation = "home" }
-            } else if lower.contains("зал") || lower.contains("спортзал") || lower.contains("зале") {
-                DataManager.shared.updateSettings { $0.userTrainingLocation = "gym" }
-            }
 
             if !response.message.isEmpty {
                 appendMessage(response.message, isUser: false)
@@ -272,7 +287,6 @@ final class AIChatViewController: UIViewController {
             }
             await process(commands: result.commands)
         } catch {
-            // Fallback to offline
             let response = OfflineAI.respond(to: userText, isHome: userIsHome)
             if !response.message.isEmpty {
                 appendMessage(response.message, isUser: false)

@@ -7,14 +7,14 @@ final class HabitsViewController: UIViewController {
     private var habits: [Habit] = []
     private let backgroundView = PersonalBackgroundView()
     private var collectionView: UICollectionView!
+    private let headerContainer = UIView()
     private let pinnedTitleLabel = UILabel()
 
     override func viewDidLoad() {
         super.viewDidLoad()
         view.backgroundColor = .systemGroupedBackground
         setupBackground()
-        setupPinnedTitle()
-        setupNavigation()
+        setupHeader()
         setupCollection()
         NotificationCenter.default.addObserver(self, selector: #selector(reload), name: .steelHabitsChanged, object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(reloadBackground), name: .steelBackgroundChanged, object: nil)
@@ -41,25 +41,33 @@ final class HabitsViewController: UIViewController {
         backgroundView.apply(BackgroundManager.shared.config)
     }
 
-    private func setupPinnedTitle() {
+    private func setupHeader() {
+        headerContainer.backgroundColor = .clear
+        view.addSubview(headerContainer)
+        headerContainer.snp.makeConstraints {
+            $0.top.equalTo(view.safeAreaLayoutGuide)
+            $0.leading.trailing.equalToSuperview()
+            $0.height.equalTo(52)
+        }
+
         pinnedTitleLabel.text = "Привычки"
         pinnedTitleLabel.font = UIFont.systemFont(ofSize: 34, weight: .bold)
         pinnedTitleLabel.textColor = .label
-        view.addSubview(pinnedTitleLabel)
+        headerContainer.addSubview(pinnedTitleLabel)
         pinnedTitleLabel.snp.makeConstraints {
-            $0.top.equalTo(view.safeAreaLayoutGuide).inset(8)
+            $0.centerY.equalToSuperview()
             $0.leading.equalToSuperview().inset(20)
         }
-    }
 
-    private func setupNavigation() {
-        navigationItem.largeTitleDisplayMode = .never
-        navigationItem.rightBarButtonItem = UIBarButtonItem(
-            image: UIImage(systemName: "plus"),
-            style: .plain,
-            target: self,
-            action: #selector(addHabit)
-        )
+        let plusButton = UIButton(type: .system)
+        plusButton.setImage(UIImage(systemName: "plus"), for: .normal)
+        plusButton.tintColor = .label
+        plusButton.addTarget(self, action: #selector(addHabit), for: .touchUpInside)
+        headerContainer.addSubview(plusButton)
+        plusButton.snp.makeConstraints {
+            $0.centerY.equalToSuperview()
+            $0.trailing.equalToSuperview().inset(20)
+        }
     }
 
     private func setupCollection() {
@@ -80,7 +88,7 @@ final class HabitsViewController: UIViewController {
         collectionView.delegate = self
         collectionView.dataSource = self
         collectionView.register(HabitCell.self, forCellWithReuseIdentifier: HabitCell.reuseID)
-        collectionView.contentInset.top = 44
+        collectionView.contentInset.top = 56
         view.addSubview(collectionView)
         collectionView.snp.makeConstraints { $0.edges.equalToSuperview() }
     }

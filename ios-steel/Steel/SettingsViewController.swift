@@ -69,6 +69,7 @@ final class SettingsViewController: UIViewController {
         backgroundView.snp.makeConstraints { $0.edges.equalToSuperview() }
         backgroundView.apply(BackgroundManager.shared.config)
 
+        scrollView.backgroundColor = .clear
         view.addSubview(scrollView)
         scrollView.snp.makeConstraints { $0.edges.equalToSuperview() }
         scrollView.alwaysBounceVertical = true
@@ -238,6 +239,7 @@ final class SettingsViewController: UIViewController {
 final class MusicSettingsViewController: UIViewController {
     private let scrollView = UIScrollView()
     private let contentStack = UIStackView()
+    private let backgroundView = PersonalBackgroundView()
 
     private var tableView = UITableView()
     private var songs: [SongItem] { MusicManager.shared.songs }
@@ -248,14 +250,27 @@ final class MusicSettingsViewController: UIViewController {
         view.backgroundColor = .systemGroupedBackground
         navigationItem.largeTitleDisplayMode = .never
         setup()
+        NotificationCenter.default.addObserver(self, selector: #selector(reloadBackground), name: .steelBackgroundChanged, object: nil)
     }
 
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
         tableView.reloadData()
+        backgroundView.apply(BackgroundManager.shared.config)
+        backgroundView.resumeVideo()
+    }
+
+    override func viewWillDisappear(_ animated: Bool) {
+        super.viewWillDisappear(animated)
+        backgroundView.pauseVideo()
     }
 
     private func setup() {
+        view.addSubview(backgroundView)
+        backgroundView.snp.makeConstraints { $0.edges.equalToSuperview() }
+        backgroundView.apply(BackgroundManager.shared.config)
+
+        scrollView.backgroundColor = .clear
         view.addSubview(scrollView)
         scrollView.snp.makeConstraints { $0.edges.equalToSuperview() }
         scrollView.alwaysBounceVertical = true
@@ -295,6 +310,10 @@ final class MusicSettingsViewController: UIViewController {
 
         contentStack.addArrangedSubview(songsCard)
         updateTableHeight()
+    }
+
+    @objc private func reloadBackground() {
+        backgroundView.apply(BackgroundManager.shared.config)
     }
 
     private func updateTableHeight() {
@@ -483,6 +502,7 @@ private final class MusicSettingsSongCell: UITableViewCell {
 final class StreakSettingsViewController: UIViewController {
     private let scrollView = UIScrollView()
     private let contentStack = UIStackView()
+    private let backgroundView = PersonalBackgroundView()
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -491,9 +511,26 @@ final class StreakSettingsViewController: UIViewController {
         navigationItem.largeTitleDisplayMode = .never
 
         setup()
+        NotificationCenter.default.addObserver(self, selector: #selector(reloadBackground), name: .steelBackgroundChanged, object: nil)
+    }
+
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        backgroundView.apply(BackgroundManager.shared.config)
+        backgroundView.resumeVideo()
+    }
+
+    override func viewWillDisappear(_ animated: Bool) {
+        super.viewWillDisappear(animated)
+        backgroundView.pauseVideo()
     }
 
     private func setup() {
+        view.addSubview(backgroundView)
+        backgroundView.snp.makeConstraints { $0.edges.equalToSuperview() }
+        backgroundView.apply(BackgroundManager.shared.config)
+
+        scrollView.backgroundColor = .clear
         view.addSubview(scrollView)
         scrollView.snp.makeConstraints { $0.edges.equalToSuperview() }
         scrollView.alwaysBounceVertical = true
@@ -541,6 +578,10 @@ final class StreakSettingsViewController: UIViewController {
         stack.addArrangedSubview(descRow)
 
         contentStack.addArrangedSubview(card)
+    }
+
+    @objc private func reloadBackground() {
+        backgroundView.apply(BackgroundManager.shared.config)
     }
 
     @objc private func streakPauseChanged(_ toggle: UISwitch) {

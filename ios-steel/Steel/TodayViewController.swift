@@ -10,7 +10,9 @@ final class TodayViewController: UIViewController {
     private var collectionView: UICollectionView!
     private let actionBar = UIVisualEffectView(effect: UIBlurEffect(style: .systemThickMaterial))
     private let finishButton = UIButton(type: .system)
+    private let headerContainer = UIView()
     private let pinnedTitleLabel = UILabel()
+    private let hideActionBarButton = UIButton(type: .system)
     private var actionBarHidden = false
     private var actionBarOriginalBottom: Constraint?
 
@@ -18,8 +20,7 @@ final class TodayViewController: UIViewController {
         super.viewDidLoad()
         view.backgroundColor = .systemBackground
         setupBackground()
-        setupPinnedTitle()
-        setupNavigation()
+        setupHeader()
         setupCollection()
         setupActionBar()
         observe()
@@ -46,31 +47,51 @@ final class TodayViewController: UIViewController {
         backgroundView.apply(BackgroundManager.shared.config)
     }
 
-    private func setupPinnedTitle() {
+    private func setupHeader() {
+        headerContainer.backgroundColor = .clear
+        view.addSubview(headerContainer)
+        headerContainer.snp.makeConstraints {
+            $0.top.equalTo(view.safeAreaLayoutGuide)
+            $0.leading.trailing.equalToSuperview()
+            $0.height.equalTo(52)
+        }
+
         pinnedTitleLabel.text = "Сегодня"
         pinnedTitleLabel.font = UIFont.systemFont(ofSize: 34, weight: .bold)
         pinnedTitleLabel.textColor = .label
-        view.addSubview(pinnedTitleLabel)
+        headerContainer.addSubview(pinnedTitleLabel)
         pinnedTitleLabel.snp.makeConstraints {
-            $0.top.equalTo(view.safeAreaLayoutGuide).inset(8)
+            $0.centerY.equalToSuperview()
             $0.leading.equalToSuperview().inset(20)
         }
-    }
 
-    private func setupNavigation() {
-        navigationItem.largeTitleDisplayMode = .never
-        navigationItem.rightBarButtonItem = UIBarButtonItem(
-            image: UIImage(systemName: "plus"),
-            style: .plain,
-            target: self,
-            action: #selector(addTask)
-        )
-        navigationItem.leftBarButtonItem = UIBarButtonItem(
-            image: UIImage(systemName: "photo.on.rectangle.angled"),
-            style: .plain,
-            target: self,
-            action: #selector(chooseBackground)
-        )
+        let plusButton = UIButton(type: .system)
+        plusButton.setImage(UIImage(systemName: "plus"), for: .normal)
+        plusButton.tintColor = .label
+        plusButton.addTarget(self, action: #selector(addTask), for: .touchUpInside)
+
+        let bgButton = UIButton(type: .system)
+        bgButton.setImage(UIImage(systemName: "photo.on.rectangle.angled"), for: .normal)
+        bgButton.tintColor = .label
+        bgButton.addTarget(self, action: #selector(chooseBackground), for: .touchUpInside)
+
+        let rightStack = UIStackView(arrangedSubviews: [bgButton, plusButton])
+        rightStack.spacing = 16
+        headerContainer.addSubview(rightStack)
+        rightStack.snp.makeConstraints {
+            $0.centerY.equalToSuperview()
+            $0.trailing.equalToSuperview().inset(20)
+        }
+
+        hideActionBarButton.setImage(UIImage(systemName: "chevron.down"), for: .normal)
+        hideActionBarButton.tintColor = .secondaryLabel
+        hideActionBarButton.addTarget(self, action: #selector(toggleActionBarButton), for: .touchUpInside)
+        headerContainer.addSubview(hideActionBarButton)
+        hideActionBarButton.snp.makeConstraints {
+            $0.centerY.equalToSuperview()
+            $0.trailing.equalTo(rightStack.snp.leading).offset(-16)
+            $0.size.equalTo(24)
+        }
     }
 
     private func setupCollection() {
@@ -101,7 +122,7 @@ final class TodayViewController: UIViewController {
         collectionView.dataSource = self
         collectionView.register(TaskCell.self, forCellWithReuseIdentifier: TaskCell.reuseID)
         collectionView.register(ProgressHeaderView.self, forSupplementaryViewOfKind: UICollectionView.elementKindSectionHeader, withReuseIdentifier: ProgressHeaderView.reuseID)
-        collectionView.contentInset.top = 44
+        collectionView.contentInset.top = 56
         collectionView.contentInset.bottom = 140
         view.addSubview(collectionView)
         collectionView.snp.makeConstraints { $0.edges.equalToSuperview() }
@@ -166,12 +187,24 @@ final class TodayViewController: UIViewController {
     func toggleActionBar() {
         actionBarHidden.toggle()
         UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+        updateActionBarPosition(animated: true)
+    }
+
+    private func updateActionBarPosition(animated: Bool) {
         let offset: CGFloat = actionBarHidden ? 160 : -8
         actionBar.snp.updateConstraints {
             $0.bottom.equalTo(view.safeAreaLayoutGuide).inset(offset)
         }
         collectionView.contentInset.bottom = actionBarHidden ? 20 : 140
-        UIView.animate(withDuration: 0.3, delay: 0, options: .curveEaseInOut) {
+
+        let imageName = actionBarHidden ? "chevron.up" : "chevron.down"
+        hideActionBarButton.setImage(UIImage(systemName: imageName), for: .normal)
+
+        if animated {
+            UIView.animate(withDuration: 0.3, delay: 0, options: .curveEaseInOut) {
+                self.view.layoutIfNeeded()
+            }
+        } else {
             self.view.layoutIfNeeded()
         }
     }

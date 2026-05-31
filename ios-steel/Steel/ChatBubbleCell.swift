@@ -38,7 +38,7 @@ final class ChatBubbleCell: UITableViewCell {
         bubble.snp.makeConstraints {
             $0.top.equalToSuperview().inset(3)
             $0.bottom.equalToSuperview().inset(3)
-            $0.width.lessThanOrEqualTo(contentView.snp.width).multipliedBy(0.8)
+            $0.width.lessThanOrEqualTo(contentView.snp.width).offset(-32)
             leadingConstraint = $0.leading.equalToSuperview().inset(16).constraint
             trailingConstraint = $0.trailing.lessThanOrEqualToSuperview().inset(16).constraint
         }
@@ -46,6 +46,10 @@ final class ChatBubbleCell: UITableViewCell {
 
     func configure(text: String, isUser: Bool) {
         messageLabel.text = text
+
+        // Set preferredMaxLayoutWidth to prevent text overflow
+        let maxWidth = UIScreen.main.bounds.width - 32 - 28 - 32 // screen - margins - bubble padding
+        messageLabel.preferredMaxLayoutWidth = maxWidth
 
         if isUser {
             bubble.backgroundColor = .systemBlue
@@ -76,11 +80,12 @@ final class ChatBubbleCell: UITableViewCell {
 
     override func prepareForReuse() {
         super.prepareForReuse()
+        messageLabel.preferredMaxLayoutWidth = 0
         bubble.subviews.filter { $0 != messageLabel }.forEach { $0.removeFromSuperview() }
         bubble.snp.remakeConstraints {
             $0.top.equalToSuperview().inset(3)
             $0.bottom.equalToSuperview().inset(3)
-            $0.width.lessThanOrEqualTo(contentView.snp.width).multipliedBy(0.8)
+            $0.width.lessThanOrEqualTo(contentView.snp.width).offset(-32)
             leadingConstraint = $0.leading.equalToSuperview().inset(16).constraint
             trailingConstraint = $0.trailing.lessThanOrEqualToSuperview().inset(16).constraint
         }

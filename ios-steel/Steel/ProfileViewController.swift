@@ -7,6 +7,7 @@ final class ProfileViewController: UIViewController {
     private let scrollView = UIScrollView()
     private let contentStack = UIStackView()
     private let backgroundView = PersonalBackgroundView()
+    private let headerContainer = UIView()
     private let pinnedTitleLabel = UILabel()
 
     private let avatarView = UIImageView()
@@ -21,13 +22,7 @@ final class ProfileViewController: UIViewController {
         view.backgroundColor = .systemGroupedBackground
         setupBackground()
         navigationItem.largeTitleDisplayMode = .never
-        navigationItem.rightBarButtonItem = UIBarButtonItem(
-            image: UIImage(systemName: "gearshape.fill"),
-            style: .plain,
-            target: self,
-            action: #selector(openSettings)
-        )
-        setupPinnedTitle()
+        setupHeader()
         setup()
         NotificationCenter.default.addObserver(self, selector: #selector(refresh), name: .steelSettingsChanged, object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(refresh), name: .steelTasksChanged, object: nil)
@@ -63,14 +58,32 @@ final class ProfileViewController: UIViewController {
         backgroundView.apply(BackgroundManager.shared.config)
     }
 
-    private func setupPinnedTitle() {
+    private func setupHeader() {
+        headerContainer.backgroundColor = .clear
+        view.addSubview(headerContainer)
+        headerContainer.snp.makeConstraints {
+            $0.top.equalTo(view.safeAreaLayoutGuide)
+            $0.leading.trailing.equalToSuperview()
+            $0.height.equalTo(52)
+        }
+
         pinnedTitleLabel.text = "Профиль"
         pinnedTitleLabel.font = UIFont.systemFont(ofSize: 34, weight: .bold)
         pinnedTitleLabel.textColor = .label
-        view.addSubview(pinnedTitleLabel)
+        headerContainer.addSubview(pinnedTitleLabel)
         pinnedTitleLabel.snp.makeConstraints {
-            $0.top.equalTo(view.safeAreaLayoutGuide).inset(8)
+            $0.centerY.equalToSuperview()
             $0.leading.equalToSuperview().inset(20)
+        }
+
+        let settingsButton = UIButton(type: .system)
+        settingsButton.setImage(UIImage(systemName: "gearshape.fill"), for: .normal)
+        settingsButton.tintColor = .label
+        settingsButton.addTarget(self, action: #selector(openSettings), for: .touchUpInside)
+        headerContainer.addSubview(settingsButton)
+        settingsButton.snp.makeConstraints {
+            $0.centerY.equalToSuperview()
+            $0.trailing.equalToSuperview().inset(20)
         }
     }
 
@@ -79,24 +92,27 @@ final class ProfileViewController: UIViewController {
         scrollView.snp.makeConstraints { $0.edges.equalToSuperview() }
         scrollView.alwaysBounceVertical = true
         scrollView.delaysContentTouches = false
+        scrollView.contentInset.top = 56
+        scrollView.scrollIndicatorInsets.top = 56
 
         contentStack.axis = .vertical
         contentStack.spacing = 24
         scrollView.addSubview(contentStack)
         contentStack.snp.makeConstraints {
-            $0.top.equalToSuperview().offset(56)
+            $0.top.equalToSuperview().offset(8)
             $0.leading.trailing.equalTo(view).inset(20)
             $0.bottom.equalToSuperview().inset(40)
+            $0.width.equalTo(view).inset(20)
         }
 
-        setupHeader()
+        setupHeaderSection()
         setupMusicPreview()
         setupStreak()
         setupStats()
         setupReminders()
     }
 
-    private func setupHeader() {
+    private func setupHeaderSection() {
         avatarView.image = UIImage(systemName: "person.crop.circle.fill")
         avatarView.preferredSymbolConfiguration = UIImage.SymbolConfiguration(pointSize: 84, weight: .regular)
         avatarView.tintColor = .label

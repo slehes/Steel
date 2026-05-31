@@ -1,8 +1,6 @@
 import UIKit
 
 final class MainTabBarController: UITabBarController, UITabBarControllerDelegate {
-    private var longPressGesture: UILongPressGestureRecognizer?
-
     override func viewDidLoad() {
         super.viewDidLoad()
         delegate = self
@@ -33,31 +31,6 @@ final class MainTabBarController: UITabBarController, UITabBarControllerDelegate
         tabBar.standardAppearance = appearance
         tabBar.scrollEdgeAppearance = appearance
         tabBar.tintColor = .label
-
-        let longPress = UILongPressGestureRecognizer(target: self, action: #selector(handleLongPress(_:)))
-        longPress.minimumPressDuration = 0.3
-        tabBar.addGestureRecognizer(longPress)
-        longPressGesture = longPress
-    }
-
-    @objc private func handleLongPress(_ gesture: UILongPressGestureRecognizer) {
-        guard gesture.state == .began else { return }
-
-        let location = gesture.location(in: tabBar)
-        guard let items = tabBar.items, !items.isEmpty else { return }
-
-        let tabBarWidth = tabBar.bounds.width
-        let itemCount = CGFloat(items.count)
-        let itemWidth = tabBarWidth / itemCount
-
-        let firstItemRect = CGRect(x: 0, y: 0, width: itemWidth, height: tabBar.bounds.height)
-
-        if firstItemRect.contains(location) {
-            if let nav = viewControllers?.first as? UINavigationController,
-               let todayVC = nav.viewControllers.first as? TodayViewController {
-                todayVC.toggleActionBar()
-            }
-        }
     }
 
     private func makeNav(root: UIViewController, title: String, image: String, selected: String) -> UINavigationController {

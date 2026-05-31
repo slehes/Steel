@@ -6,7 +6,7 @@ final class StreakDiagnosticsViewController: UIViewController {
     private let backgroundView = PersonalBackgroundView()
     private let scrollView = UIScrollView()
     private let contentStack = UIStackView()
-    private let pinnedTitleLabel = UILabel()
+    private let headerContainer = UIView()
 
     // Streak
     private let streakNumberLabel = UILabel()
@@ -33,7 +33,7 @@ final class StreakDiagnosticsViewController: UIViewController {
         view.backgroundColor = .systemGroupedBackground
         navigationController?.navigationBar.isHidden = true
         setupBackground()
-        setupPinnedTitle()
+        setupHeader()
         setupScrollView()
         setupStreakCard()
         setupProgressCard()
@@ -64,43 +64,56 @@ final class StreakDiagnosticsViewController: UIViewController {
         backgroundView.apply(BackgroundManager.shared.config)
     }
 
-    private func setupPinnedTitle() {
+    private func setupHeader() {
+        headerContainer.backgroundColor = .clear
+        view.addSubview(headerContainer)
+        headerContainer.snp.makeConstraints {
+            $0.top.equalTo(view.safeAreaLayoutGuide)
+            $0.leading.trailing.equalToSuperview()
+            $0.height.equalTo(52)
+        }
+
         let back = UIButton(type: .system)
         back.setImage(UIImage(systemName: "chevron.left"), for: .normal)
         back.tintColor = .label
         back.addTarget(self, action: #selector(goBack), for: .touchUpInside)
-
-        pinnedTitleLabel.text = "Диагностика серии"
-        pinnedTitleLabel.font = UIFont.systemFont(ofSize: 28, weight: .bold)
-        pinnedTitleLabel.textColor = .label
-
-        let header = UIStackView(arrangedSubviews: [back, pinnedTitleLabel])
-        header.alignment = .center
-        header.spacing = 10
         back.snp.makeConstraints { $0.size.equalTo(32) }
 
-        view.addSubview(header)
+        let titleLabel = UILabel()
+        titleLabel.text = "Диагностика серии"
+        titleLabel.font = UIFont.systemFont(ofSize: 28, weight: .bold)
+        titleLabel.textColor = .label
+
+        let header = UIStackView(arrangedSubviews: [back, titleLabel])
+        header.alignment = .center
+        header.spacing = 10
+        headerContainer.addSubview(header)
         header.snp.makeConstraints {
-            $0.top.equalTo(view.safeAreaLayoutGuide).inset(8)
+            $0.centerY.equalToSuperview()
             $0.leading.trailing.equalToSuperview().inset(20)
         }
     }
 
     @objc private func goBack() {
-        navigationController?.popViewController(animated: true)
-        dismiss(animated: true)
+        if let nav = navigationController, nav.viewControllers.count > 1 {
+            nav.popViewController(animated: true)
+        } else {
+            dismiss(animated: true)
+        }
     }
 
     private func setupScrollView() {
         view.addSubview(scrollView)
         scrollView.alwaysBounceVertical = true
+        scrollView.contentInset.top = 56
+        scrollView.scrollIndicatorInsets.top = 56
         scrollView.snp.makeConstraints { $0.edges.equalToSuperview() }
 
         contentStack.axis = .vertical
         contentStack.spacing = 20
         scrollView.addSubview(contentStack)
         contentStack.snp.makeConstraints {
-            $0.top.equalToSuperview().offset(56)
+            $0.top.equalToSuperview().offset(8)
             $0.leading.trailing.equalTo(view).inset(20)
             $0.bottom.equalToSuperview().inset(40)
             $0.width.equalTo(view).inset(20)
@@ -386,7 +399,7 @@ final class StreakDiagnosticsViewController: UIViewController {
         if habitList.isEmpty { habitList = "Нет привычек" }
 
         return """
-        Проанализируй мои данные в Steel и составь короткую диагностику серии на русском языке. 3-4 предложения. Конкретные рекомендации.
+        Проанализируй мои данные в Steel и составь короткую диагностику серии на русском языке. 3-4 предложения. Конкретные рекомендации. Всё строго на русском языке — никаких английских слов.
         Серия: \(settings.streakDays) дней. Пауза: \(settings.streakPaused ? "да" : "нет"). Выполнено сегодня: \(pct)%. Задания: \(taskList). Привычки: \(habitList).
         """
     }
