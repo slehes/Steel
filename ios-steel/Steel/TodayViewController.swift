@@ -13,13 +13,10 @@ final class TodayViewController: UIViewController {
     private var actionBarHidden = false
     private var actionBarOriginalBottom: Constraint?
 
-    private let pinnedTitleLabel = UILabel()
-
     override func viewDidLoad() {
         super.viewDidLoad()
         view.backgroundColor = .systemBackground
         setupBackground()
-        setupPinnedTitle()
         setupNavigation()
         setupCollection()
         setupActionBar()
@@ -45,20 +42,8 @@ final class TodayViewController: UIViewController {
         backgroundView.apply(BackgroundManager.shared.config)
     }
 
-    private func setupPinnedTitle() {
-        pinnedTitleLabel.text = "Сегодня"
-        pinnedTitleLabel.font = UIFont.systemFont(ofSize: 34, weight: .bold)
-        pinnedTitleLabel.textColor = .label
-        view.addSubview(pinnedTitleLabel)
-        pinnedTitleLabel.snp.makeConstraints {
-            $0.top.equalTo(view.safeAreaLayoutGuide)
-            $0.leading.trailing.equalToSuperview().inset(20)
-            $0.height.equalTo(44)
-        }
-    }
-
     private func setupNavigation() {
-        navigationItem.largeTitleDisplayMode = .never
+        navigationItem.largeTitleDisplayMode = .always
         navigationItem.rightBarButtonItem = UIBarButtonItem(
             image: UIImage(systemName: "plus"),
             style: .plain,
@@ -102,10 +87,7 @@ final class TodayViewController: UIViewController {
         collectionView.register(ProgressHeaderView.self, forSupplementaryViewOfKind: UICollectionView.elementKindSectionHeader, withReuseIdentifier: ProgressHeaderView.reuseID)
         collectionView.contentInset.bottom = 120
         view.addSubview(collectionView)
-        collectionView.snp.makeConstraints {
-            $0.top.equalTo(pinnedTitleLabel.snp.bottom)
-            $0.leading.trailing.bottom.equalToSuperview()
-        }
+        collectionView.snp.makeConstraints { $0.edges.equalToSuperview() }
     }
 
     private func setupActionBar() {
@@ -254,7 +236,6 @@ extension TodayViewController: UICollectionViewDataSource, UICollectionViewDeleg
         UIImpactFeedbackGenerator.tap(.medium)
 
         if let cell = collectionView.cellForItem(at: indexPath) as? TaskCell {
-            let updatedTask = tasks[indexPath.item]
             cell.configureAnimated(with: task, wasCompleted: wasCompleted)
         }
 

@@ -1,7 +1,7 @@
 import UIKit
 
 final class MainTabBarController: UITabBarController, UITabBarControllerDelegate {
-    private var longPressGesture: UILongPressGestureRecognizer?
+    private var longPressOverlay: UIView?
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -33,31 +33,26 @@ final class MainTabBarController: UITabBarController, UITabBarControllerDelegate
         tabBar.standardAppearance = appearance
         tabBar.scrollEdgeAppearance = appearance
         tabBar.tintColor = .label
-
-        setupLongPressOnTodayTab()
     }
 
     override func viewDidLayoutSubviews() {
         super.viewDidLayoutSubviews()
-        if longPressGesture == nil {
-            setupLongPressOnTodayTab()
-        }
+        setupLongPressOverlay()
     }
 
-    private func setupLongPressOnTodayTab() {
-        if let existing = longPressGesture {
-            tabBar.removeGestureRecognizer(existing)
-        }
-
-        guard let todayItem = tabBar.items?.first else { return }
+    private func setupLongPressOverlay() {
+        longPressOverlay?.removeFromSuperview()
 
         let tabBarButtons = tabBar.subviews.filter { $0 is UIControl }
         guard let firstButton = tabBarButtons.first else { return }
 
-        let gesture = UILongPressGestureRecognizer(target: self, action: #selector(handleTodayLongPress(_:)))
-        gesture.minimumPressDuration = 0.3
-        firstButton.addGestureRecognizer(gesture)
-        longPressGesture = gesture
+        let overlay = UIView(frame: firstButton.frame)
+        overlay.backgroundColor = .clear
+        let longPress = UILongPressGestureRecognizer(target: self, action: #selector(handleTodayLongPress(_:)))
+        longPress.minimumPressDuration = 0.3
+        overlay.addGestureRecognizer(longPress)
+        tabBar.addSubview(overlay)
+        longPressOverlay = overlay
     }
 
     @objc private func handleTodayLongPress(_ gesture: UILongPressGestureRecognizer) {
@@ -73,7 +68,7 @@ final class MainTabBarController: UITabBarController, UITabBarControllerDelegate
     private func makeNav(root: UIViewController, title: String, image: String, selected: String) -> UINavigationController {
         root.title = title
         let nav = UINavigationController(rootViewController: root)
-        nav.navigationBar.prefersLargeTitles = false
+        nav.navigationBar.prefersLargeTitles = true
         nav.tabBarItem = UITabBarItem(
             title: title,
             image: UIImage(systemName: image),
