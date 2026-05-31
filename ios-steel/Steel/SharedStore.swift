@@ -1,7 +1,7 @@
 import Foundation
 
 enum SharedStore {
-    static let suiteName = "group.app.rork.vom4oe9mcqwy169rv59jm"
+    static let suiteName = "group.app.steel.io"
     private static let streakKey = "shared.streak"
     private static let doneKey = "shared.done"
     private static let totalKey = "shared.total"
