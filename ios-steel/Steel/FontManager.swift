@@ -91,7 +91,10 @@ final class FontManager {
     func applyGlobalFont() {
         let fontName = DataManager.shared.settings.customFontName
         guard !fontName.isEmpty else {
-            UIFont.appearance().subclassDirections = nil
+            UILabel.appearance().font = nil
+            UIButton.appearance().titleLabel?.font = nil
+            UITextField.appearance().font = nil
+            UITextView.appearance().font = nil
             return
         }
 

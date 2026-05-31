@@ -127,7 +127,9 @@ final class AppearanceViewController: UIViewController {
     }
 
     @objc private func pickFont() {
-        let picker = UIDocumentPickerViewController(forOpeningContentTypes: [UTType.font, UTType.ttf, UTType.otf], asCopy: true)
+        let ttfType = UTType("public.ttf") ?? UTType.font
+        let otfType = UTType("public.opentype-font") ?? UTType.font
+        let picker = UIDocumentPickerViewController(forOpeningContentTypes: [UTType.font, ttfType, otfType], asCopy: true)
         picker.delegate = self
         picker.allowsMultipleSelection = false
         present(picker, animated: true)
