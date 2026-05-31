@@ -5,25 +5,48 @@ import SPIndicator
 final class ProfileViewController: UIViewController {
     private let scrollView = UIScrollView()
     private let contentStack = UIStackView()
+    private let backgroundView = PersonalBackgroundView()
 
     private let avatarView = UIImageView()
     private let nameField = UITextField()
     private let streakLabel = UILabel()
+    private let streakPauseLabel = UILabel()
     private let statsStack = UIStackView()
     private var reminderPickers: [UIDatePicker] = []
 
     override func viewDidLoad() {
         super.viewDidLoad()
         view.backgroundColor = .systemGroupedBackground
+        setupBackground()
         navigationItem.largeTitleDisplayMode = .always
+        navigationItem.rightBarButtonItem = UIBarButtonItem(
+            image: UIImage(systemName: "gearshape.fill"),
+            style: .plain,
+            target: self,
+            action: #selector(openSettings)
+        )
         setup()
         NotificationCenter.default.addObserver(self, selector: #selector(refresh), name: .steelSettingsChanged, object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(refresh), name: .steelTasksChanged, object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(reloadBackground), name: .steelBackgroundChanged, object: nil)
     }
 
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
+        backgroundView.apply(BackgroundManager.shared.config)
+        backgroundView.resumeVideo()
         refresh()
+    }
+
+    override func viewWillDisappear(_ animated: Bool) {
+        super.viewWillDisappear(animated)
+        backgroundView.pauseVideo()
+    }
+
+    private func setupBackground() {
+        view.addSubview(backgroundView)
+        backgroundView.snp.makeConstraints { $0.edges.equalToSuperview() }
+        backgroundView.apply(BackgroundManager.shared.config)
     }
 
     private func setup() {
@@ -43,8 +66,8 @@ final class ProfileViewController: UIViewController {
         setupHeader()
         setupStreak()
         setupStats()
+        setupStreakPauseSection()
         setupReminders()
-        setupBackgroundSection()
     }
 
     private func setupHeader() {
@@ -98,6 +121,44 @@ final class ProfileViewController: UIViewController {
         contentStack.addArrangedSubview(card)
     }
 
+    private func setupStreakPauseSection() {
+        let title = sectionTitle("СЕРИЯ")
+        contentStack.addArrangedSubview(title)
+
+        let card = makeCard()
+        let stack = UIStackView()
+        stack.axis = .vertical
+        stack.spacing = 0
+        card.contentView.addSubview(stack)
+        stack.snp.makeConstraints { $0.edges.equalToSuperview() }
+
+        let pauseLabel = UILabel()
+        pauseLabel.text = "Пауза серии"
+        pauseLabel.font = UIFont.preferredFont(forTextStyle: .body)
+        pauseLabel.textColor = .label
+
+        let pauseToggle = UISwitch()
+        pauseToggle.onTintColor = .systemOrange
+        pauseToggle.isOn = DataManager.shared.settings.streakPaused
+        pauseToggle.addTarget(self, action: #selector(streakPauseChanged(_:)), for: .valueChanged)
+
+        let pauseRow = UIStackView(arrangedSubviews: [pauseLabel, UIView(), pauseToggle])
+        pauseRow.alignment = .center
+        pauseRow.isLayoutMarginsRelativeArrangement = true
+        pauseRow.layoutMargins = .init(top: 14, left: 16, bottom: 14, right: 16)
+        stack.addArrangedSubview(pauseRow)
+
+        streakPauseLabel.font = UIFont.preferredFont(forTextStyle: .caption1)
+        streakPauseLabel.textColor = .secondaryLabel
+        streakPauseLabel.numberOfLines = 2
+        let descRow = UIStackView(arrangedSubviews: [streakPauseLabel])
+        descRow.isLayoutMarginsRelativeArrangement = true
+        descRow.layoutMargins = .init(top: 0, left: 16, bottom: 12, right: 16)
+        stack.addArrangedSubview(descRow)
+
+        contentStack.addArrangedSubview(card)
+    }
+
     private func setupReminders() {
         let title = sectionTitle("НАПОМИНАНИЯ")
         contentStack.addArrangedSubview(title)
@@ -139,42 +200,6 @@ final class ProfileViewController: UIViewController {
         contentStack.addArrangedSubview(card)
     }
 
-    private func setupBackgroundSection() {
-        let title = sectionTitle("ФОН ЭКРАНА")
-        contentStack.addArrangedSubview(title)
-
-        let choose = makeRowButton(title: "Выбрать фото или видео", icon: "photo.on.rectangle.angled", action: #selector(chooseBackground))
-        let dimToggleRow = makeDimRow()
-        let disable = makeRowButton(title: "Отключить фон", icon: "xmark.circle", action: #selector(disableBackground), destructive: true)
-
-        let card = makeCard()
-        let stack = UIStackView(arrangedSubviews: [choose, separator(), dimToggleRow, separator(), disable])
-        stack.axis = .vertical
-        stack.spacing = 0
-        card.contentView.addSubview(stack)
-        stack.snp.makeConstraints { $0.edges.equalToSuperview() }
-        contentStack.addArrangedSubview(card)
-    }
-
-    private func makeDimRow() -> UIView {
-        let label = UILabel()
-        label.text = "Затемнение для читаемости"
-        label.font = UIFont.preferredFont(forTextStyle: .body)
-        label.textColor = .label
-        label.numberOfLines = 2
-
-        let toggle = UISwitch()
-        toggle.onTintColor = .label
-        toggle.isOn = DataManager.shared.settings.background.dimmed
-        toggle.addTarget(self, action: #selector(dimChanged(_:)), for: .valueChanged)
-
-        let row = UIStackView(arrangedSubviews: [label, UIView(), toggle])
-        row.alignment = .center
-        row.isLayoutMarginsRelativeArrangement = true
-        row.layoutMargins = .init(top: 12, left: 16, bottom: 12, right: 16)
-        return row
-    }
-
     private func makeCard() -> UIVisualEffectView {
         let card = UIVisualEffectView(effect: UIBlurEffect(style: .systemThinMaterial))
         card.backgroundColor = .secondarySystemBackground
@@ -199,19 +224,6 @@ final class ProfileViewController: UIViewController {
         return line
     }
 
-    private func makeRowButton(title: String, icon: String, action: Selector, destructive: Bool = false) -> UIButton {
-        var config = UIButton.Configuration.plain()
-        config.title = title
-        config.image = UIImage(systemName: icon)
-        config.imagePadding = 12
-        config.contentInsets = .init(top: 14, leading: 16, bottom: 14, trailing: 16)
-        config.baseForegroundColor = destructive ? .secondaryLabel : .label
-        let button = UIButton(configuration: config)
-        button.contentHorizontalAlignment = .leading
-        button.addTarget(self, action: action, for: .touchUpInside)
-        return button
-    }
-
     private func statRow(title: String, value: String, isLast: Bool) -> UIView {
         let titleLabel = UILabel()
         titleLabel.text = title
@@ -234,10 +246,29 @@ final class ProfileViewController: UIViewController {
         return container
     }
 
+    @objc private func openSettings() {
+        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+        let vc = SettingsViewController()
+        let nav = UINavigationController(rootViewController: vc)
+        nav.navigationBar.prefersLargeTitles = true
+        if let sheet = nav.sheetPresentationController {
+            sheet.detents = [.medium(), .large()]
+            sheet.prefersGrabberVisible = true
+            sheet.preferredCornerRadius = 28
+        }
+        present(nav, animated: true)
+    }
+
     @objc private func refresh() {
         let settings = DataManager.shared.settings
         nameField.text = settings.userName
         streakLabel.text = "\(settings.streakDays)"
+
+        if settings.streakPaused {
+            streakPauseLabel.text = "Серия на паузе — не сбросится за пропуск дня"
+        } else {
+            streakPauseLabel.text = "Серия активна — пропуск дня обнулит серию"
+        }
 
         statsStack.arrangedSubviews.forEach { $0.removeFromSuperview() }
         let cleanDays = DataManager.shared.fetchHabits().map(\.cleanDays).max() ?? 0
@@ -249,6 +280,10 @@ final class ProfileViewController: UIViewController {
         for (i, row) in rows.enumerated() {
             statsStack.addArrangedSubview(statRow(title: row.0, value: row.1, isLast: i == rows.count - 1))
         }
+    }
+
+    @objc private func reloadBackground() {
+        backgroundView.apply(BackgroundManager.shared.config)
     }
 
     @objc private func changeAvatar() {
@@ -271,17 +306,14 @@ final class ProfileViewController: UIViewController {
         NotificationManager.shared.rescheduleAll()
     }
 
-    @objc private func chooseBackground() {
-        BackgroundPicker.shared.present(from: self)
-    }
-
-    @objc private func disableBackground() {
-        BackgroundManager.shared.disable()
-        SPIndicator.present(title: "Фон отключён", preset: .done, haptic: .success)
-    }
-
-    @objc private func dimChanged(_ toggle: UISwitch) {
-        BackgroundManager.shared.setDimmed(toggle.isOn)
+    @objc private func streakPauseChanged(_ toggle: UISwitch) {
+        let today = DataManager.shared.dayKey(for: Date())
+        DataManager.shared.updateSettings {
+            $0.streakPaused = toggle.isOn
+            $0.streakPausedSince = toggle.isOn ? today : ""
+        }
+        SPIndicator.present(title: toggle.isOn ? "Серия на паузе" : "Серия активна", preset: .done, haptic: .success)
+        refresh()
     }
 }
 

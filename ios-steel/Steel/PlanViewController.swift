@@ -4,6 +4,7 @@ import Hero
 
 final class PlanViewController: UIViewController {
     private let scrollView = UIScrollView()
+    private let backgroundView = PersonalBackgroundView()
     private let titleLabel = UILabel()
     private let bodyLabel = UILabel()
     private let emptyView = UILabel()
@@ -12,12 +13,31 @@ final class PlanViewController: UIViewController {
         super.viewDidLoad()
         view.backgroundColor = .systemBackground
         title = "Мой план"
+        setupBackground()
         navigationItem.largeTitleDisplayMode = .always
         navigationController?.navigationBar.prefersLargeTitles = true
         navigationItem.rightBarButtonItem = UIBarButtonItem(barButtonSystemItem: .close, target: self, action: #selector(close))
         setup()
         render()
         NotificationCenter.default.addObserver(self, selector: #selector(render), name: .steelTasksChanged, object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(reloadBackground), name: .steelBackgroundChanged, object: nil)
+    }
+
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        backgroundView.apply(BackgroundManager.shared.config)
+        backgroundView.resumeVideo()
+    }
+
+    override func viewWillDisappear(_ animated: Bool) {
+        super.viewWillDisappear(animated)
+        backgroundView.pauseVideo()
+    }
+
+    private func setupBackground() {
+        view.addSubview(backgroundView)
+        backgroundView.snp.makeConstraints { $0.edges.equalToSuperview() }
+        backgroundView.apply(BackgroundManager.shared.config)
     }
 
     private func setup() {
@@ -74,6 +94,10 @@ final class PlanViewController: UIViewController {
             scrollView.isHidden = true
             emptyView.isHidden = false
         }
+    }
+
+    @objc private func reloadBackground() {
+        backgroundView.apply(BackgroundManager.shared.config)
     }
 
     @objc private func close() {

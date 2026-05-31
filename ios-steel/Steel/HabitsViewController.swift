@@ -5,11 +5,13 @@ import SwiftData
 
 final class HabitsViewController: UIViewController {
     private var habits: [Habit] = []
+    private let backgroundView = PersonalBackgroundView()
     private var collectionView: UICollectionView!
 
     override func viewDidLoad() {
         super.viewDidLoad()
         view.backgroundColor = .systemGroupedBackground
+        setupBackground()
         navigationItem.largeTitleDisplayMode = .always
         navigationItem.rightBarButtonItem = UIBarButtonItem(
             image: UIImage(systemName: "plus"),
@@ -19,12 +21,26 @@ final class HabitsViewController: UIViewController {
         )
         setupCollection()
         NotificationCenter.default.addObserver(self, selector: #selector(reload), name: .steelHabitsChanged, object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(reloadBackground), name: .steelBackgroundChanged, object: nil)
         reload()
     }
 
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
+        backgroundView.apply(BackgroundManager.shared.config)
+        backgroundView.resumeVideo()
         reload()
+    }
+
+    override func viewWillDisappear(_ animated: Bool) {
+        super.viewWillDisappear(animated)
+        backgroundView.pauseVideo()
+    }
+
+    private func setupBackground() {
+        view.addSubview(backgroundView)
+        backgroundView.snp.makeConstraints { $0.edges.equalToSuperview() }
+        backgroundView.apply(BackgroundManager.shared.config)
     }
 
     private func setupCollection() {
@@ -52,6 +68,10 @@ final class HabitsViewController: UIViewController {
     @objc private func reload() {
         habits = DataManager.shared.fetchHabits()
         collectionView.reloadData()
+    }
+
+    @objc private func reloadBackground() {
+        backgroundView.apply(BackgroundManager.shared.config)
     }
 
     @objc private func addHabit() {

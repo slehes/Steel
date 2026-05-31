@@ -116,6 +116,13 @@ struct AppSettings: Codable {
     var exerciseCounts: [String: Int]
     var reminderHours: [Int]
     var background: BackgroundConfig
+    var customFontFileName: String
+    var customFontName: String
+    var customFontDisplayName: String
+    var streakPaused: Bool
+    var streakPausedSince: String
+    var regionCity: String
+    var regionTimeZone: String
 
     static let `default` = AppSettings(
         userName: "Воин",
@@ -125,7 +132,14 @@ struct AppSettings: Codable {
         totalCompletedTasks: 0,
         exerciseCounts: [:],
         reminderHours: [9, 19, 22],
-        background: .disabled
+        background: .disabled,
+        customFontFileName: "",
+        customFontName: "",
+        customFontDisplayName: "",
+        streakPaused: false,
+        streakPausedSince: "",
+        regionCity: "Москва",
+        regionTimeZone: "Europe/Moscow"
     )
 
     var mostFrequentExercise: String {

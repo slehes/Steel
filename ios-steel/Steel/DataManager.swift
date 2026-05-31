@@ -8,6 +8,7 @@ extension Notification.Name {
     static let steelHabitsChanged = Notification.Name("steel.habitsChanged")
     static let steelSettingsChanged = Notification.Name("steel.settingsChanged")
     static let steelBackgroundChanged = Notification.Name("steel.backgroundChanged")
+    static let steelFontChanged = Notification.Name("steel.fontChanged")
 }
 
 @MainActor
@@ -22,6 +23,16 @@ final class DataManager {
     private(set) var settings: AppSettings {
         didSet { persistSettings() }
     }
+
+    private var activeTimeZone: TimeZone {
+        TimeZone(identifier: settings.regionTimeZone) ?? TimeZone(identifier: "Europe/Moscow")!
+    }
+
+    func setTimeZone(_ tz: TimeZone) {
+        mskTimeZone = tz
+    }
+
+    private var mskTimeZone: TimeZone = TimeZone(identifier: "Europe/Moscow")!
 
     private init() {
         let schema = Schema([DailyTask.self, Habit.self, ChatMessageModel.self, TrainingPlan.self])
@@ -41,7 +52,7 @@ final class DataManager {
     }
 
     func bootstrap() {
-        seedIfNeeded()
+        mskTimeZone = TimeZone(identifier: settings.regionTimeZone) ?? TimeZone(identifier: "Europe/Moscow")!
         rolloverIfNewDay()
         syncShared()
         LiveActivityController.shared.refresh()
@@ -66,21 +77,31 @@ final class DataManager {
         NotificationCenter.default.post(name: .steelSettingsChanged, object: nil)
     }
 
-    private func dayKey(for date: Date = Date()) -> String {
+    func dayKey(for date: Date = Date()) -> String {
         let formatter = DateFormatter()
         formatter.dateFormat = "yyyy-MM-dd"
+        formatter.timeZone = mskTimeZone
         return formatter.string(from: date)
+    }
+
+    func currentMSKDate() -> Date {
+        let now = Date()
+        var cal = Calendar(identifier: .gregorian)
+        cal.timeZone = mskTimeZone
+        return cal.startOfDay(for: now)
     }
 
     func rolloverIfNewDay() {
         let today = dayKey()
         guard settings.lastDayKey != today else { return }
 
-        let yesterday = dayKey(for: Calendar.current.date(byAdding: .day, value: -1, to: Date()) ?? Date())
-        if !settings.lastDayKey.isEmpty,
-           settings.lastCompletedDayKey != yesterday,
-           settings.lastCompletedDayKey != today {
-            updateSettings { $0.streakDays = 0 }
+        if !settings.streakPaused {
+            let yesterday = dayKey(for: Calendar.current.date(byAdding: .day, value: -1, to: Date()) ?? Date())
+            if !settings.lastDayKey.isEmpty,
+               settings.lastCompletedDayKey != yesterday,
+               settings.lastCompletedDayKey != today {
+                updateSettings { $0.streakDays = 0 }
+            }
         }
 
         for task in fetchTasks() {
@@ -210,37 +231,5 @@ final class DataManager {
     var taskProgress: (done: Int, total: Int) {
         let tasks = fetchTasks()
         return (tasks.filter(\.isCompleted).count, tasks.count)
-    }
-
-    private func seedIfNeeded() {
-        guard fetchTasks().isEmpty else { return }
-        let seedTasks: [(String, Int, String, String)] = [
-            ("Отжимания", 50, "раз", "figure.strengthtraining.traditional"),
-            ("Приседания", 100, "раз", "figure.cross.training"),
-            ("Пресс", 100, "раз", "figure.core.training"),
-            ("Планка", 2, "мин", "figure.mind.and.body"),
-            ("Брусья", 15, "раз", "figure.play"),
-            ("Вода", 2, "л", "drop.fill"),
-        ]
-        for (i, t) in seedTasks.enumerated() {
-            context.insert(DailyTask(title: t.0, amount: t.1, unit: t.2, iconName: t.3, sortIndex: i))
-        }
-
-        let seedHabits: [(String, String)] = [
-            ("Мастурбация", "hand.raised.slash"),
-            ("Сахар", "cube"),
-            ("Соцсети", "iphone.slash"),
-            ("Курение", "smoke"),
-            ("Алкоголь", "wineglass"),
-            ("Фастфуд", "takeoutbag.and.cup.and.straw"),
-            ("Ногти", "hand.point.up.braille"),
-            ("Мат", "exclamationmark.bubble"),
-            ("Поздний подъём", "alarm"),
-            ("Комп/телефон", "desktopcomputer"),
-        ]
-        for (i, h) in seedHabits.enumerated() {
-            context.insert(Habit(title: h.0, iconName: h.1, sortIndex: i))
-        }
-        try? context.save()
     }
 }

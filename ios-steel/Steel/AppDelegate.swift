@@ -5,8 +5,11 @@ final class AppDelegate: UIResponder, UIApplicationDelegate {
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil) -> Bool {
         KeychainHelper.bootstrap()
         DataManager.shared.bootstrap()
+        FontManager.shared.registerSavedFont()
+        FontManager.shared.applyGlobalFont()
         NotificationManager.shared.requestAuthorization()
         NotificationManager.shared.rescheduleAll()
+        NotificationManager.shared.scheduleStreakWarningIfNeeded()
         observeSignificantTimeChange()
         return true
     }

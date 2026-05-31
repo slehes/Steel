@@ -4,6 +4,7 @@ import SPIndicator
 
 final class AIChatViewController: UIViewController {
     private let tableView = UITableView()
+    private let backgroundView = PersonalBackgroundView()
     private let inputBar = UIVisualEffectView(effect: UIBlurEffect(style: .systemThickMaterial))
     private let textField = UITextField()
     private let sendButton = UIButton(type: .system)
@@ -17,10 +18,29 @@ final class AIChatViewController: UIViewController {
         view.backgroundColor = .systemBackground
         title = "ИИ Тренер"
         navigationItem.rightBarButtonItem = UIBarButtonItem(barButtonSystemItem: .close, target: self, action: #selector(close))
+        setupBackground()
         setupTable()
         setupInputBar()
         loadMessages()
         registerKeyboard()
+        NotificationCenter.default.addObserver(self, selector: #selector(reloadBackground), name: .steelBackgroundChanged, object: nil)
+    }
+
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        backgroundView.apply(BackgroundManager.shared.config)
+        backgroundView.resumeVideo()
+    }
+
+    override func viewWillDisappear(_ animated: Bool) {
+        super.viewWillDisappear(animated)
+        backgroundView.pauseVideo()
+    }
+
+    private func setupBackground() {
+        view.addSubview(backgroundView)
+        backgroundView.snp.makeConstraints { $0.edges.equalToSuperview() }
+        backgroundView.apply(BackgroundManager.shared.config)
     }
 
     private func setupTable() {
@@ -105,6 +125,10 @@ final class AIChatViewController: UIViewController {
         tableView.addGestureRecognizer(tap)
     }
 
+    @objc private func reloadBackground() {
+        backgroundView.apply(BackgroundManager.shared.config)
+    }
+
     @objc private func dismissKeyboard() { view.endEditing(true) }
     @objc private func close() { dismiss(animated: true) }
 
@@ -134,6 +158,10 @@ final class AIChatViewController: UIViewController {
     }
 
     private func handleConversation(userText: String) async {
+        if KeychainHelper.groqAPIKey.isEmpty {
+            appendMessage("API ключ не задан. Зайди в Профиль → ИИ Тренер → введи Groq API Key (получи на console.groq.com).", isUser: false)
+            return
+        }
         setThinking(true)
         defer { setThinking(false) }
         do {

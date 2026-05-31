@@ -10,6 +10,8 @@ final class TodayViewController: UIViewController {
     private var collectionView: UICollectionView!
     private let actionBar = UIVisualEffectView(effect: UIBlurEffect(style: .systemThickMaterial))
     private let finishButton = UIButton(type: .system)
+    private var actionBarHidden = false
+    private var actionBarOriginalBottom: Constraint?
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -97,7 +99,7 @@ final class TodayViewController: UIViewController {
         view.addSubview(actionBar)
         actionBar.snp.makeConstraints {
             $0.leading.trailing.equalToSuperview().inset(16)
-            $0.bottom.equalTo(view.safeAreaLayoutGuide).inset(8)
+            actionBarOriginalBottom = $0.bottom.equalTo(view.safeAreaLayoutGuide).inset(8).constraint
             $0.height.equalTo(124)
         }
 
@@ -142,6 +144,19 @@ final class TodayViewController: UIViewController {
     private func observe() {
         NotificationCenter.default.addObserver(self, selector: #selector(reload), name: .steelTasksChanged, object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(reloadBackground), name: .steelBackgroundChanged, object: nil)
+    }
+
+    func toggleActionBar() {
+        actionBarHidden.toggle()
+        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+        let offset: CGFloat = actionBarHidden ? 160 : -8
+        actionBar.snp.updateConstraints {
+            $0.bottom.equalTo(view.safeAreaLayoutGuide).inset(offset)
+        }
+        collectionView.contentInset.bottom = actionBarHidden ? 20 : 120
+        UIView.animate(withDuration: 0.3, delay: 0, options: .curveEaseInOut) {
+            self.view.layoutIfNeeded()
+        }
     }
 
     @objc private func reload() {

@@ -4,10 +4,9 @@ import KeychainSwift
 enum KeychainHelper {
     private static let keychain = KeychainSwift()
     private static let groqKeyName = "steel.groq.apiKey"
+    private static let geminiKeyName = "steel.gemini.apiKey"
 
-    static func bootstrap() {
-        // API key should be set by user on first launch
-    }
+    static func bootstrap() {}
 
     static var groqAPIKey: String {
         keychain.get(groqKeyName) ?? ""
@@ -15,5 +14,13 @@ enum KeychainHelper {
 
     static func setGroqAPIKey(_ key: String) {
         keychain.set(key, forKey: groqKeyName)
+    }
+
+    static var geminiAPIKey: String {
+        keychain.get(geminiKeyName) ?? ""
+    }
+
+    static func setGeminiAPIKey(_ key: String) {
+        keychain.set(key, forKey: geminiKeyName)
     }
 }
