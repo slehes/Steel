@@ -11,7 +11,6 @@ final class TodayViewController: UIViewController {
     private let actionBar = UIVisualEffectView(effect: UIBlurEffect(style: .systemThickMaterial))
     private let finishButton = UIButton(type: .system)
     private var actionBarHidden = false
-    private var actionBarOriginalBottom: Constraint?
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -107,10 +106,11 @@ final class TodayViewController: UIViewController {
         actionBar.layer.borderWidth = 0.5
         actionBar.layer.borderColor = UIColor.separator.cgColor
         view.addSubview(actionBar)
+        // Constrain bottom to safeAreaLayoutGuide so action bar sits above tab bar
         actionBar.snp.makeConstraints {
             $0.leading.trailing.equalToSuperview().inset(16)
-            actionBarOriginalBottom = $0.bottom.equalTo(view.safeAreaLayoutGuide).inset(8).constraint
             $0.height.equalTo(124)
+            $0.bottom.equalTo(view.safeAreaLayoutGuide.snp.bottom).offset(-8)
         }
 
         let coach = makeMiniButton(title: "ИИ Тренер", icon: "bolt.fill", action: #selector(openChat))
@@ -163,10 +163,11 @@ final class TodayViewController: UIViewController {
     }
 
     private func updateActionBarPosition(animated: Bool) {
-        // Slide DOWN (below screen) when hidden, UP to normal position when visible
+        // When visible: offset -8 (8 points above safe area bottom = above tab bar)
+        // When hidden: offset +200 (200 points BELOW safe area bottom = off screen below tab bar)
         let offset: CGFloat = actionBarHidden ? 200 : -8
         actionBar.snp.updateConstraints {
-            $0.bottom.equalTo(view.safeAreaLayoutGuide).inset(offset)
+            $0.bottom.equalTo(view.safeAreaLayoutGuide.snp.bottom).offset(offset)
         }
         collectionView.contentInset.bottom = actionBarHidden ? 20 : 140
 
@@ -176,7 +177,7 @@ final class TodayViewController: UIViewController {
         }
 
         if animated {
-            UIView.animate(withDuration: 0.3, delay: 0, options: .curveEaseInOut) {
+            UIView.animate(withDuration: 0.35, delay: 0, usingSpringWithDamping: 0.85, initialSpringVelocity: 0.5, options: .curveEaseInOut) {
                 self.view.layoutIfNeeded()
             }
         } else {

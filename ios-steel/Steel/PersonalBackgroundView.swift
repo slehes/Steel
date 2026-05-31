@@ -4,7 +4,7 @@ import AVFoundation
 final class PersonalBackgroundView: UIView {
     private let imageView = UIImageView()
     private let dimView = UIView()
-    private let blurView = UIVisualEffectView(effect: UIBlurEffect(style: .systemThinMaterial))
+
     private var playerLayer: AVPlayerLayer?
     private var player: AVQueuePlayer?
     private var looper: AVPlayerLooper?
@@ -26,14 +26,13 @@ final class PersonalBackgroundView: UIView {
 
     private func setup() {
         backgroundColor = .clear
+        isUserInteractionEnabled = false
         imageView.contentMode = .scaleAspectFill
         imageView.clipsToBounds = true
         addSubview(imageView)
-        addSubview(blurView)
         dimView.backgroundColor = UIColor.systemBackground.withAlphaComponent(0.55)
         addSubview(dimView)
         imageView.pinEdges(to: self)
-        blurView.pinEdges(to: self)
         dimView.pinEdges(to: self)
     }
 
@@ -56,14 +55,12 @@ final class PersonalBackgroundView: UIView {
                let data = try? Data(contentsOf: url) {
                 imageView.image = UIImage(data: data)
             }
-            blurView.isHidden = true
             dimView.isHidden = !config.dimmed
         case .video:
             isHidden = false
             if let url = BackgroundManager.shared.fileURL(for: config) {
                 setupVideo(url: url)
             }
-            blurView.isHidden = true
             dimView.isHidden = !config.dimmed
         }
     }

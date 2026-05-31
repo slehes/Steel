@@ -26,7 +26,8 @@ final class AddHabitViewController: UIViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        view.backgroundColor = .systemBackground
+        // Use systemGroupedBackground for a fully dark/gray background
+        view.backgroundColor = .systemGroupedBackground
         title = "Новая привычка"
         navigationItem.leftBarButtonItem = UIBarButtonItem(barButtonSystemItem: .cancel, target: self, action: #selector(cancel))
         navigationItem.rightBarButtonItem = UIBarButtonItem(barButtonSystemItem: .save, target: self, action: #selector(save))
@@ -37,7 +38,7 @@ final class AddHabitViewController: UIViewController {
         titleField.placeholder = "Что бросаем?"
         titleField.font = UIFont.preferredFont(forTextStyle: .body)
         titleField.adjustsFontForContentSizeCategory = true
-        titleField.backgroundColor = .secondarySystemBackground
+        titleField.backgroundColor = .secondarySystemGroupedBackground
         titleField.layer.cornerRadius = 14
         titleField.layer.cornerCurve = .continuous
         titleField.leftView = UIView(frame: CGRect(x: 0, y: 0, width: 14, height: 1))

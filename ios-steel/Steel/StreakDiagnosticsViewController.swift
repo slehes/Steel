@@ -31,9 +31,18 @@ final class StreakDiagnosticsViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         view.backgroundColor = .systemGroupedBackground
-        navigationController?.navigationBar.isHidden = true
+        // Keep navigation bar visible for back navigation
+        navigationController?.navigationBar.isHidden = false
+        navigationItem.title = "Диагностика серии"
+        navigationItem.largeTitleDisplayMode = .never
+        navigationItem.leftBarButtonItem = UIBarButtonItem(
+            image: UIImage(systemName: "chevron.left"),
+            style: .plain,
+            target: self,
+            action: #selector(goBack)
+        )
+
         setupBackground()
-        setupHeader()
         setupScrollView()
         setupStreakCard()
         setupProgressCard()
@@ -64,36 +73,6 @@ final class StreakDiagnosticsViewController: UIViewController {
         backgroundView.apply(BackgroundManager.shared.config)
     }
 
-    private func setupHeader() {
-        headerContainer.backgroundColor = .clear
-        view.addSubview(headerContainer)
-        headerContainer.snp.makeConstraints {
-            $0.top.equalTo(view.safeAreaLayoutGuide)
-            $0.leading.trailing.equalToSuperview()
-            $0.height.equalTo(52)
-        }
-
-        let back = UIButton(type: .system)
-        back.setImage(UIImage(systemName: "chevron.left"), for: .normal)
-        back.tintColor = .label
-        back.addTarget(self, action: #selector(goBack), for: .touchUpInside)
-        back.snp.makeConstraints { $0.size.equalTo(32) }
-
-        let titleLabel = UILabel()
-        titleLabel.text = "Диагностика серии"
-        titleLabel.font = UIFont.systemFont(ofSize: 28, weight: .bold)
-        titleLabel.textColor = .label
-
-        let header = UIStackView(arrangedSubviews: [back, titleLabel])
-        header.alignment = .center
-        header.spacing = 10
-        headerContainer.addSubview(header)
-        header.snp.makeConstraints {
-            $0.centerY.equalToSuperview()
-            $0.leading.trailing.equalToSuperview().inset(20)
-        }
-    }
-
     @objc private func goBack() {
         if let nav = navigationController, nav.viewControllers.count > 1 {
             nav.popViewController(animated: true)
@@ -105,8 +84,7 @@ final class StreakDiagnosticsViewController: UIViewController {
     private func setupScrollView() {
         view.addSubview(scrollView)
         scrollView.alwaysBounceVertical = true
-        scrollView.contentInset.top = 56
-        scrollView.scrollIndicatorInsets.top = 56
+        scrollView.backgroundColor = .clear
         scrollView.snp.makeConstraints { $0.edges.equalToSuperview() }
 
         contentStack.axis = .vertical
@@ -120,10 +98,10 @@ final class StreakDiagnosticsViewController: UIViewController {
         }
     }
 
-    // MARK: - Streak Card
+    // MARK: - Streak Card (Liquid Glass)
 
     private func setupStreakCard() {
-        let card = makeCard()
+        let card = makeLiquidGlassCard()
         let stack = UIStackView()
         stack.axis = .vertical
         stack.spacing = 16
@@ -131,23 +109,30 @@ final class StreakDiagnosticsViewController: UIViewController {
         card.contentView.addSubview(stack)
         stack.snp.makeConstraints { $0.edges.equalToSuperview().inset(24) }
 
-        streakNumberLabel.font = UIFont.systemFont(ofSize: 80, weight: .heavy)
+        // Flame icon
+        let flameIcon = UIImageView(image: UIImage(systemName: "flame.fill", withConfiguration: UIImage.SymbolConfiguration(pointSize: 28, weight: .bold)))
+        flameIcon.tintColor = .systemOrange
+        flameIcon.contentMode = .scaleAspectFit
+
+        streakNumberLabel.font = UIFont.systemFont(ofSize: 72, weight: .heavy)
         streakNumberLabel.textColor = .label
         streakNumberLabel.textAlignment = .center
 
         let caption = UILabel()
         caption.text = "ДНЕЙ СЕРИЯ"
-        caption.font = UIFont.systemFont(ofSize: 13, weight: .medium)
+        caption.font = UIFont.systemFont(ofSize: 13, weight: .semibold)
         caption.textColor = .secondaryLabel
         caption.textAlignment = .center
+        caption.letterSpacing = 2
 
         let divider = UIView()
         divider.backgroundColor = .separator
+        divider.layer.cornerRadius = 0.25
         divider.snp.makeConstraints { $0.height.equalTo(0.5) }
 
         let infoStack = UIStackView()
         infoStack.axis = .vertical
-        infoStack.spacing = 12
+        infoStack.spacing = 14
         infoStack.alignment = .fill
 
         bestLabel.font = UIFont.preferredFont(forTextStyle: .body)
@@ -156,19 +141,19 @@ final class StreakDiagnosticsViewController: UIViewController {
         milestoneLabel.textColor = .systemOrange
 
         infoStack.addArrangedSubviews([
-            makeInfoRow(label: "Лучшая серия", value: bestLabel),
-            makeInfoRow(label: "Статус", value: statusLabel),
-            makeInfoRow(label: "До рубежа", value: milestoneLabel),
+            makeInfoRow(icon: "trophy.fill", iconColor: .systemYellow, label: "Лучшая серия", value: bestLabel),
+            makeInfoRow(icon: "circle.fill", iconColor: .systemGreen, label: "Статус", value: statusLabel),
+            makeInfoRow(icon: "flag.fill", iconColor: .systemOrange, label: "До рубежа", value: milestoneLabel),
         ])
 
-        stack.addArrangedSubviews([streakNumberLabel, caption, divider, infoStack])
+        stack.addArrangedSubviews([flameIcon, streakNumberLabel, caption, divider, infoStack])
         contentStack.addArrangedSubview(card)
     }
 
-    // MARK: - Progress Card
+    // MARK: - Progress Card (Liquid Glass)
 
     private func setupProgressCard() {
-        let card = makeCard()
+        let card = makeLiquidGlassCard()
         let stack = UIStackView()
         stack.axis = .vertical
         stack.spacing = 16
@@ -178,14 +163,15 @@ final class StreakDiagnosticsViewController: UIViewController {
 
         let sectionTitle = UILabel()
         sectionTitle.text = "ПРОГРЕСС ЗА СЕГОДНЯ"
-        sectionTitle.font = UIFont.systemFont(ofSize: 13, weight: .medium)
+        sectionTitle.font = UIFont.systemFont(ofSize: 13, weight: .semibold)
         sectionTitle.textColor = .secondaryLabel
+        sectionTitle.letterSpacing = 2
 
-        progressPercentLabel.font = UIFont.systemFont(ofSize: 36, weight: .bold)
+        progressRingView.snp.makeConstraints { $0.size.equalTo(110) }
+
+        progressPercentLabel.font = UIFont.systemFont(ofSize: 40, weight: .bold)
         progressPercentLabel.textColor = .label
         progressPercentLabel.textAlignment = .center
-
-        progressRingView.snp.makeConstraints { $0.size.equalTo(100) }
 
         tasksListStack.axis = .vertical
         tasksListStack.spacing = 8
@@ -195,21 +181,22 @@ final class StreakDiagnosticsViewController: UIViewController {
         contentStack.addArrangedSubview(card)
     }
 
-    // MARK: - Calendar Card
+    // MARK: - Calendar Card (Liquid Glass)
 
     private func setupCalendarCard() {
-        let card = makeCard()
+        let card = makeLiquidGlassCard()
         let stack = UIStackView()
         stack.axis = .vertical
-        stack.spacing = 12
+        stack.spacing = 14
         stack.alignment = .center
         card.contentView.addSubview(stack)
         stack.snp.makeConstraints { $0.edges.equalToSuperview().inset(20) }
 
         let sectionTitle = UILabel()
         sectionTitle.text = "14 ДНЕЙ"
-        sectionTitle.font = UIFont.systemFont(ofSize: 13, weight: .medium)
+        sectionTitle.font = UIFont.systemFont(ofSize: 13, weight: .semibold)
         sectionTitle.textColor = .secondaryLabel
+        sectionTitle.letterSpacing = 2
 
         calendarStack.axis = .horizontal
         calendarStack.distribution = .equalSpacing
@@ -219,10 +206,10 @@ final class StreakDiagnosticsViewController: UIViewController {
         contentStack.addArrangedSubview(card)
     }
 
-    // MARK: - AI Card
+    // MARK: - AI Card (Liquid Glass)
 
     private func setupAICard() {
-        let card = makeCard()
+        let card = makeLiquidGlassCard()
         let stack = UIStackView()
         stack.axis = .vertical
         stack.spacing = 16
@@ -240,7 +227,7 @@ final class StreakDiagnosticsViewController: UIViewController {
         diagnoseButton.tintColor = .white
         diagnoseButton.imageEdgeInsets = UIEdgeInsets(top: 0, left: -8, bottom: 0, right: 8)
         diagnoseButton.addTarget(self, action: #selector(runDiagnostics), for: .touchUpInside)
-        diagnoseButton.snp.makeConstraints { $0.height.equalTo(48) }
+        diagnoseButton.snp.makeConstraints { $0.height.equalTo(50) }
 
         aiLoadingIndicator.hidesWhenStopped = true
         aiLoadingIndicator.color = .secondaryLabel
@@ -250,7 +237,6 @@ final class StreakDiagnosticsViewController: UIViewController {
         aiResultLabel.numberOfLines = 0
         aiResultLabel.isHidden = true
 
-        aiCard.backgroundColor = .tertiarySystemBackground
         aiCard.layer.cornerRadius = 14
         aiCard.layer.cornerCurve = .continuous
         aiCard.clipsToBounds = true
@@ -323,10 +309,12 @@ final class StreakDiagnosticsViewController: UIViewController {
             col.alignment = .center
 
             let dot = UIView()
-            dot.layer.cornerRadius = 7
-            dot.snp.makeConstraints { $0.size.equalTo(14) }
+            dot.layer.cornerRadius = 8
+            dot.snp.makeConstraints { $0.size.equalTo(16) }
             if offset == 0 {
                 dot.backgroundColor = .systemBlue
+                dot.layer.borderWidth = 2
+                dot.layer.borderColor = UIColor.systemBlue.cgColor
             } else if settings.lastCompletedDayKey == dayKey {
                 dot.backgroundColor = .systemGreen
             } else {
@@ -335,8 +323,8 @@ final class StreakDiagnosticsViewController: UIViewController {
 
             let numLabel = UILabel()
             numLabel.text = "\(cal.component(.day, from: date))"
-            numLabel.font = UIFont.systemFont(ofSize: 9)
-            numLabel.textColor = .tertiaryLabel
+            numLabel.font = UIFont.systemFont(ofSize: 10, weight: .medium)
+            numLabel.textColor = .secondaryLabel
 
             col.addArrangedSubviews([dot, numLabel])
             calendarStack.addArrangedSubview(col)
@@ -406,22 +394,37 @@ final class StreakDiagnosticsViewController: UIViewController {
 
     // MARK: - Helpers
 
-    private func makeCard() -> UIVisualEffectView {
-        let card = UIVisualEffectView(effect: UIBlurEffect(style: .systemThinMaterial))
-        card.backgroundColor = .secondarySystemBackground
-        card.layer.cornerRadius = 18
+    /// Liquid glass card with blur + border + subtle glow
+    private func makeLiquidGlassCard() -> UIVisualEffectView {
+        let card = UIVisualEffectView(effect: UIBlurEffect(style: .systemUltraThinMaterial))
+        card.backgroundColor = UIColor.secondarySystemBackground.withAlphaComponent(0.5)
+        card.layer.cornerRadius = 20
         card.layer.cornerCurve = .continuous
         card.clipsToBounds = true
+        card.layer.borderWidth = 0.5
+        card.layer.borderColor = UIColor.white.withAlphaComponent(0.15).cgColor
+        // Subtle inner shadow/glow for liquid glass look
+        card.layer.shadowColor = UIColor.white.withAlphaComponent(0.1).cgColor
+        card.layer.shadowOpacity = 0.5
+        card.layer.shadowRadius = 10
+        card.layer.shadowOffset = .zero
         return card
     }
 
-    private func makeInfoRow(label: String, value: UILabel) -> UIView {
+    private func makeInfoRow(icon: String, iconColor: UIColor, label: String, value: UILabel) -> UIView {
+        let iconView = UIImageView(image: UIImage(systemName: icon, withConfiguration: UIImage.SymbolConfiguration(pointSize: 14, weight: .semibold)))
+        iconView.tintColor = iconColor
+        iconView.snp.makeConstraints { $0.size.equalTo(22) }
+
         let titleLabel = UILabel()
         titleLabel.text = label
         titleLabel.font = UIFont.preferredFont(forTextStyle: .subheadline)
         titleLabel.textColor = .secondaryLabel
         value.font = UIFont.preferredFont(forTextStyle: .subheadline).withWeight(.semibold)
-        let row = UIStackView(arrangedSubviews: [titleLabel, UIView(), value])
+
+        let row = UIStackView(arrangedSubviews: [iconView, titleLabel, UIView(), value])
+        row.alignment = .center
+        row.spacing = 8
         return row
     }
 
@@ -457,11 +460,27 @@ extension UIStackView {
     }
 }
 
+// MARK: - UILabel letter spacing
+extension UILabel {
+    var letterSpacing: CGFloat {
+        get { 0 }
+        set {
+            guard let text = text else { return }
+            let attrs: [NSAttributedString.Key: Any] = [
+                .kern: newValue,
+                .font: font as Any,
+                .foregroundColor: textColor as Any
+            ]
+            attributedText = NSAttributedString(string: text, attributes: attrs)
+        }
+    }
+}
+
 // MARK: - Progress Ring
 private final class ProgressRingView: UIView {
     private let trackLayer = CAShapeLayer()
     private let progressLayer = CAShapeLayer()
-    private let lineWidth: CGFloat = 8
+    private let lineWidth: CGFloat = 10
 
     override init(frame: CGRect) { super.init(frame: frame); setupLayers() }
     required init?(coder: NSCoder) { super.init(coder: coder); setupLayers() }

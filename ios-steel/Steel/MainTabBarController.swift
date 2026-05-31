@@ -26,7 +26,7 @@ final class MainTabBarController: UITabBarController, UITabBarControllerDelegate
 
         viewControllers = [today, habits, profile]
 
-        // Liquid glass style tab bar and navigation bar
+        // Liquid glass style tab bar
         let tabAppearance = UITabBarAppearance()
         tabAppearance.configureWithDefaultBackground()
         tabAppearance.backgroundEffect = UIBlurEffect(style: .systemUltraThinMaterial)
@@ -35,10 +35,11 @@ final class MainTabBarController: UITabBarController, UITabBarControllerDelegate
         tabBar.scrollEdgeAppearance = tabAppearance
         tabBar.tintColor = .label
 
+        // Transparent navigation bar — background shows through fully, no blur at top
         let navAppearance = UINavigationBarAppearance()
-        navAppearance.configureWithDefaultBackground()
-        navAppearance.backgroundEffect = UIBlurEffect(style: .systemUltraThinMaterial)
-        navAppearance.backgroundColor = UIColor.systemBackground.withAlphaComponent(0.6)
+        navAppearance.configureWithTransparentBackground()
+        navAppearance.backgroundColor = .clear
+        navAppearance.shadowColor = .clear
         UINavigationBar.appearance().standardAppearance = navAppearance
         UINavigationBar.appearance().scrollEdgeAppearance = navAppearance
         UINavigationBar.appearance().compactAppearance = navAppearance
