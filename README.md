@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="icon.png" alt="Steel Banner" width="100%">
+<img src="https://github.com/slehes/Steel/blob/main/ios-steel/Steel/Assets.xcassets/AppIcon.appiconset/icon.png" alt="Steel Banner" width="100%">
 
 # ⚔️ Steel
 
