@@ -27,17 +27,21 @@ final class ChatBubbleCell: UITableViewCell {
         messageLabel.numberOfLines = 0
         messageLabel.font = UIFont.preferredFont(forTextStyle: .body)
         messageLabel.adjustsFontForContentSizeCategory = true
+        messageLabel.lineBreakMode = .byWordWrapping
         bubble.addSubview(messageLabel)
         messageLabel.snp.makeConstraints {
-            $0.edges.equalToSuperview().inset(UIEdgeInsets(top: 10, left: 14, bottom: 10, right: 14))
+            $0.top.equalToSuperview().inset(10)
+            $0.bottom.equalToSuperview().inset(10)
+            $0.leading.equalToSuperview().inset(14)
+            $0.trailing.equalToSuperview().inset(14)
         }
 
         bubble.snp.makeConstraints {
             $0.top.equalToSuperview().inset(4)
             $0.bottom.equalToSuperview().inset(4)
-            $0.width.lessThanOrEqualTo(contentView).multipliedBy(0.78)
+            $0.width.lessThanOrEqualTo(contentView.snp.width).multipliedBy(0.75)
             leadingConstraint = $0.leading.equalToSuperview().inset(16).constraint
-            trailingConstraint = $0.trailing.equalToSuperview().inset(16).constraint
+            trailingConstraint = $0.trailing.lessThanOrEqualToSuperview().inset(16).constraint
         }
     }
 
@@ -49,6 +53,9 @@ final class ChatBubbleCell: UITableViewCell {
             bubble.layer.borderWidth = 0
             leadingConstraint?.deactivate()
             trailingConstraint?.activate()
+            bubble.snp.makeConstraints {
+                $0.trailing.equalToSuperview().inset(16)
+            }
         } else {
             bubble.backgroundColor = .secondarySystemBackground
             messageLabel.textColor = .label
@@ -56,6 +63,20 @@ final class ChatBubbleCell: UITableViewCell {
             bubble.layer.borderColor = UIColor.separator.cgColor
             trailingConstraint?.deactivate()
             leadingConstraint?.activate()
+            bubble.snp.makeConstraints {
+                $0.leading.equalToSuperview().inset(16)
+            }
+        }
+    }
+
+    override func prepareForReuse() {
+        super.prepareForReuse()
+        bubble.snp.remakeConstraints {
+            $0.top.equalToSuperview().inset(4)
+            $0.bottom.equalToSuperview().inset(4)
+            $0.width.lessThanOrEqualTo(contentView.snp.width).multipliedBy(0.75)
+            leadingConstraint = $0.leading.equalToSuperview().inset(16).constraint
+            trailingConstraint = $0.trailing.lessThanOrEqualToSuperview().inset(16).constraint
         }
     }
 }

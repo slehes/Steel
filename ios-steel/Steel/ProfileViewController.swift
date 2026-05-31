@@ -7,6 +7,7 @@ final class ProfileViewController: UIViewController {
     private let scrollView = UIScrollView()
     private let contentStack = UIStackView()
     private let backgroundView = PersonalBackgroundView()
+    private let pinnedTitleLabel = UILabel()
 
     private let avatarView = UIImageView()
     private let nameField = UITextField()
@@ -19,13 +20,14 @@ final class ProfileViewController: UIViewController {
         super.viewDidLoad()
         view.backgroundColor = .systemGroupedBackground
         setupBackground()
-        navigationItem.largeTitleDisplayMode = .always
+        navigationItem.largeTitleDisplayMode = .never
         navigationItem.rightBarButtonItem = UIBarButtonItem(
             image: UIImage(systemName: "gearshape.fill"),
             style: .plain,
             target: self,
             action: #selector(openSettings)
         )
+        setupPinnedTitle()
         setup()
         NotificationCenter.default.addObserver(self, selector: #selector(refresh), name: .steelSettingsChanged, object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(refresh), name: .steelTasksChanged, object: nil)
@@ -44,6 +46,7 @@ final class ProfileViewController: UIViewController {
         super.viewWillAppear(animated)
         backgroundView.apply(BackgroundManager.shared.config)
         backgroundView.resumeVideo()
+        navigationController?.navigationBar.isHidden = true
         refresh()
         updateMusicPreview()
     }
@@ -51,12 +54,24 @@ final class ProfileViewController: UIViewController {
     override func viewWillDisappear(_ animated: Bool) {
         super.viewWillDisappear(animated)
         backgroundView.pauseVideo()
+        navigationController?.navigationBar.isHidden = false
     }
 
     private func setupBackground() {
         view.addSubview(backgroundView)
         backgroundView.snp.makeConstraints { $0.edges.equalToSuperview() }
         backgroundView.apply(BackgroundManager.shared.config)
+    }
+
+    private func setupPinnedTitle() {
+        pinnedTitleLabel.text = "Профиль"
+        pinnedTitleLabel.font = UIFont.systemFont(ofSize: 34, weight: .bold)
+        pinnedTitleLabel.textColor = .label
+        view.addSubview(pinnedTitleLabel)
+        pinnedTitleLabel.snp.makeConstraints {
+            $0.top.equalTo(view.safeAreaLayoutGuide).inset(8)
+            $0.leading.equalToSuperview().inset(20)
+        }
     }
 
     private func setup() {
@@ -69,7 +84,7 @@ final class ProfileViewController: UIViewController {
         contentStack.spacing = 24
         scrollView.addSubview(contentStack)
         contentStack.snp.makeConstraints {
-            $0.top.equalToSuperview().offset(16)
+            $0.top.equalToSuperview().offset(56)
             $0.leading.trailing.equalTo(view).inset(20)
             $0.bottom.equalToSuperview().inset(40)
         }

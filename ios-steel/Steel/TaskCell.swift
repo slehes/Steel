@@ -75,6 +75,16 @@ final class TaskCell: UICollectionViewCell {
         }
     }
 
+    override var isHighlighted: Bool {
+        get { super.isHighlighted }
+        set {
+            super.isHighlighted = newValue
+            UIView.animate(withDuration: 0.1) {
+                self.glass.alpha = newValue ? 0.6 : 1.0
+            }
+        }
+    }
+
     func configure(with task: DailyTask) {
         iconView.image = UIImage(systemName: task.isCompleted ? "checkmark.circle.fill" : task.iconName)
         iconView.tintColor = task.isCompleted ? .systemGreen : .label
@@ -90,20 +100,18 @@ final class TaskCell: UICollectionViewCell {
 
     func configureAnimated(with task: DailyTask, wasCompleted: Bool) {
         if !wasCompleted {
-            UIView.animate(withDuration: 0.4, delay: 0, usingSpringWithDamping: 0.7, initialSpringVelocity: 0.3, options: .curveEaseInOut) {
-                self.iconView.alpha = 0.2
+            UIView.animate(withDuration: 0.3, delay: 0, options: .curveEaseInOut) {
                 self.iconView.transform = CGAffineTransform(scaleX: 0.6, y: 0.6)
             } completion: { _ in
                 self.iconView.image = UIImage(systemName: "checkmark.circle.fill")
                 self.iconView.tintColor = .systemGreen
 
-                UIView.animate(withDuration: 0.6, delay: 0, usingSpringWithDamping: 0.4, initialSpringVelocity: 0.6, options: .curveEaseOut) {
-                    self.iconView.alpha = 1
+                UIView.animate(withDuration: 0.4, delay: 0, usingSpringWithDamping: 0.5, initialSpringVelocity: 0.5, options: .curveEaseOut) {
                     self.iconView.transform = .identity
                 }
             }
 
-            UIView.animate(withDuration: 0.5, delay: 0.15, usingSpringWithDamping: 0.8, initialSpringVelocity: 0.3, options: .curveEaseOut) {
+            UIView.animate(withDuration: 0.4, delay: 0.1, options: .curveEaseOut) {
                 self.glass.alpha = 0.7
                 let attrs: [NSAttributedString.Key: Any] = [
                     .strikethroughStyle: NSUnderlineStyle.single.rawValue,
@@ -121,35 +129,23 @@ final class TaskCell: UICollectionViewCell {
                 iconView.addSymbolEffect(.bounce)
             }
         } else {
-            UIView.animate(withDuration: 0.4, delay: 0, usingSpringWithDamping: 0.7, initialSpringVelocity: 0.3, options: .curveEaseInOut) {
-                self.iconView.alpha = 0.2
+            UIView.animate(withDuration: 0.3, delay: 0, options: .curveEaseInOut) {
                 self.iconView.transform = CGAffineTransform(scaleX: 0.6, y: 0.6)
             } completion: { _ in
                 self.iconView.image = UIImage(systemName: task.iconName)
                 self.iconView.tintColor = .label
 
-                UIView.animate(withDuration: 0.6, delay: 0, usingSpringWithDamping: 0.4, initialSpringVelocity: 0.6, options: .curveEaseOut) {
-                    self.iconView.alpha = 1
+                UIView.animate(withDuration: 0.4, delay: 0, usingSpringWithDamping: 0.5, initialSpringVelocity: 0.5, options: .curveEaseOut) {
                     self.iconView.transform = .identity
                 }
             }
 
-            UIView.animate(withDuration: 0.5, delay: 0.15, usingSpringWithDamping: 0.8, initialSpringVelocity: 0.3, options: .curveEaseOut) {
+            UIView.animate(withDuration: 0.4, delay: 0.1, options: .curveEaseOut) {
                 self.glass.alpha = 1
                 let attrs: [NSAttributedString.Key: Any] = [.foregroundColor: UIColor.label]
                 self.titleLabel.attributedText = NSAttributedString(string: task.title, attributes: attrs)
                 self.detailLabel.text = task.displayDetail
             }
-        }
-    }
-
-    func playCompletion() {
-        lottieView.play { [weak self] _ in
-            self?.lottieView.currentProgress = 0
-        }
-        iconView.image = UIImage(systemName: "checkmark.circle.fill")
-        if #available(iOS 17.0, *) {
-            iconView.addSymbolEffect(.bounce)
         }
     }
 
@@ -159,5 +155,6 @@ final class TaskCell: UICollectionViewCell {
         lottieView.currentProgress = 0
         iconView.alpha = 1
         iconView.transform = .identity
+        glass.alpha = 1
     }
 }

@@ -7,11 +7,13 @@ final class HabitsViewController: UIViewController {
     private var habits: [Habit] = []
     private let backgroundView = PersonalBackgroundView()
     private var collectionView: UICollectionView!
+    private let pinnedTitleLabel = UILabel()
 
     override func viewDidLoad() {
         super.viewDidLoad()
         view.backgroundColor = .systemGroupedBackground
         setupBackground()
+        setupPinnedTitle()
         setupNavigation()
         setupCollection()
         NotificationCenter.default.addObserver(self, selector: #selector(reload), name: .steelHabitsChanged, object: nil)
@@ -23,12 +25,14 @@ final class HabitsViewController: UIViewController {
         super.viewWillAppear(animated)
         backgroundView.apply(BackgroundManager.shared.config)
         backgroundView.resumeVideo()
+        navigationController?.navigationBar.isHidden = true
         reload()
     }
 
     override func viewWillDisappear(_ animated: Bool) {
         super.viewWillDisappear(animated)
         backgroundView.pauseVideo()
+        navigationController?.navigationBar.isHidden = false
     }
 
     private func setupBackground() {
@@ -37,8 +41,19 @@ final class HabitsViewController: UIViewController {
         backgroundView.apply(BackgroundManager.shared.config)
     }
 
+    private func setupPinnedTitle() {
+        pinnedTitleLabel.text = "Привычки"
+        pinnedTitleLabel.font = UIFont.systemFont(ofSize: 34, weight: .bold)
+        pinnedTitleLabel.textColor = .label
+        view.addSubview(pinnedTitleLabel)
+        pinnedTitleLabel.snp.makeConstraints {
+            $0.top.equalTo(view.safeAreaLayoutGuide).inset(8)
+            $0.leading.equalToSuperview().inset(20)
+        }
+    }
+
     private func setupNavigation() {
-        navigationItem.largeTitleDisplayMode = .always
+        navigationItem.largeTitleDisplayMode = .never
         navigationItem.rightBarButtonItem = UIBarButtonItem(
             image: UIImage(systemName: "plus"),
             style: .plain,
@@ -65,6 +80,7 @@ final class HabitsViewController: UIViewController {
         collectionView.delegate = self
         collectionView.dataSource = self
         collectionView.register(HabitCell.self, forCellWithReuseIdentifier: HabitCell.reuseID)
+        collectionView.contentInset.top = 44
         view.addSubview(collectionView)
         collectionView.snp.makeConstraints { $0.edges.equalToSuperview() }
     }

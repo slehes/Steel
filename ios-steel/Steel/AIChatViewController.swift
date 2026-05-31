@@ -17,7 +17,17 @@ final class AIChatViewController: UIViewController {
         super.viewDidLoad()
         view.backgroundColor = .systemBackground
         title = "ИИ Тренер"
-        navigationItem.rightBarButtonItem = UIBarButtonItem(barButtonSystemItem: .close, target: self, action: #selector(close))
+        navigationItem.leftBarButtonItem = UIBarButtonItem(
+            image: UIImage(systemName: "plus.circle"),
+            style: .plain,
+            target: self,
+            action: #selector(newChat)
+        )
+        navigationItem.rightBarButtonItem = UIBarButtonItem(
+            barButtonSystemItem: .close,
+            target: self,
+            action: #selector(close)
+        )
         setupBackground()
         setupTable()
         setupInputBar()
@@ -111,7 +121,7 @@ final class AIChatViewController: UIViewController {
     private func loadMessages() {
         messages = DataManager.shared.fetchMessages()
         if messages.isEmpty {
-            let greeting = "Готов меняться? Скажи, что хочешь добавить или изменить."
+            let greeting = "Готов меняться? Расскажи, что хочешь изменить, и мы обсудим план."
             DataManager.shared.addMessage(greeting, isUser: false)
             messages = DataManager.shared.fetchMessages()
         }
@@ -131,6 +141,25 @@ final class AIChatViewController: UIViewController {
 
     @objc private func dismissKeyboard() { view.endEditing(true) }
     @objc private func close() { dismiss(animated: true) }
+
+    @objc private func newChat() {
+        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+        let alert = UIAlertController(title: "Новый чат", message: "Начать новый чат? Контекст предыдущих сообщений сохранится для памяти ИИ.", preferredStyle: .alert)
+        alert.addAction(UIAlertAction(title: "Отмена", style: .cancel))
+        alert.addAction(UIAlertAction(title: "Новый чат", style: .default) { [weak self] _ in
+            guard let self = self else { return }
+            for msg in self.messages {
+                DataManager.shared.context.delete(msg)
+            }
+            try? DataManager.shared.context.save()
+            let greeting = "Начнём заново. Что хочешь обсудить?"
+            DataManager.shared.addMessage(greeting, isUser: false)
+            self.messages = DataManager.shared.fetchMessages()
+            self.tableView.reloadData()
+            self.scrollToBottom(animated: false)
+        })
+        present(alert, animated: true)
+    }
 
     @objc private func send() {
         let text = textField.text?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
@@ -154,12 +183,12 @@ final class AIChatViewController: UIViewController {
     }
 
     private func history() -> [GroqTurn] {
-        messages.suffix(16).map { GroqTurn(role: $0.isUser ? "user" : "assistant", content: $0.text) }
+        messages.suffix(20).map { GroqTurn(role: $0.isUser ? "user" : "assistant", content: $0.text) }
     }
 
     private func handleConversation(userText: String) async {
         if KeychainHelper.groqAPIKey.isEmpty {
-            appendMessage("API ключ не задан. Зайди в Профиль → ИИ Тренер → введи Groq API Key (получи на console.groq.com).", isUser: false)
+            appendMessage("API ключ не задан. Зайди в Настройки → Провайдеры → введи Groq API Key (получи на console.groq.com).", isUser: false)
             return
         }
         setThinking(true)
@@ -202,7 +231,7 @@ final class AIChatViewController: UIViewController {
             }
 
             let digest = buildDigest(result)
-            let followup = "Я прочитал сайт \(url). Запрос пользователя: \"\(query)\". Вот извлечённые данные:\n\(digest)\n\nНа основе этих данных дай краткий ответ и при необходимости команды (ADD_TASK и т.д.). Формат JSON как обычно."
+            let followup = "Я прочитал сайт \(url). Запрос пользователя: \"\(query)\". Вот извлечённые данные:\n\(digest)\n\nНа основе этих данных дай краткий ответ на русском языке и при необходимости команды (ADD_TASK и т.д.). Формат JSON как обычно."
             var turns = history()
             turns.append(GroqTurn(role: "user", content: followup))
             let result2 = try await GroqAI.send(history: turns)
