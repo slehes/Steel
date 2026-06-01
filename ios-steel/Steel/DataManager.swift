@@ -238,9 +238,9 @@ final class DataManager {
     }
 
     @discardableResult
-    func addHabit(title: String, iconName: String) -> Habit {
+    func addHabit(title: String, iconName: String, category: HabitCategory = .bad) -> Habit {
         let index = (fetchHabits().map(\.sortIndex).max() ?? -1) + 1
-        let habit = Habit(title: title, iconName: iconName, sortIndex: index)
+        let habit = Habit(title: title, iconName: iconName, category: category, sortIndex: index)
         context.insert(habit)
         try? context.save()
         NotificationCenter.default.post(name: .steelHabitsChanged, object: nil)
@@ -251,13 +251,24 @@ final class DataManager {
     /// Restore habit from Keychain backup
     func addHabitFromDTO(_ dto: HabitDTO) {
         let index = (fetchHabits().map(\.sortIndex).max() ?? -1) + 1
-        let habit = Habit(title: dto.title, iconName: dto.iconName, sortIndex: index)
+        let category = HabitCategory(rawValue: dto.categoryRaw) ?? .bad
+        let habit = Habit(title: dto.title, iconName: dto.iconName, category: category, sortIndex: index)
         habit.bestStreak = dto.bestStreak
         habit.relapseCount = dto.relapseCount
         habit.streakStart = dto.streakStart
         context.insert(habit)
         try? context.save()
         NotificationCenter.default.post(name: .steelHabitsChanged, object: nil)
+    }
+
+    /// Привычки разбитые по категориям. Полезные идут первыми — они позитивные,
+    /// вредные следом — это «от чего отказываемся».
+    func fetchHabitsGrouped() -> (good: [Habit], bad: [Habit]) {
+        let all = fetchHabits()
+        return (
+            good: all.filter { $0.category == .good },
+            bad:  all.filter { $0.category == .bad }
+        )
     }
 
     func removeHabit(_ habit: Habit) {

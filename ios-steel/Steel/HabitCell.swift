@@ -5,8 +5,10 @@ final class HabitCell: UICollectionViewCell {
     static let reuseID = "HabitCell"
 
     private let glass = UIVisualEffectView(effect: UIBlurEffect(style: .systemUltraThinMaterial))
+    private let iconBackdrop = UIView()
     private let iconView = UIImageView()
     private let titleLabel = UILabel()
+    private let categoryBadge = UILabel()
     private let daysLabel = UILabel()
     private let daysCaption = UILabel()
     private let relapseButton = UIButton(type: .system)
@@ -14,6 +16,7 @@ final class HabitCell: UICollectionViewCell {
     private let fill = UIView()
     private let shimmerView = UIView()
     private var fillWidth: Constraint?
+    private var habitCategory: HabitCategory = .bad
 
     var onRelapse: (() -> Void)?
 
@@ -37,24 +40,44 @@ final class HabitCell: UICollectionViewCell {
 
         let content = glass.contentView
 
-        iconView.contentMode = .scaleAspectFit
-        iconView.tintColor = .label
-        iconView.preferredSymbolConfiguration = UIImage.SymbolConfiguration(pointSize: 24, weight: .semibold)
-        content.addSubview(iconView)
-        iconView.snp.makeConstraints {
+        iconBackdrop.layer.cornerRadius = 16
+        iconBackdrop.layer.cornerCurve = .continuous
+        iconBackdrop.clipsToBounds = true
+        content.addSubview(iconBackdrop)
+        iconBackdrop.snp.makeConstraints {
             $0.leading.equalToSuperview().inset(18)
             $0.top.equalToSuperview().inset(18)
-            $0.width.height.equalTo(30)
+            $0.width.height.equalTo(42)
         }
+
+        iconView.contentMode = .scaleAspectFit
+        iconView.tintColor = .white
+        iconView.preferredSymbolConfiguration = UIImage.SymbolConfiguration(pointSize: 22, weight: .semibold)
+        iconBackdrop.addSubview(iconView)
+        iconView.snp.makeConstraints { $0.center.equalToSuperview() }
 
         titleLabel.font = UIFont.preferredFont(forTextStyle: .headline)
         titleLabel.adjustsFontForContentSizeCategory = true
         titleLabel.textColor = .label
         content.addSubview(titleLabel)
         titleLabel.snp.makeConstraints {
-            $0.leading.equalTo(iconView.snp.trailing).offset(12)
-            $0.centerY.equalTo(iconView)
-            $0.trailing.lessThanOrEqualToSuperview().inset(18)
+            $0.leading.equalTo(iconBackdrop.snp.trailing).offset(12)
+            $0.top.equalTo(iconBackdrop).offset(2)
+            $0.trailing.lessThanOrEqualTo(categoryBadge.snp.leading).offset(-8)
+        }
+
+        categoryBadge.font = UIFont.systemFont(ofSize: 10, weight: .semibold)
+        categoryBadge.textColor = .white
+        categoryBadge.textAlignment = .center
+        categoryBadge.layer.cornerRadius = 7
+        categoryBadge.layer.cornerCurve = .continuous
+        categoryBadge.clipsToBounds = true
+        content.addSubview(categoryBadge)
+        categoryBadge.snp.makeConstraints {
+            $0.trailing.equalToSuperview().inset(18)
+            $0.centerY.equalTo(titleLabel)
+            $0.height.equalTo(18)
+            $0.width.greaterThanOrEqualTo(58)
         }
 
         daysLabel.font = UIFont.systemFont(ofSize: 34, weight: .bold)
@@ -62,12 +85,11 @@ final class HabitCell: UICollectionViewCell {
         content.addSubview(daysLabel)
         daysLabel.snp.makeConstraints {
             $0.leading.equalToSuperview().inset(18)
-            $0.top.equalTo(iconView.snp.bottom).offset(6)
+            $0.top.equalTo(iconBackdrop.snp.bottom).offset(6)
         }
 
         daysCaption.font = UIFont.preferredFont(forTextStyle: .caption1)
         daysCaption.textColor = .secondaryLabel
-        daysCaption.text = "дней чисто"
         content.addSubview(daysCaption)
         daysCaption.snp.makeConstraints {
             $0.leading.equalTo(daysLabel.snp.trailing).offset(6)
@@ -121,8 +143,35 @@ final class HabitCell: UICollectionViewCell {
     }
 
     func configure(with habit: Habit) {
+        habitCategory = habit.category
         iconView.image = UIImage(systemName: habit.iconName)
         titleLabel.text = habit.title
+
+        // Цвет иконки-подложки в зависимости от категории
+        let tint: UIColor = habit.category == .good ? .systemGreen : .systemRed
+        iconBackdrop.backgroundColor = tint
+
+        // Бейдж категории
+        categoryBadge.text = "  \(habit.category.title.uppercased())  "
+        categoryBadge.backgroundColor = tint
+
+        // Кнопка и подпись счётчика зависят от категории
+        if habit.category == .good {
+            daysCaption.text = "дней подряд"
+            var cfg = relapseButton.configuration ?? UIButton.Configuration.gray()
+            cfg.title = "Отметил сегодня"
+            cfg.image = UIImage(systemName: "checkmark.seal.fill")
+            cfg.baseForegroundColor = .systemGreen
+            relapseButton.configuration = cfg
+        } else {
+            daysCaption.text = "дней чисто"
+            var cfg = relapseButton.configuration ?? UIButton.Configuration.gray()
+            cfg.title = "Сорвался"
+            cfg.image = UIImage(systemName: "arrow.counterclockwise")
+            cfg.baseForegroundColor = .label
+            relapseButton.configuration = cfg
+        }
+
         daysLabel.text = "\(habit.cleanDays)"
 
         let best = max(habit.bestStreak, 30)
@@ -150,13 +199,11 @@ final class HabitCell: UICollectionViewCell {
             }
         }
 
-        // Color based on progress
-        if ratio >= 1.0 {
-            fill.backgroundColor = .systemGreen
-        } else if ratio >= 0.5 {
-            fill.backgroundColor = .systemOrange
+        // Цвет заполнения в зависимости от прогресса И категории
+        if habit.category == .good {
+            fill.backgroundColor = ratio >= 1.0 ? .systemGreen : .systemBlue
         } else {
-            fill.backgroundColor = .systemOrange
+            fill.backgroundColor = ratio >= 1.0 ? .systemGreen : .systemOrange
         }
     }
 

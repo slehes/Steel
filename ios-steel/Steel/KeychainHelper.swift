@@ -196,6 +196,7 @@ struct HabitDTO: Codable {
     let bestStreak: Int
     let relapseCount: Int
     let streakStart: Date
+    let categoryRaw: String
 
     init(from habit: Habit) {
         self.title = habit.title
@@ -203,5 +204,7 @@ struct HabitDTO: Codable {
         self.bestStreak = habit.bestStreak
         self.relapseCount = habit.relapseCount
         self.streakStart = habit.streakStart
+        // Поддержка бэкапов, сделанных до введения категорий
+        self.categoryRaw = habit.categoryRaw.isEmpty ? HabitCategory.bad.rawValue : habit.categoryRaw
     }
 }

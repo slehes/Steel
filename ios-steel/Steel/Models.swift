@@ -1,6 +1,41 @@
 import Foundation
 import SwiftData
 
+/// Категория привычки: либо формируем полезную привычку (что-то делаем),
+/// либо боремся с вредной (от чего-то отказываемся).
+enum HabitCategory: String, Codable, CaseIterable {
+    case good   // Полезная — что внедряем (зарядка, чтение, вода)
+    case bad    // Вредная — от чего отказываемся (курение, сахар, мастурбация)
+
+    var title: String {
+        switch self {
+        case .good: return "Полезная"
+        case .bad:  return "Вредная"
+        }
+    }
+
+    var pluralTitle: String {
+        switch self {
+        case .good: return "Полезные"
+        case .bad:  return "Вредные"
+        }
+    }
+
+    var systemImage: String {
+        switch self {
+        case .good: return "leaf.circle.fill"
+        case .bad:  return "xmark.octagon.fill"
+        }
+    }
+
+    var tint: String {
+        switch self {
+        case .good: return "systemGreen"
+        case .bad:  return "systemRed"
+        }
+    }
+}
+
 @Model
 final class DailyTask {
     var id: UUID
@@ -34,19 +69,29 @@ final class Habit {
     var id: UUID
     var title: String
     var iconName: String
+    var categoryRaw: String   // хранится как raw string, чтобы SwiftData миграция прошла без боли
     var streakStart: Date
     var bestStreak: Int
     var relapseCount: Int
     var sortIndex: Int
 
-    init(title: String, iconName: String, sortIndex: Int) {
+    init(title: String, iconName: String, category: HabitCategory, sortIndex: Int) {
         self.id = UUID()
         self.title = title
         self.iconName = iconName
+        self.categoryRaw = category.rawValue
         self.streakStart = Date()
         self.bestStreak = 0
         self.relapseCount = 0
         self.sortIndex = sortIndex
+    }
+
+    /// Категория привычки. По умолчанию — вредная (старые привычки создавались
+    /// как «от чего отказываемся»). Новые поля подгружаются через didSet-эквивалент
+    /// в аксессоре.
+    var category: HabitCategory {
+        get { HabitCategory(rawValue: categoryRaw) ?? .bad }
+        set { categoryRaw = newValue.rawValue }
     }
 
     var cleanDays: Int {
