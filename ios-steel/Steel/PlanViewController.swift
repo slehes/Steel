@@ -62,6 +62,21 @@ final class PlanViewController: UIViewController {
         bodyLabel.adjustsFontForContentSizeCategory = true
         bodyLabel.textColor = .secondaryLabel
         bodyLabel.lineBreakMode = .byWordWrapping
+        bodyLabel.isUserInteractionEnabled = true
+        let bodyTap = UITapGestureRecognizer(target: self, action: #selector(openDetail))
+        bodyLabel.addGestureRecognizer(bodyTap)
+
+        // Кнопка «Подробный план» — открывает структурированный попап
+        var detailConfig = UIButton.Configuration.filled()
+        detailConfig.title = "Подробный план"
+        detailConfig.image = UIImage(systemName: "list.bullet.rectangle.fill")
+        detailConfig.imagePadding = 8
+        detailConfig.baseBackgroundColor = .systemOrange
+        detailConfig.baseForegroundColor = .white
+        detailConfig.cornerStyle = .large
+        let detailButton = UIButton(configuration: detailConfig)
+        detailButton.addTarget(self, action: #selector(openDetail), for: .touchUpInside)
+        detailButton.snp.makeConstraints { $0.height.equalTo(48) }
 
         // Entries stack
         entriesStack.axis = .vertical
@@ -78,6 +93,7 @@ final class PlanViewController: UIViewController {
 
         content.addSubview(headerLabel)
         content.addSubview(bodyLabel)
+        content.addSubview(detailButton)
         content.addSubview(entriesStack)
 
         headerLabel.snp.makeConstraints { $0.top.leading.trailing.equalToSuperview() }
@@ -85,8 +101,12 @@ final class PlanViewController: UIViewController {
             $0.top.equalTo(headerLabel.snp.bottom).offset(10)
             $0.leading.trailing.equalToSuperview()
         }
+        detailButton.snp.makeConstraints {
+            $0.top.equalTo(bodyLabel.snp.bottom).offset(16)
+            $0.leading.trailing.equalToSuperview()
+        }
         entriesStack.snp.makeConstraints {
-            $0.top.equalTo(bodyLabel.snp.bottom).offset(24)
+            $0.top.equalTo(detailButton.snp.bottom).offset(24)
             $0.leading.trailing.bottom.equalToSuperview()
         }
 
@@ -320,6 +340,17 @@ final class PlanViewController: UIViewController {
             glass.removeFromSuperview()
             overlay.removeFromSuperview()
         }
+    }
+
+    @objc private func openDetail() {
+        guard let plan else {
+            SPIndicator.present(title: "Плана пока нет", message: "Попроси ИИ составить программу", preset: .error)
+            return
+        }
+        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+        let detail = PlanDetailViewController(plan: plan)
+        let nav = UINavigationController(rootViewController: detail)
+        present(nav, animated: true)
     }
 
     @objc private func regeneratePlan() {
