@@ -168,11 +168,16 @@ enum PlanParser {
     /// "ДЕНЬ 1 (ПН): силовая — 50 отжиманий, 30 приседаний"
     private static func parseDay(_ raw: String) -> ParsedPlan.Day {
         let upper = raw.uppercased()
-        // Номер дня
+        // Номер дня — ищем первую цифру после слова ДЕНЬ
         var index = 0
-        if let range = upper.range(of: "ДЕНЬ"),
-           let numRange = upper[range.upperBound...].range(of: #"\d+"#, options: .regularExpression) {
-            index = Int(upper[numRange]) ?? 0
+        if let dayRange = upper.range(of: "ДЕНЬ") {
+            let after = upper[dayRange.upperBound...]
+            for ch in after {
+                if ch.isNumber {
+                    index = ch.wholeNumberValue ?? 0
+                    break
+                }
+            }
         }
         // День недели в скобках: (ПН) / (ВТ) / ...
         var weekday = ""
