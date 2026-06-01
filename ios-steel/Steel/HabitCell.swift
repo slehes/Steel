@@ -4,7 +4,7 @@ import SnapKit
 final class HabitCell: UICollectionViewCell {
     static let reuseID = "HabitCell"
 
-    private let glass = UIVisualEffectView(effect: UIBlurEffect(style: .systemUltraThinMaterial))
+    private let glass = LiquidGlassView(cornerRadius: 22, intensity: .regular)
     private let iconBackdrop = UIView()
     private let iconView = UIImageView()
     private let titleLabel = UILabel()
@@ -29,12 +29,7 @@ final class HabitCell: UICollectionViewCell {
 
     private func setup() {
         contentView.applyCardShadow()
-        glass.backgroundColor = UIColor.secondarySystemBackground.withAlphaComponent(0.5)
-        glass.layer.cornerRadius = 22
-        glass.layer.cornerCurve = .continuous
-        glass.clipsToBounds = true
-        glass.layer.borderWidth = 0.5
-        glass.layer.borderColor = UIColor.white.withAlphaComponent(0.15).cgColor
+        glass.backgroundColor = UIColor.secondarySystemBackground.withAlphaComponent(0.35)
         contentView.addSubview(glass)
         glass.snp.makeConstraints { $0.edges.equalToSuperview() }
 

@@ -63,14 +63,28 @@ final class AddHabitViewController: UIViewController {
         titleField.placeholder = "Что внедряем или от чего отказываемся?"
         titleField.font = UIFont.preferredFont(forTextStyle: .body)
         titleField.adjustsFontForContentSizeCategory = true
-        titleField.backgroundColor = .secondarySystemGroupedBackground
+        titleField.backgroundColor = .clear
         titleField.layer.cornerRadius = 14
         titleField.layer.cornerCurve = .continuous
+        titleField.layer.borderWidth = 0.5
+        titleField.layer.borderColor = UIColor.white.withAlphaComponent(0.2).cgColor
         titleField.leftView = UIView(frame: CGRect(x: 0, y: 0, width: 14, height: 1))
         titleField.leftViewMode = .always
 
+        // Обёртываем поле ввода в жидкое стекло — в iOS 26 это смотрится органично
+        let titleGlass = LiquidGlassView(cornerRadius: 14, intensity: .thin)
+        titleGlass.backgroundColor = UIColor.secondarySystemBackground.withAlphaComponent(0.4)
+        titleGlass.contentView.addSubview(titleField)
+        titleField.snp.makeConstraints { $0.edges.equalToSuperview() }
+
         categoryControl.selectedSegmentIndex = selectedCategory == .good ? 0 : 1
         categoryControl.addTarget(self, action: #selector(categoryChanged), for: .valueChanged)
+
+        // Обёртываем сегментед-контрол в жидкое стекло
+        let categoryGlass = LiquidGlassView(cornerRadius: 12, intensity: .thin)
+        categoryGlass.backgroundColor = UIColor.secondarySystemBackground.withAlphaComponent(0.3)
+        categoryGlass.contentView.addSubview(categoryControl)
+        categoryControl.snp.makeConstraints { $0.edges.equalToSuperview() }
 
         iconCollection.backgroundColor = .clear
         iconCollection.showsHorizontalScrollIndicator = false
@@ -94,7 +108,7 @@ final class AddHabitViewController: UIViewController {
         hint.textColor = .tertiaryLabel
         hint.numberOfLines = 0
 
-        let stack = UIStackView(arrangedSubviews: [titleField, categoryLabel, categoryControl, iconLabel, iconCollection, hint])
+        let stack = UIStackView(arrangedSubviews: [titleGlass, categoryLabel, categoryGlass, iconLabel, iconCollection, hint])
         stack.axis = .vertical
         stack.spacing = 14
         stack.setCustomSpacing(6, after: categoryLabel)
@@ -104,8 +118,8 @@ final class AddHabitViewController: UIViewController {
             $0.top.equalTo(view.safeAreaLayoutGuide).offset(24)
             $0.leading.trailing.equalToSuperview().inset(20)
         }
-        titleField.snp.makeConstraints { $0.height.equalTo(52) }
-        categoryControl.snp.makeConstraints { $0.height.equalTo(36) }
+        titleGlass.snp.makeConstraints { $0.height.equalTo(52) }
+        categoryGlass.snp.makeConstraints { $0.height.equalTo(36) }
         iconCollection.snp.makeConstraints { $0.height.equalTo(60) }
     }
 

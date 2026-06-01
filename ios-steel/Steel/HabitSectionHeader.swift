@@ -6,7 +6,7 @@ import SnapKit
 final class HabitSectionHeader: UICollectionReusableView {
     static let reuseID = "HabitSectionHeader"
 
-    private let glass = UIVisualEffectView(effect: UIBlurEffect(style: .systemUltraThinMaterial))
+    private let glass = LiquidGlassView(cornerRadius: 18, intensity: .thin)
     private let iconView = UIImageView()
     private let titleLabel = UILabel()
     private let countLabel = UILabel()
@@ -19,12 +19,7 @@ final class HabitSectionHeader: UICollectionReusableView {
     required init?(coder: NSCoder) { fatalError() }
 
     private func setup() {
-        glass.backgroundColor = UIColor.secondarySystemBackground.withAlphaComponent(0.5)
-        glass.layer.cornerRadius = 18
-        glass.layer.cornerCurve = .continuous
-        glass.clipsToBounds = true
-        glass.layer.borderWidth = 0.5
-        glass.layer.borderColor = UIColor.white.withAlphaComponent(0.18).cgColor
+        glass.backgroundColor = UIColor.secondarySystemBackground.withAlphaComponent(0.35)
         addSubview(glass)
         glass.snp.makeConstraints {
             $0.top.bottom.equalToSuperview().inset(6)
