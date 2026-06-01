@@ -128,12 +128,21 @@ final class HabitCell: UICollectionViewCell {
         let best = max(habit.bestStreak, 30)
         let ratio = best > 0 ? min(1, CGFloat(habit.cleanDays) / CGFloat(best)) : 0
 
+        // Start from zero — this establishes the initial layout state
+        fillWidth?.update(offset: 0)
         layoutIfNeeded()
-        let targetWidth = track.bounds.width * ratio
-        fillWidth?.update(offset: targetWidth)
+
+        // Now update constraint and animate in the same block
+        fillWidth?.update(offset: track.bounds.width * ratio)
 
         // Smooth slow animation for fill bar
-        UIView.animate(withDuration: 2.0, delay: 0, usingSpringWithDamping: 0.8, initialSpringVelocity: 0.3, options: .curveEaseInOut) {
+        UIView.animate(
+            withDuration: 2.5,
+            delay: 0,
+            usingSpringWithDamping: 0.7,
+            initialSpringVelocity: 0.1,
+            options: .curveEaseOut
+        ) {
             self.layoutIfNeeded()
         } completion: { _ in
             if ratio > 0 {
