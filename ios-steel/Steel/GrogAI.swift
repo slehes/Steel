@@ -190,8 +190,18 @@ enum GroqAI {
         context += "- Дисциплина: \(settings.totalCompletedTasks) выполнено, серия \(settings.streakDays) дн.\n"
         context += "- Место тренировок: \(settings.userTrainingLocation.isEmpty ? "не указано" : (settings.userTrainingLocation == "home" ? "дома" : "зал"))\n"
 
+        // Include year goals so AI can tailor training
+        if !settings.yearGoals.isEmpty {
+            context += "\n🎯 ЦЕЛИ НА ГОД:\n"
+            for goal in settings.yearGoals {
+                let pct = Int(goal.progress * 100)
+                context += "- \(goal.title): \(goal.currentValue)/\(goal.targetValue) (\(pct)%)\n"
+            }
+            context += "Учитывай эти цели! Если цель "\(settings.yearGoals[0].title)", создавай упражнения которые Progress toward it.\n"
+        }
+
         if !tasks.isEmpty {
-            context += "- Задачи на сегодня: " + tasks.map { t in
+            context += "\n- Задачи на сегодня: " + tasks.map { t in
                 "\(t.title) \(t.amount)\(t.unit.isEmpty ? "" : " \(t.unit)")" + (t.isCompleted ? " ✅" : " ⬜")
             }.joined(separator: ", ") + "\n"
         }

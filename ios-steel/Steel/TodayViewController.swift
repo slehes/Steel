@@ -289,22 +289,22 @@ extension TodayViewController: UICollectionViewDataSource, UICollectionViewDeleg
 
     func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
         let task = tasks[indexPath.item]
-        let wasCompleted = task.isCompleted
-        DataManager.shared.toggleTask(task)
-        UIImpactFeedbackGenerator.tap(.medium)
+        UIImpactFeedbackGenerator(style: .light).impactOccurred()
 
-        if let cell = collectionView.cellForItem(at: indexPath) as? TaskCell {
-            cell.configureAnimated(with: task, wasCompleted: wasCompleted)
-        }
+        // Open detail modal with exercise GIF
+        let detailVC = TaskDetailViewController(task: task, wasCompleted: task.isCompleted)
+        detailVC.modalPresentationStyle = .overCurrentContext
+        detailVC.modalTransitionStyle = .crossDissolve
 
-        let progress = DataManager.shared.taskProgress
-        if let header = collectionView.supplementaryView(forElementKind: UICollectionView.elementKindSectionHeader, at: IndexPath(item: 0, section: 0)) as? ProgressHeaderView {
-            header.configure(done: progress.done, total: progress.total, animated: true)
-        }
-
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) { [weak self] in
-            self?.tasks = DataManager.shared.fetchTasks()
-            collectionView.reloadItems(at: [indexPath])
+        // Find the topmost presented view controller
+        if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+           let window = windowScene.windows.first,
+           let rootVC = window.rootViewController {
+            var topVC = rootVC
+            while let presented = topVC.presentedViewController {
+                topVC = presented
+            }
+            topVC.present(detailVC, animated: false)
         }
     }
 

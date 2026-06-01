@@ -95,6 +95,14 @@ final class SettingsViewController: UIViewController {
         card.contentView.addSubview(stack)
         stack.snp.makeConstraints { $0.edges.equalToSuperview() }
 
+        let goals = makeCategoryRow(
+            title: "Цели до конца года",
+            subtitle: goalSubtitle(),
+            icon: "target",
+            iconBg: .systemRed
+        ) { [weak self] in
+            self?.openGoals()
+        }
         let appearance = makeCategoryRow(
             title: "Оформление",
             subtitle: "Фон, шрифт",
@@ -128,12 +136,23 @@ final class SettingsViewController: UIViewController {
             self?.openStreakSettings()
         }
 
-        let items: [UIView] = [appearance, separator(), providers, separator(), region, separator(), streak]
+        let items: [UIView] = [goals, separator(), appearance, separator(), providers, separator(), region, separator(), streak]
         for item in items {
             stack.addArrangedSubview(item)
         }
 
         contentStack.addArrangedSubview(card)
+    }
+
+    private func goalSubtitle() -> String {
+        let goals = DataManager.shared.settings.yearGoals
+        if goals.isEmpty { return "Не заданы" }
+        return "\(goals.count) целей"
+    }
+
+    private func openGoals() {
+        let vc = GoalsViewController()
+        navigationController?.pushViewController(vc, animated: true)
     }
 
     private func currentRegionSubtitle() -> String {

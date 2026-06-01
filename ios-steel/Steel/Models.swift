@@ -126,6 +126,28 @@ struct BackgroundConfig: Codable, Equatable {
     static let disabled = BackgroundConfig(kind: .none, fileName: "", dimmed: true)
 }
 
+struct YearGoal: Codable, Identifiable {
+    var id: UUID
+    var title: String
+    var targetValue: Int
+    var currentValue: Int
+    var iconName: String
+    var deadline: String
+
+    init(title: String, targetValue: Int, iconName: String) {
+        self.id = UUID()
+        self.title = title
+        self.targetValue = targetValue
+        self.currentValue = 0
+        self.iconName = iconName
+        self.deadline = "2026-12-31"
+    }
+
+    var progress: Double {
+        targetValue > 0 ? min(1, Double(currentValue) / Double(targetValue)) : 0
+    }
+}
+
 struct AppSettings: Codable {
     var userName: String
     var streakDays: Int
@@ -143,6 +165,7 @@ struct AppSettings: Codable {
     var regionCity: String
     var regionTimeZone: String
     var userTrainingLocation: String
+    var yearGoals: [YearGoal]
 
     static let `default` = AppSettings(
         userName: "Воин",
@@ -160,7 +183,8 @@ struct AppSettings: Codable {
         streakPausedSince: "",
         regionCity: "Москва",
         regionTimeZone: "Europe/Moscow",
-        userTrainingLocation: ""
+        userTrainingLocation: "",
+        yearGoals: []
     )
 
     var mostFrequentExercise: String {
