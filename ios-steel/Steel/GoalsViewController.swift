@@ -1,5 +1,6 @@
 import UIKit
 import SnapKit
+import SPIndicator
 
 final class GoalsViewController: UIViewController {
     private let scrollView = UIScrollView()

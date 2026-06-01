@@ -1,6 +1,7 @@
 import UIKit
 import SnapKit
 import Hero
+import SwiftData
 
 final class PlanViewController: UIViewController {
     private let scrollView = UIScrollView()
@@ -233,7 +234,7 @@ final class PlanViewController: UIViewController {
             if entry.hashValue == view.tag {
                 entry.isCompleted.toggle()
                 try? DataManager.shared.context.save()
-                UIImpactFeedbackGenerator.tap(.medium).impactOccurred()
+                UIImpactFeedbackGenerator(style: .medium).impactOccurred()
                 animateEntryToggle(view: view, completed: entry.isCompleted, index: index)
                 break
             }
@@ -319,12 +320,12 @@ final class PlanViewController: UIViewController {
         deleteBtn.addAction(UIAction { [weak self] _ in
             DataManager.shared.context.delete(entry)
             try? DataManager.shared.context.save()
-            UIImpactFeedbackGenerator.tap(.medium).impactOccurred()
+            UIImpactFeedbackGenerator(style: .medium).impactOccurred()
             self?.render()
         }, for: .touchUpInside)
 
         cancelBtn.addAction(UIAction { [weak self] _ in
-            self?.dismissDeleteConfirmation(gllass: glass2, overlay: overlay)
+            self?.dismissDeleteConfirmation(glass: glass2, overlay: overlay)
         }, for: .touchUpInside)
 
         UIView.animate(withDuration: 0.3, delay: 0, usingSpringWithDamping: 0.8, initialSpringVelocity: 0.3, options: .curveEaseOut) {
