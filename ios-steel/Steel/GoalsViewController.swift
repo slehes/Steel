@@ -259,26 +259,24 @@ final class GoalsViewController: UIViewController {
             tf.keyboardType = .numberPad
         }
         alert.addAction(UIAlertAction(title: "Отмена", style: .cancel))
-        alert.addAction(UIAlertAction(title: "Добавить", style: .default) { [weak self] _ in
-            guard let title = alert.textFields?[0].text, !title.isEmpty,
+        alert.addAction(UIAlertAction(title: "Добавить", style: .default, handler: { [weak self] _ in
+            guard let goalTitle = alert.textFields?[0].text, !goalTitle.isEmpty,
                   let valueStr = alert.textFields?[1].text,
-                  let value = Int(valueStr), value > 0 else {
+                  let goalValue = Int(valueStr), goalValue > 0 else {
                 return
             }
-            let icon = self?.suggestedIcon(for: title) ?? "target"
-            let goal = YearGoal(title: title, targetValue: value, iconName: icon)
+            let icon = self?.suggestedIcon(for: goalTitle) ?? "target"
+            let goal = YearGoal(title: goalTitle, targetValue: goalValue, iconName: icon)
             DataManager.shared.updateSettings { settings in
                 settings.yearGoals.append(goal)
             }
             self?.render()
-
-            // Tell AI trainer about new goal
             DataManager.shared.addMessage(
-                "Моя цель на год: \(title) — достичь \(value) до 31 декабря 2026.",
+                "Моя цель на год: \(goalTitle) — достичь \(goalValue) до 31 декабря 2026.",
                 isUser: true
             )
             SPIndicator.present(title: "Цель добавлена!", preset: .done, haptic: .success)
-        }
+        }))
         present(alert, animated: true)
     }
 
