@@ -326,7 +326,6 @@ extension TodayViewController: UICollectionViewDataSource, UICollectionViewDeleg
 
     @objc private func openGoals() {
         let goalsVC = GoalsViewController()
-        let navController = UINavigationController(rootViewController: goalsVC)
         navigationController?.pushViewController(goalsVC, animated: true)
     }
 }

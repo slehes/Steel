@@ -1,5 +1,6 @@
 import Foundation
 import UserNotifications
+import UIKit
 
 @MainActor
 final class NotificationManager {
@@ -93,10 +94,10 @@ final class NotificationManager {
 
     func sendCoachNotification(message: String, delay: TimeInterval = 2) {
         let coachMessages = [
-            "💪 Тренер: " + message,
-            "🎯 Совет тренера: " + message,
-            "⚡ От тренера: " + message,
-            "🔥 Мотивация: " + message
+            "[Тренер] " + message,
+            "[Совет] " + message,
+            "[Мотивация] " + message,
+            "[От тренера] " + message
         ]
         
         let content = UNMutableNotificationContent()
