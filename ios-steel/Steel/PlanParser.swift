@@ -48,7 +48,7 @@ struct ParsedPlan {
 
     struct Week {
         let index: Int       // 1..N
-        let days: [Day]
+        var days: [Day]
     }
 
     struct Meal {

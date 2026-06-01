@@ -3,6 +3,7 @@ import SnapKit
 import SPIndicator
 import Network
 import SwiftData
+import Hero
 
 final class AIChatViewController: UIViewController {
     private let tableView = UITableView()
