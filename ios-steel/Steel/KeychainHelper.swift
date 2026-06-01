@@ -205,6 +205,17 @@ struct HabitDTO: Codable {
         self.relapseCount = habit.relapseCount
         self.streakStart = habit.streakStart
         // Поддержка бэкапов, сделанных до введения категорий
-        self.categoryRaw = habit.categoryRaw.isEmpty ? HabitCategory.bad.rawValue : habit.categoryRaw
+        self.categoryRaw = (habit.categoryRaw?.isEmpty ?? true) ? HabitCategory.bad.rawValue : habit.categoryRaw!
+    }
+
+    // Backward-compatible decoder: handles old backups without categoryRaw
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        title = try container.decode(String.self, forKey: .title)
+        iconName = try container.decode(String.self, forKey: .iconName)
+        bestStreak = try container.decode(Int.self, forKey: .bestStreak)
+        relapseCount = try container.decode(Int.self, forKey: .relapseCount)
+        streakStart = try container.decode(Date.self, forKey: .streakStart)
+        categoryRaw = try container.decodeIfPresent(String.self, forKey: .categoryRaw) ?? HabitCategory.bad.rawValue
     }
 }

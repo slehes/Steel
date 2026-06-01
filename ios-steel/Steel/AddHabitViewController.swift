@@ -42,9 +42,9 @@ final class AddHabitViewController: UIViewController {
         layout.itemSize = CGSize(width: 60, height: 60)
         layout.minimumLineSpacing = 12
         iconCollection = UICollectionView(frame: .zero, collectionViewLayout: layout)
+        // дефолтная иконка — инициализируем ДО super.init
+        self.selectedIcon = "xmark.octagon.fill"
         super.init(nibName: nil, bundle: nil)
-        // дефолтная иконка — в зависимости от категории
-        self.selectedIcon = badIcons.first ?? "xmark.octagon.fill"
     }
 
     required init?(coder: NSCoder) { fatalError() }

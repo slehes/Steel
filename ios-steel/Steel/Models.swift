@@ -69,7 +69,7 @@ final class Habit {
     var id: UUID
     var title: String
     var iconName: String
-    var categoryRaw: String   // хранится как raw string, чтобы SwiftData миграция прошла без боли
+    var categoryRaw: String?  // Optional for SwiftData migration from older versions
     var streakStart: Date
     var bestStreak: Int
     var relapseCount: Int
@@ -90,7 +90,7 @@ final class Habit {
     /// как «от чего отказываемся»). Новые поля подгружаются через didSet-эквивалент
     /// в аксессоре.
     var category: HabitCategory {
-        get { HabitCategory(rawValue: categoryRaw) ?? .bad }
+        get { HabitCategory(rawValue: categoryRaw ?? "bad") ?? .bad }
         set { categoryRaw = newValue.rawValue }
     }
 
