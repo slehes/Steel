@@ -172,11 +172,6 @@ final class TodayViewController: UIViewController {
     private func observe() {
         NotificationCenter.default.addObserver(self, selector: #selector(reload), name: .steelTasksChanged, object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(reloadBackground), name: .steelBackgroundChanged, object: nil)
-        NotificationCenter.default.addObserver(self, selector: #selector(xpChanged), name: .steelXPChanged, object: nil)
-    }
-
-    @objc private func xpChanged() {
-        updateMotivation()
     }
 
     func toggleActionBar() {
@@ -259,7 +254,7 @@ final class TodayViewController: UIViewController {
         DataManager.shared.completeDay()
         let streak = DataManager.shared.settings.streakDays
         if progress.done == progress.total {
-            SPIndicator.present(title: "Идеальный день!", message: "Серия: \(streak) | +50 XP бонус", preset: .done, haptic: .success)
+            SPIndicator.present(title: "Идеальный день!", message: "Серия: \(streak)", preset: .done, haptic: .success)
         } else {
             SPIndicator.present(title: "День закрыт", message: "Серия: \(streak)", preset: .done, haptic: .success)
         }

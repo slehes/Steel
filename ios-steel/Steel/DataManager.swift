@@ -9,7 +9,7 @@ extension Notification.Name {
     static let steelSettingsChanged = Notification.Name("steel.settingsChanged")
     static let steelBackgroundChanged = Notification.Name("steel.backgroundChanged")
     static let steelFontChanged = Notification.Name("steel.fontChanged")
-    static let steelXPChanged = Notification.Name("steel.xpChanged")
+
 }
 
 @MainActor
@@ -25,34 +25,7 @@ final class DataManager {
         didSet { persistSettings() }
     }
 
-    // MARK: - Gamification
 
-    /// Current XP (experience points) earned from completing tasks
-    var xp: Int {
-        get { UserDefaults.standard.integer(forKey: "steel.xp") }
-        set {
-            UserDefaults.standard.set(newValue, forKey: "steel.xp")
-            NotificationCenter.default.post(name: .steelXPChanged, object: nil)
-        }
-    }
-
-    /// Current level based on XP
-    var level: Int {
-        let xpPerLevel = 100
-        return (xp / xpPerLevel) + 1
-    }
-
-    /// XP needed for next level
-    var xpToNextLevel: Int {
-        let xpPerLevel = 100
-        return xpPerLevel - (xp % xpPerLevel)
-    }
-
-    /// Progress towards next level (0.0 to 1.0)
-    var levelProgress: CGFloat {
-        let xpPerLevel = 100
-        return CGFloat(xp % xpPerLevel) / CGFloat(xpPerLevel)
-    }
 
     private var activeTimeZone: TimeZone {
         TimeZone(identifier: settings.regionTimeZone) ?? TimeZone(identifier: "Europe/Moscow")!
@@ -210,21 +183,15 @@ final class DataManager {
         KeychainHelper.backupAllData()
     }
 
-    /// Toggle task completion with XP reward
+    /// Toggle task completion
     func toggleTask(_ task: DailyTask) {
         task.isCompleted.toggle()
         if task.isCompleted {
             task.totalCompletions += 1
-            // Award XP for completing task
-            let xpReward = calculateXPReward(for: task)
-            xp += xpReward
             updateSettings {
                 $0.totalCompletedTasks += 1
                 $0.exerciseCounts[task.title, default: 0] += 1
             }
-        } else {
-            // Remove XP when uncompleting
-            xp = max(0, xp - 15)
         }
         try? context.save()
         NotificationCenter.default.post(name: .steelTasksChanged, object: nil)
@@ -233,27 +200,9 @@ final class DataManager {
         KeychainHelper.backupAllData()
     }
 
-    /// Calculate XP reward based on task type and streak
-    private func calculateXPReward(for task: DailyTask) -> Int {
-        var reward = 15 // Base XP
-        // Streak bonus
-        let streakBonus = min(settings.streakDays * 2, 50) // Max 50 bonus from streak
-        reward += streakBonus
-        // First task of the day bonus
-        if settings.totalCompletedTasks == 0 {
-            reward += 25
-        }
-        return reward
-    }
-
     func completeDay() {
         let today = dayKey()
         guard settings.lastCompletedDayKey != today else { return }
-        // Day completion bonus
-        let progress = taskProgress
-        if progress.total > 0 && progress.done == progress.total {
-            xp += 50 // Perfect day bonus
-        }
         updateSettings {
             $0.streakDays += 1
             $0.lastCompletedDayKey = today

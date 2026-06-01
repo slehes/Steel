@@ -7,7 +7,6 @@ final class ProgressHeaderView: UICollectionReusableView {
     private let label = UILabel()
     private let track = UIView()
     private let fill = UIView()
-    private let shimmerView = UIView()
     private var fillWidth: Constraint?
     private var currentRatio: CGFloat = 0
 
@@ -49,71 +48,45 @@ final class ProgressHeaderView: UICollectionReusableView {
             $0.leading.top.bottom.equalToSuperview()
             fillWidth = $0.width.equalTo(0).constraint
         }
-
-        // Shimmer effect on fill
-        shimmerView.backgroundColor = UIColor.white.withAlphaComponent(0.3)
-        shimmerView.isHidden = true
-        fill.addSubview(shimmerView)
-        shimmerView.snp.makeConstraints {
-            $0.top.bottom.equalToSuperview()
-            $0.width.equalToSuperview()
-            $0.leading.equalToSuperview().offset(-bounds.width)
-        }
     }
 
     func configure(done: Int, total: Int, animated: Bool) {
         label.text = "Прогресс  \(done)/\(total)"
         let ratio = total > 0 ? CGFloat(done) / CGFloat(total) : 0
 
-        layoutIfNeeded()
-        let targetWidth = track.bounds.width * ratio
-        fillWidth?.update(offset: targetWidth)
-
-        if animated {
-            // Slow, smooth, luxurious animation
-            UIView.animate(withDuration: 2.5, delay: 0, usingSpringWithDamping: 0.8, initialSpringVelocity: 0.2, options: .curveEaseInOut) {
-                self.layoutIfNeeded()
-            } completion: { _ in
-                // Play shimmer effect after fill completes
-                if ratio > 0 {
-                    self.playShimmer()
-                }
-            }
-        } else {
-            layoutIfNeeded()
-        }
-
         // Color based on progress
         if ratio >= 1.0 {
             fill.backgroundColor = .systemGreen
-        } else if ratio >= 0.5 {
-            fill.backgroundColor = .systemOrange
         } else {
             fill.backgroundColor = .systemOrange
         }
 
-        currentRatio = ratio
-    }
-
-    private func playShimmer() {
-        shimmerView.isHidden = false
-        shimmerView.snp.remakeConstraints {
-            $0.top.bottom.equalToSuperview()
-            $0.width.equalToSuperview()
-            $0.leading.equalToSuperview().offset(-self.fill.bounds.width)
-        }
         layoutIfNeeded()
+        let targetWidth = track.bounds.width * ratio
 
-        shimmerView.snp.remakeConstraints {
-            $0.top.bottom.equalToSuperview()
-            $0.width.equalToSuperview()
-            $0.trailing.equalToSuperview()
+        if animated && currentRatio != ratio {
+            // Capture current fill width before updating
+            let oldWidth = fill.bounds.width
+
+            // Update constraint to new target
+            fillWidth?.update(offset: targetWidth)
+
+            // Animate very slowly and smoothly
+            UIView.animate(
+                withDuration: 3.0,
+                delay: 0,
+                usingSpringWithDamping: 0.85,
+                initialSpringVelocity: 0.1,
+                options: [.curveEaseInOut, .allowUserInteraction],
+                animations: {
+                    self.layoutIfNeeded()
+                }
+            )
+        } else {
+            fillWidth?.update(offset: targetWidth)
+            layoutIfNeeded()
         }
 
-        UIView.animate(withDuration: 1.2, delay: 0, options: .curveEaseInOut) {
-            self.layoutIfNeeded()
-        } completion: { _ in
-            self.shimmerView.isHidden = true
-        }
+        currentRatio = ratio
     }
 }
