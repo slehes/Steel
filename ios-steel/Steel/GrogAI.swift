@@ -197,7 +197,7 @@ enum GroqAI {
                 let pct = Int(goal.progress * 100)
                 context += "- \(goal.title): \(goal.currentValue)/\(goal.targetValue) (\(pct)%)\n"
             }
-            context += "Учитывай эти цели! Если цель "\(settings.yearGoals[0].title)", создавай упражнения которые Progress toward it.\n"
+            context += "Учитывай эти цели! Если цель «\(settings.yearGoals[0].title)», создавай упражнения которые приближают к ней.\n"
         }
 
         if !tasks.isEmpty {

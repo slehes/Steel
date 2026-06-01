@@ -274,7 +274,7 @@ final class GoalsViewController: UIViewController {
 
             // Tell AI trainer about new goal
             DataManager.shared.addMessage(
-                "Моя цель на год: \"\\(title)\" — достичь \\(value) до 31 декабря 2026.",
+                "Моя цель на год: \"\(title)\" — достичь \(value) до 31 декабря 2026.",
                 isUser: true
             )
             SPIndicator.present(title: "Цель добавлена!", preset: .done, haptic: .success)
