@@ -2,13 +2,13 @@ import UIKit
 import SnapKit
 import Hero
 import SwiftData
+import SPIndicator
 
 final class PlanViewController: UIViewController {
     private let scrollView = UIScrollView()
     private let backgroundView = PersonalBackgroundView()
     private let headerLabel = UILabel()
     private let bodyLabel = UILabel()
-    private let regenerateButton = UIButton(type: .system)
     private let entriesStack = UIStackView()
     private let emptyView = UILabel()
 
@@ -63,27 +63,6 @@ final class PlanViewController: UIViewController {
         bodyLabel.textColor = .secondaryLabel
         bodyLabel.lineBreakMode = .byWordWrapping
 
-        // Regen button with glass
-        let regenGlass = UIVisualEffectView(effect: UIBlurEffect(style: .systemThinMaterial))
-        regenGlass.layer.cornerRadius = 16
-        regenGlass.layer.cornerCurve = .continuous
-        regenGlass.clipsToBounds = true
-        regenGlass.layer.borderWidth = 0.5
-        regenGlass.layer.borderColor = UIColor.separator.withAlphaComponent(0.5).cgColor
-        regenGlass.backgroundColor = UIColor.secondarySystemBackground.withAlphaComponent(0.5)
-
-        var regenConfig = UIButton.Configuration.filled()
-        regenConfig.title = "Пересоздать план"
-        regenConfig.image = UIImage(systemName: "arrow.clockwise")
-        regenConfig.imagePadding = 8
-        regenConfig.baseBackgroundColor = .label
-        regenConfig.baseForegroundColor = .systemBackground
-        regenConfig.cornerStyle = .large
-        regenerateButton.configuration = regenConfig
-        regenerateButton.addTarget(self, action: #selector(regeneratePlan), for: .touchUpInside)
-        regenGlass.contentView.addSubview(regenerateButton)
-        regenerateButton.snp.makeConstraints { $0.edges.equalToSuperview().inset(14) }
-
         // Entries stack
         entriesStack.axis = .vertical
         entriesStack.spacing = 10
@@ -99,7 +78,6 @@ final class PlanViewController: UIViewController {
 
         content.addSubview(headerLabel)
         content.addSubview(bodyLabel)
-        content.addSubview(regenGlass)
         content.addSubview(entriesStack)
 
         headerLabel.snp.makeConstraints { $0.top.leading.trailing.equalToSuperview() }
@@ -107,13 +85,8 @@ final class PlanViewController: UIViewController {
             $0.top.equalTo(headerLabel.snp.bottom).offset(10)
             $0.leading.trailing.equalToSuperview()
         }
-        regenGlass.snp.makeConstraints {
-            $0.top.equalTo(bodyLabel.snp.bottom).offset(20)
-            $0.leading.trailing.equalToSuperview()
-            $0.height.equalTo(52)
-        }
         entriesStack.snp.makeConstraints {
-            $0.top.equalTo(regenGlass.snp.bottom).offset(24)
+            $0.top.equalTo(bodyLabel.snp.bottom).offset(24)
             $0.leading.trailing.bottom.equalToSuperview()
         }
 
@@ -127,6 +100,11 @@ final class PlanViewController: UIViewController {
             $0.center.equalToSuperview()
             $0.leading.trailing.equalToSuperview().inset(40)
         }
+        
+        // Long press gesture на scroll view для открытия меню плана
+        let longPress = UILongPressGestureRecognizer(target: self, action: #selector(handleLongPressOnPlan))
+        longPress.minimumPressDuration = 0.5
+        scrollView.addGestureRecognizer(longPress)
     }
 
     @objc private func render() {
@@ -357,6 +335,42 @@ final class PlanViewController: UIViewController {
             }
             rootVC.present(nav, animated: true)
         }
+    }
+
+    @objc private func handleLongPressOnPlan(_ gesture: UILongPressGestureRecognizer) {
+        guard gesture.state == .began, plan != nil else { return }
+        
+        let alert = UIAlertController(title: "План тренировок", message: nil, preferredStyle: .actionSheet)
+        
+        let regenerate = UIAlertAction(title: "Пересоздать", style: .default) { [weak self] _ in
+            self?.regeneratePlan()
+        }
+        regenerate.setValue(UIImage(systemName: "arrow.clockwise"), forKey: "image")
+        
+        let delete = UIAlertAction(title: "Удалить", style: .destructive) { [weak self] _ in
+            self?.deletePlan()
+        }
+        delete.setValue(UIImage(systemName: "trash"), forKey: "image")
+        
+        let cancel = UIAlertAction(title: "Отмена", style: .cancel)
+        
+        alert.addAction(regenerate)
+        alert.addAction(delete)
+        alert.addAction(cancel)
+        
+        present(alert, animated: true)
+    }
+    
+    private func deletePlan() {
+        guard let plan = plan else { return }
+        
+        DataManager.shared.context.delete(plan)
+        try? DataManager.shared.context.save()
+        
+        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+        SPIndicator.present(title: "План удалён", preset: .done, haptic: .success)
+        
+        render()
     }
 
     @objc private func reloadBackground() {
