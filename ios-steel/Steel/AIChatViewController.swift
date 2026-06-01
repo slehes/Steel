@@ -27,11 +27,17 @@ final class AIChatViewController: UIViewController {
             target: self,
             action: #selector(newChat)
         )
-        navigationItem.rightBarButtonItem = UIBarButtonItem(
-            barButtonSystemItem: .close,
+        // Кнопка «Мой план» — открывает текущий план тренировок, если он создан.
+        // Если плана нет — показывает подсказку с быстрым запросом к тренеру.
+        let planButton = UIBarButtonItem(
+            image: UIImage(systemName: "list.bullet.rectangle.portrait"),
+            style: .plain,
             target: self,
-            action: #selector(close)
+            action: #selector(openMyPlan)
         )
+        planButton.accessibilityLabel = "Мой план"
+        let closeButton = UIBarButtonItem(barButtonSystemItem: .close, target: self, action: #selector(close))
+        navigationItem.rightBarButtonItems = [closeButton, planButton]
         setupBackground()
         setupOfflineBadge()
         setupTable()
@@ -209,6 +215,30 @@ final class AIChatViewController: UIViewController {
 
     @objc private func dismissKeyboard() { view.endEditing(true) }
     @objc private func close() { dismiss(animated: true) }
+
+    @objc private func openMyPlan() {
+        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+        if DataManager.shared.currentPlan() != nil {
+            let vc = PlanViewController()
+            vc.hero.isEnabled = true
+            let nav = UINavigationController(rootViewController: vc)
+            nav.hero.isEnabled = true
+            nav.modalPresentationStyle = .fullScreen
+            present(nav, animated: true)
+        } else {
+            let alert = UIAlertController(
+                title: "Плана пока нет",
+                message: "Попроси ИИ Тренера составить программу. Например: «Составь план на 6 недель для дома».",
+                preferredStyle: .alert
+            )
+            alert.addAction(UIAlertAction(title: "Сказать тренеру", style: .default) { [weak self] _ in
+                self?.textField.text = "Составь план на 6 недель"
+                self?.send()
+            })
+            alert.addAction(UIAlertAction(title: "Отмена", style: .cancel))
+            present(alert, animated: true)
+        }
+    }
 
     @objc private func newChat() {
         UIImpactFeedbackGenerator(style: .light).impactOccurred()

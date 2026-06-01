@@ -303,24 +303,66 @@ final class DataManager {
     }
 
     func parsePlanEntries(body: String) {
-        // Parse lines from plan body — each line that starts with bullet/dash/number is an entry
+        // Парсим структурированный план:
+        // - Пропускаем служебные заголовки (ПРОГРАММА, ЦЕЛЬ, ДЛИТЕЛЬНОСТЬ, УРОВЕНЬ,
+        //   НЕДЕЛЯ X, ПИТАНИЕ, РЕЖИМ ДНЯ, ВОССТАНОВЛЕНИЕ).
+        // - Из строк "- ДЕНЬ 1 (ПН): силовая — 50 отжиманий, 30 приседаний" берём
+        //   только тренировочную часть (после тире).
+        // - Из секции ПИТАНИЕ создаём записи с иконкой вилки.
         let lines = body.components(separatedBy: "\n")
-        for line in lines {
-            let trimmed = line.trimmingCharacters(in: .whitespaces)
-            guard !trimmed.isEmpty,
-                  trimmed.count > 3,
-                  !trimmed.lowercased().contains("день") || trimmed.contains("1.") || trimmed.contains("2.") || trimmed.contains("3.") || trimmed.contains("4.") || trimmed.contains("5.")
-            else { continue }
 
-            // Strip numbers, bullets, dashes from beginning
-            let cleaned = trimmed
-                .replacingOccurrences(of: "^\\d+[.)].*", with: "", options: .regularExpression)
-                .trimmingCharacters(in: .whitespaces)
+        let sectionHeaders: [String] = [
+            "ПРОГРАММА", "ЦЕЛЬ", "ДЛИТЕЛЬНОСТЬ", "УРОВЕНЬ",
+            "НЕДЕЛЯ", "ПИТАНИЕ", "РЕЖИМ ДНЯ", "ВОССТАНОВЛЕНИЕ"
+        ]
 
-            guard !cleaned.isEmpty else { continue }
+        var inNutrition = false
+        var inSchedule = false
 
-            let icon = iconForEntry(cleaned)
-            let entry = PlanEntry(title: cleaned, iconName: icon)
+        for raw in lines {
+            let trimmed = raw.trimmingCharacters(in: .whitespaces)
+            guard !trimmed.isEmpty else { continue }
+
+            // Заголовки секций
+            let upper = trimmed.uppercased()
+            if sectionHeaders.contains(where: { upper.hasPrefix($0) }) {
+                inNutrition = upper.hasPrefix("ПИТАНИЕ")
+                inSchedule  = upper.hasPrefix("РЕЖИМ ДНЯ")
+                continue
+            }
+
+            // Ожидаем строку вида "- ДЕНЬ 1 (ПН): <что делаем>"
+            guard trimmed.hasPrefix("-") || trimmed.hasPrefix("•") else { continue }
+            let withoutBullet = trimmed.dropFirst().trimmingCharacters(in: .whitespaces)
+            guard !withoutBullet.isEmpty else { continue }
+
+            // Убираем префиксы ДЕНЬ N (ДН):
+            var title = withoutBullet
+            if let range = title.range(of: ":") {
+                let after = title[range.upperBound...].trimmingCharacters(in: .whitespaces)
+                if !after.isEmpty { title = after }
+            }
+
+            // Убираем « — » и берём хвост после тире
+            if let dashRange = title.range(of: " — ") {
+                title = String(title[dashRange.upperBound...]).trimmingCharacters(in: .whitespaces)
+            } else if let dashRange = title.range(of: " - ") {
+                title = String(title[dashRange.upperBound...]).trimmingCharacters(in: .whitespaces)
+            }
+
+            // Ограничиваем длину для отображения
+            if title.count > 120 { title = String(title.prefix(120)) + "…" }
+            guard title.count > 3 else { continue }
+
+            let icon: String
+            if inNutrition {
+                icon = "fork.knife"
+            } else if inSchedule {
+                icon = "clock.fill"
+            } else {
+                icon = iconForEntry(title)
+            }
+            let entry = PlanEntry(title: title, iconName: icon)
             context.insert(entry)
         }
         try? context.save()
