@@ -98,7 +98,7 @@ final class TaskDetailViewController: UIViewController {
         // Detail
         detailLabel.text = task.displayDetail
         detailLabel.font = UIFont.systemFont(ofSize: 28, weight: .heavy)
-        detailLabel.textColor = .systemOrange
+        detailLabel.textColor = .systemGreen
         detailLabel.textAlignment = .center
         content.addSubview(detailLabel)
         detailLabel.snp.makeConstraints {
@@ -123,7 +123,7 @@ final class TaskDetailViewController: UIViewController {
         doneConfig.title = wasCompleted ? "Отменить" : "Выполнил"
         doneConfig.image = UIImage(systemName: wasCompleted ? "arrow.uturn.backward" : "checkmark.seal.fill")
         doneConfig.imagePadding = 8
-        doneConfig.baseBackgroundColor = wasCompleted ? .systemOrange : .systemGreen
+        doneConfig.baseBackgroundColor = wasCompleted ? .systemRed : .systemGreen
         doneConfig.baseForegroundColor = .white
         doneConfig.cornerStyle = .large
         doneButton.configuration = doneConfig
@@ -169,7 +169,7 @@ final class TaskDetailViewController: UIViewController {
             let iconName = iconForExercise(taskName)
             gifImageView.image = UIImage(systemName: iconName)
             gifImageView.contentMode = .center
-            gifImageView.tintColor = .systemOrange
+            gifImageView.tintColor = .systemGreen
             gifImageView.preferredSymbolConfiguration = UIImage.SymbolConfiguration(pointSize: 70, weight: .light)
             gifImageView.backgroundColor = .systemGray6
             animatePlaceholder()

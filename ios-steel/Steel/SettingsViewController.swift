@@ -131,7 +131,7 @@ final class SettingsViewController: UIViewController {
             title: "Серия",
             subtitle: "Пауза серии",
             icon: "bolt.fill",
-            iconBg: .systemOrange
+            iconBg: .systemGreen
         ) { [weak self] in
             self?.openStreakSettings()
         }
@@ -331,7 +331,7 @@ final class StreakSettingsViewController: UIViewController {
         pauseLabel.textColor = .label
 
         let pauseToggle = UISwitch()
-        pauseToggle.onTintColor = .systemOrange
+        pauseToggle.onTintColor = .systemGreen
         pauseToggle.isOn = DataManager.shared.settings.streakPaused
         pauseToggle.addTarget(self, action: #selector(streakPauseChanged(_:)), for: .valueChanged)
 

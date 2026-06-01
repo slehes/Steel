@@ -41,7 +41,7 @@ final class ProgressHeaderView: UICollectionReusableView {
             $0.bottom.equalToSuperview().inset(8)
         }
 
-        fill.backgroundColor = .systemOrange
+        fill.backgroundColor = .systemGreen
         fill.layer.cornerRadius = 5
         track.addSubview(fill)
         fill.snp.makeConstraints {
@@ -58,7 +58,7 @@ final class ProgressHeaderView: UICollectionReusableView {
         if ratio >= 1.0 {
             fill.backgroundColor = .systemGreen
         } else {
-            fill.backgroundColor = .systemOrange
+            fill.backgroundColor = .systemGreen
         }
 
         // Always reset to zero first — establishes starting state

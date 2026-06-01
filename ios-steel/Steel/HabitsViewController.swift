@@ -19,6 +19,10 @@ final class HabitsViewController: UIViewController {
     ])
     private let segmentGlass = LiquidGlassView(cornerRadius: 16, intensity: .regular)
 
+    /// Флаг защиты от повторного входа в reload() — предотвращает краш
+    /// при одновременной вставке привычки и получении уведомления
+    private var isReloading = false
+
     // Текущий список привычек в зависимости от выбранной вкладки
     private var currentHabits: [Habit] {
         selectedTab == .good ? goodHabits : badHabits
@@ -99,7 +103,7 @@ final class HabitsViewController: UIViewController {
 
     private func setupCollection() {
         let layout = UICollectionViewCompositionalLayout { [weak self] _, _ in
-            guard let self else { return nil }
+            guard self != nil else { return nil }
             let item = NSCollectionLayoutItem(
                 layoutSize: .init(widthDimension: .fractionalWidth(1), heightDimension: .fractionalHeight(1))
             )
@@ -138,9 +142,22 @@ final class HabitsViewController: UIViewController {
     }
 
     @objc private func reload() {
+        // Защита от повторного входа — если reload уже выполняется,
+        // откладываем на следующую итерацию RunLoop
+        guard !isReloading else {
+            DispatchQueue.main.async { [weak self] in self?.reload() }
+            return
+        }
+        isReloading = true
+        defer { isReloading = false }
+
         let grouped = DataManager.shared.fetchHabitsGrouped()
         goodHabits = grouped.good
         badHabits  = grouped.bad
+
+        // Проверяем что collectionView инициализирован
+        guard collectionView != nil else { return }
+
         collectionView.reloadData()
         updateEmptyState()
     }
@@ -162,12 +179,8 @@ final class HabitsViewController: UIViewController {
     @objc private func tabChanged() {
         selectedTab = segmentedControl.selectedSegmentIndex == 1 ? .good : .bad
         applySegmentStyle()
-        UIImpactFeedbackGenerator.tap(.light)
-
-        // Плавная анимация переключения
-        collectionView.reloadData()
+        UIImpactFeedbackGenerator(style: .light).impactOccurred()
         updateEmptyState()
-
         UIView.transition(with: collectionView, duration: 0.3, options: .transitionCrossDissolve) {
             self.collectionView.reloadData()
         }
@@ -197,7 +210,7 @@ final class HabitsViewController: UIViewController {
         // Для полезных привычек — отмечаем сегодняшний день
         habit.resetStreak()
         try? DataManager.shared.context.save()
-        UIImpactFeedbackGenerator.tap(.light)
+        UIImpactFeedbackGenerator(style: .light).impactOccurred()
         SPIndicator.present(title: "День засчитан", message: "Так держать", preset: .done, haptic: .success)
         reload()
     }
@@ -214,6 +227,8 @@ extension HabitsViewController: UICollectionViewDataSource, UICollectionViewDele
 
     func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
         let cell = collectionView.dequeueReusableCell(withReuseIdentifier: HabitCell.reuseID, for: indexPath) as! HabitCell
+
+        // Проверяем что индекс в пределах массива
         guard indexPath.item < currentHabits.count else { return cell }
         let habit = currentHabits[indexPath.item]
         cell.configure(with: habit)

@@ -63,7 +63,7 @@ final class ProvidersViewController: UIViewController {
         card.contentView.addSubview(stack)
         stack.snp.makeConstraints { $0.edges.equalToSuperview() }
 
-        let headerRow = makeProviderHeader(name: "Groq", icon: "bolt.horizontal.fill", color: .systemOrange)
+        let headerRow = makeProviderHeader(name: "Groq", icon: "bolt.horizontal.fill", color: .systemGreen)
         stack.addArrangedSubview(headerRow)
 
         let sep1 = separator()

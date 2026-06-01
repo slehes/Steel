@@ -64,12 +64,12 @@ final class GoalsViewController: UIViewController {
         addConfig.title = "Добавить цель"
         addConfig.image = UIImage(systemName: "plus")
         addConfig.imagePadding = 8
-        addConfig.baseBackgroundColor = .systemOrange
+        addConfig.baseBackgroundColor = .systemGreen
         addConfig.baseForegroundColor = .white
         addConfig.cornerStyle = .large
         addButton.configuration = addConfig
         addButton.addTarget(self, action: #selector(addGoal), for: .touchUpInside)
-        addButton.backgroundColor = .systemOrange
+        addButton.backgroundColor = .systemGreen
         addButton.layer.cornerRadius = 20
         addButton.layer.cornerCurve = .continuous
         view.addSubview(addButton)
@@ -116,7 +116,7 @@ final class GoalsViewController: UIViewController {
         card.layer.borderColor = UIColor.white.withAlphaComponent(0.15).cgColor
 
         let iconView = UIImageView(image: UIImage(systemName: goal.iconName))
-        iconView.tintColor = .systemOrange
+        iconView.tintColor = .systemGreen
         iconView.contentMode = .scaleAspectFit
         iconView.preferredSymbolConfiguration = UIImage.SymbolConfiguration(pointSize: 24, weight: .semibold)
 
@@ -138,7 +138,7 @@ final class GoalsViewController: UIViewController {
         track.clipsToBounds = true
 
         let fill = UIView()
-        fill.backgroundColor = .systemOrange
+        fill.backgroundColor = .systemGreen
         fill.layer.cornerRadius = 4
         fill.tag = 888
         track.addSubview(fill)
@@ -157,7 +157,7 @@ final class GoalsViewController: UIViewController {
 
         let plusBtn = UIButton(type: .system)
         plusBtn.setImage(UIImage(systemName: "plus.circle.fill"), for: .normal)
-        plusBtn.tintColor = .systemOrange
+        plusBtn.tintColor = .systemGreen
         plusBtn.addAction(UIAction { [weak self] _ in
             self?.updateGoal(index: index, current: min(goal.targetValue, goal.currentValue + 1))
         }, for: .touchUpInside)

@@ -165,7 +165,7 @@ final class PlanDetailViewController: UIViewController {
         card.backgroundColor = UIColor.systemBackground.withAlphaComponent(0.45)
 
         let icon = UIImageView(image: UIImage(systemName: "flame.fill"))
-        icon.tintColor = .systemOrange
+        icon.tintColor = .systemGreen
         icon.preferredSymbolConfiguration = UIImage.SymbolConfiguration(pointSize: 28, weight: .bold)
 
         let title = UILabel()
@@ -475,7 +475,7 @@ final class PlanDetailViewController: UIViewController {
 
     private func colorForDay(_ day: ParsedPlan.Day) -> UIColor {
         if day.type.lowercased().contains("отдых") { return .systemGray }
-        return .systemOrange
+        return .systemGreen
     }
 
     private func dateString(_ date: Date) -> String {

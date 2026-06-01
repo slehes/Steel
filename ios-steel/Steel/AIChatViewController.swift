@@ -93,7 +93,7 @@ final class AIChatViewController: UIViewController {
         offlineBadge.text = "Оффлайн"
         offlineBadge.font = UIFont.systemFont(ofSize: 11, weight: .medium)
         offlineBadge.textColor = .white
-        offlineBadge.backgroundColor = .systemOrange
+        offlineBadge.backgroundColor = .systemGreen
         offlineBadge.textAlignment = .center
         offlineBadge.layer.cornerRadius = 10
         offlineBadge.clipsToBounds = true

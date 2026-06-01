@@ -13,6 +13,13 @@ final class TodayViewController: UIViewController {
     private var actionBarHidden = false
     private let motivationLabel = UILabel()
 
+    /// Невидимая фича: долгое нажатие на кнопку фона/цели/стрелку прячет их,
+    /// оставляя только «+» видимым. Повторное долгое нажатие возвращает.
+    private var extraButtonsHidden = false
+    private var goalsButton: UIBarButtonItem!
+    private var bgButton: UIBarButtonItem!
+    private var hideButton: UIBarButtonItem!
+
     override func viewDidLoad() {
         super.viewDidLoad()
         view.backgroundColor = .systemBackground
@@ -46,32 +53,61 @@ final class TodayViewController: UIViewController {
     }
 
     private func setupRightButtons() {
-        let goalsButton = UIBarButtonItem(
+        goalsButton = UIBarButtonItem(
             image: UIImage(systemName: "target"),
             style: .plain,
             target: self,
             action: #selector(openGoals)
         )
-        let bgButton = UIBarButtonItem(
+
+        bgButton = UIBarButtonItem(
             image: UIImage(systemName: "photo.on.rectangle.angled"),
             style: .plain,
             target: self,
             action: #selector(chooseBackground)
         )
+
         let plusButton = UIBarButtonItem(
             image: UIImage(systemName: "plus"),
             style: .plain,
             target: self,
             action: #selector(addTask)
         )
-        let hideButton = UIBarButtonItem(
+
+        hideButton = UIBarButtonItem(
             image: UIImage(systemName: "chevron.down"),
             style: .plain,
             target: self,
             action: #selector(toggleActionBarButton)
         )
         hideButton.tag = 100
+
+        // Долгое нажатие на цель → скрыть доп. кнопки
+        let goalsLongPress = UILongPressGestureRecognizer(target: self, action: #selector(toggleExtraButtons))
+        goalsLongPress.minimumPressDuration = 0.6
+        goalsButton.customView = nil // используем стандартный UIBarButtonItem
+        // Для стандартных UIBarButtonItem нужен другой подход — добавляем длинное нажатие через navigationBar
+        let navBarLongPress = UILongPressGestureRecognizer(target: self, action: #selector(toggleExtraButtons))
+        navBarLongPress.minimumPressDuration = 0.6
+        navigationController?.navigationBar.addGestureRecognizer(navBarLongPress)
+
         navigationItem.rightBarButtonItems = [plusButton, bgButton, goalsButton, hideButton]
+    }
+
+    /// Невидимая фича: долгое нажатие на навбар прячет кнопки фона, цели и стрелку.
+    /// Остается только «+». Повторное долгое нажатие — возвращает всё.
+    @objc private func toggleExtraButtons(_ gesture: UILongPressGestureRecognizer) {
+        guard gesture.state == .began else { return }
+        extraButtonsHidden.toggle()
+
+        let plusButton = navigationItem.rightBarButtonItems?.first
+        if extraButtonsHidden {
+            navigationItem.rightBarButtonItems = [plusButton].compactMap { $0 }
+            UIImpactFeedbackGenerator(style: .heavy).impactOccurred()
+        } else {
+            navigationItem.rightBarButtonItems = [plusButton, bgButton, goalsButton, hideButton].compactMap { $0 }
+            UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+        }
     }
 
     private func setupCollection() {
@@ -129,7 +165,7 @@ final class TodayViewController: UIViewController {
         finishButton.setTitle("Завершить день", for: .normal)
         finishButton.titleLabel?.font = UIFont.preferredFont(forTextStyle: .headline)
         finishButton.setTitleColor(.systemBackground, for: .normal)
-        finishButton.backgroundColor = .label
+        finishButton.backgroundColor = .systemGreen
         finishButton.layer.cornerRadius = 18
         finishButton.layer.cornerCurve = .continuous
         finishButton.addTarget(self, action: #selector(finishDay), for: .touchUpInside)
@@ -193,7 +229,7 @@ final class TodayViewController: UIViewController {
         }
         collectionView.contentInset.bottom = actionBarHidden ? 20 : 140
 
-        if let hideButton = navigationItem.rightBarButtonItems?.first(where: { $0.tag == 100 }) {
+        if !extraButtonsHidden {
             hideButton.image = UIImage(systemName: actionBarHidden ? "chevron.up" : "chevron.down")
         }
 
@@ -263,7 +299,18 @@ final class TodayViewController: UIViewController {
 
     @objc private func finishDay() {
         let progress = DataManager.shared.taskProgress
-        guard progress.total > 0 else { return }
+
+        // Нельзя завершить день без выполнения хотя бы одного задания
+        guard progress.total > 0 else {
+            SPIndicator.present(title: "Нет заданий", message: "Добавьте задания на сегодня", preset: .error, haptic: .error)
+            return
+        }
+
+        guard progress.done > 0 else {
+            SPIndicator.present(title: "Ничего не выполнено", message: "Выполните хотя бы одно задание", preset: .error, haptic: .error)
+            return
+        }
+
         UIImpactFeedbackGenerator.tap(.heavy)
         DataManager.shared.completeDay()
         let streak = DataManager.shared.settings.streakDays

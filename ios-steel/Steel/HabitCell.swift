@@ -102,7 +102,7 @@ final class HabitCell: UICollectionViewCell {
             $0.height.equalTo(8)
         }
 
-        fill.backgroundColor = .systemOrange
+        fill.backgroundColor = .systemGreen
         fill.layer.cornerRadius = 4
         track.addSubview(fill)
         fill.snp.makeConstraints {
@@ -200,7 +200,7 @@ final class HabitCell: UICollectionViewCell {
         if habit.category == .good {
             fill.backgroundColor = ratio >= 1.0 ? .systemGreen : .systemBlue
         } else {
-            fill.backgroundColor = ratio >= 1.0 ? .systemGreen : .systemOrange
+            fill.backgroundColor = ratio >= 1.0 ? .systemGreen : .systemBlue
         }
     }
 

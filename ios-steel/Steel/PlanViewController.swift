@@ -7,21 +7,19 @@ import SPIndicator
 final class PlanViewController: UIViewController {
     private let scrollView = UIScrollView()
     private let backgroundView = PersonalBackgroundView()
-    private let headerLabel = UILabel()
-    private let bodyLabel = UILabel()
-    private let entriesStack = UIStackView()
+    private let contentStack = UIStackView()
     private let emptyView = UILabel()
 
     private var plan: TrainingPlan?
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        view.backgroundColor = .systemBackground
+        view.backgroundColor = .systemGroupedBackground
         title = "Мой план"
-        setupBackground()
         navigationItem.largeTitleDisplayMode = .never
         navigationItem.rightBarButtonItem = UIBarButtonItem(barButtonSystemItem: .close, target: self, action: #selector(close))
-        setup()
+        setupBackground()
+        setupUI()
         render()
         NotificationCenter.default.addObserver(self, selector: #selector(render), name: .steelTasksChanged, object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(reloadBackground), name: .steelBackgroundChanged, object: nil)
@@ -45,69 +43,20 @@ final class PlanViewController: UIViewController {
         backgroundView.apply(BackgroundManager.shared.config)
     }
 
-    private func setup() {
-        view.hero.isEnabled = true
+    private func setupUI() {
         view.addSubview(scrollView)
         scrollView.snp.makeConstraints { $0.edges.equalToSuperview() }
         scrollView.alwaysBounceVertical = true
+        scrollView.backgroundColor = .clear
 
-        // Header
-        headerLabel.font = UIFont.preferredFont(forTextStyle: .title2).withWeight(.bold)
-        headerLabel.textColor = .label
-        headerLabel.numberOfLines = 0
-
-        // Body description
-        bodyLabel.numberOfLines = 0
-        bodyLabel.font = UIFont.preferredFont(forTextStyle: .body)
-        bodyLabel.adjustsFontForContentSizeCategory = true
-        bodyLabel.textColor = .secondaryLabel
-        bodyLabel.lineBreakMode = .byWordWrapping
-        bodyLabel.isUserInteractionEnabled = true
-        let bodyTap = UITapGestureRecognizer(target: self, action: #selector(openDetail))
-        bodyLabel.addGestureRecognizer(bodyTap)
-
-        // Кнопка «Подробный план» — открывает структурированный попап
-        var detailConfig = UIButton.Configuration.filled()
-        detailConfig.title = "Подробный план"
-        detailConfig.image = UIImage(systemName: "list.bullet.rectangle.fill")
-        detailConfig.imagePadding = 8
-        detailConfig.baseBackgroundColor = .systemOrange
-        detailConfig.baseForegroundColor = .white
-        detailConfig.cornerStyle = .large
-        let detailButton = UIButton(configuration: detailConfig)
-        detailButton.addTarget(self, action: #selector(openDetail), for: .touchUpInside)
-        detailButton.snp.makeConstraints { $0.height.equalTo(48) }
-
-        // Entries stack
-        entriesStack.axis = .vertical
-        entriesStack.spacing = 10
-
-        let content = UIView()
-        scrollView.addSubview(content)
-        content.snp.makeConstraints {
+        contentStack.axis = .vertical
+        contentStack.spacing = 14
+        scrollView.addSubview(contentStack)
+        contentStack.snp.makeConstraints {
             $0.top.equalToSuperview().offset(16)
             $0.leading.trailing.equalTo(view).inset(20)
             $0.bottom.equalToSuperview().inset(30)
             $0.width.equalTo(view).offset(-40)
-        }
-
-        content.addSubview(headerLabel)
-        content.addSubview(bodyLabel)
-        content.addSubview(detailButton)
-        content.addSubview(entriesStack)
-
-        headerLabel.snp.makeConstraints { $0.top.leading.trailing.equalToSuperview() }
-        bodyLabel.snp.makeConstraints {
-            $0.top.equalTo(headerLabel.snp.bottom).offset(10)
-            $0.leading.trailing.equalToSuperview()
-        }
-        detailButton.snp.makeConstraints {
-            $0.top.equalTo(bodyLabel.snp.bottom).offset(16)
-            $0.leading.trailing.equalToSuperview()
-        }
-        entriesStack.snp.makeConstraints {
-            $0.top.equalTo(detailButton.snp.bottom).offset(24)
-            $0.leading.trailing.bottom.equalToSuperview()
         }
 
         emptyView.text = "Плана пока нет.\nПопроси ИИ Тренера составить программу."
@@ -120,44 +69,140 @@ final class PlanViewController: UIViewController {
             $0.center.equalToSuperview()
             $0.leading.trailing.equalToSuperview().inset(40)
         }
-        
-        // Long press gesture на scroll view для открытия меню плана
-        let longPress = UILongPressGestureRecognizer(target: self, action: #selector(handleLongPressOnPlan))
-        longPress.minimumPressDuration = 0.5
-        scrollView.addGestureRecognizer(longPress)
     }
 
     @objc private func render() {
         plan = DataManager.shared.currentPlan()
 
-        if let plan = plan, !plan.body.isEmpty {
+        // Очистка предыдущих subviews
+        contentStack.arrangedSubviews.forEach { $0.removeFromSuperview() }
+
+        if let plan = plan, !plan.title.isEmpty || !plan.body.isEmpty {
             scrollView.isHidden = false
             emptyView.isHidden = true
-            headerLabel.text = plan.title.isEmpty ? "Программа тренировок" : plan.title
-            bodyLabel.text = plan.body
-            loadEntries()
+
+            // Карточка плана — только название + краткая инфа
+            let card = makePlanCard(plan)
+            contentStack.addArrangedSubview(card)
+
+            // Задания плана (компактно)
+            let entries = fetchEntries()
+            if !entries.isEmpty {
+                let sectionLabel = UILabel()
+                sectionLabel.text = "ЗАДАНИЯ ПЛАНА"
+                sectionLabel.font = UIFont.systemFont(ofSize: 12, weight: .heavy)
+                sectionLabel.textColor = .secondaryLabel
+                contentStack.addArrangedSubview(sectionLabel)
+
+                for entry in entries {
+                    let entryRow = makeEntryRow(entry)
+                    contentStack.addArrangedSubview(entryRow)
+                }
+            }
         } else {
             scrollView.isHidden = true
             emptyView.isHidden = false
         }
     }
 
-    private func loadEntries() {
-        entriesStack.arrangedSubviews.forEach { $0.removeFromSuperview() }
+    /// Карточка с названием плана — тап открывает модалку с подробным описанием
+    private func makePlanCard(_ plan: TrainingPlan) -> UIView {
+        let glass = LiquidGlassView(cornerRadius: 24, intensity: .regular)
+        glass.backgroundColor = UIColor.systemBackground.withAlphaComponent(0.45)
 
-        let entries = fetchEntries()
-        if entries.isEmpty { return }
+        let icon = UIImageView(image: UIImage(systemName: "flame.fill"))
+        icon.tintColor = .systemGreen
+        icon.preferredSymbolConfiguration = UIImage.SymbolConfiguration(pointSize: 28, weight: .bold)
+        icon.snp.makeConstraints { $0.width.height.equalTo(36) }
 
-        let sectionLabel = UILabel()
-        sectionLabel.text = "Задания плана"
-        sectionLabel.font = UIFont.preferredFont(forTextStyle: .headline)
-        sectionLabel.textColor = .secondaryLabel
-        entriesStack.addArrangedSubview(sectionLabel)
+        let title = UILabel()
+        title.text = plan.title.isEmpty ? "Программа тренировок" : plan.title
+        title.font = UIFont.systemFont(ofSize: 22, weight: .bold)
+        title.textColor = .label
+        title.numberOfLines = 0
 
-        for entry in entries {
-            let card = makeEntryCard(entry)
-            entriesStack.addArrangedSubview(card)
-        }
+        let meta = UILabel()
+        let parsed = PlanParser.parse(plan.body)
+        let parts: [String] = [
+            parsed.program.duration.isEmpty ? nil : "\(parsed.program.duration)",
+            parsed.program.level.isEmpty ? nil : "\(parsed.program.level)",
+            "Обновлено: \(dateString(plan.updatedAt))"
+        ].compactMap { $0 }
+        meta.text = parts.joined(separator: "  •  ")
+        meta.font = UIFont.preferredFont(forTextStyle: .caption1)
+        meta.textColor = .secondaryLabel
+        meta.numberOfLines = 0
+
+        let chevron = UIImageView(image: UIImage(systemName: "chevron.right", withConfiguration: UIImage.SymbolConfiguration(pointSize: 14, weight: .semibold)))
+        chevron.tintColor = .tertiaryLabel
+
+        let textStack = UIStackView(arrangedSubviews: [title, meta])
+        textStack.axis = .vertical
+        textStack.spacing = 6
+
+        let h = UIStackView(arrangedSubviews: [icon, textStack, UIView(), chevron])
+        h.axis = .horizontal
+        h.alignment = .center
+        h.spacing = 14
+
+        glass.contentView.addSubview(h)
+        h.snp.makeConstraints { $0.edges.equalToSuperview().inset(18) }
+
+        // Тап — открываем модалку с подробным описанием
+        let tap = UITapGestureRecognizer(target: self, action: #selector(openDetail))
+        glass.addGestureRecognizer(tap)
+        glass.isUserInteractionEnabled = true
+
+        // Длинное нажатие — меню (пересоздать/удалить)
+        let longPress = UILongPressGestureRecognizer(target: self, action: #selector(handleLongPressOnPlan))
+        longPress.minimumPressDuration = 0.5
+        glass.addGestureRecognizer(longPress)
+
+        return glass
+    }
+
+    private func makeEntryRow(_ entry: PlanEntry) -> UIView {
+        let row = UIView()
+        row.layer.cornerRadius = 14
+        row.layer.cornerCurve = .continuous
+        row.layer.borderWidth = 0.5
+        row.layer.borderColor = UIColor.white.withAlphaComponent(0.12).cgColor
+        row.backgroundColor = UIColor.secondarySystemBackground.withAlphaComponent(0.3)
+
+        let icon = UIImageView(image: UIImage(systemName: entry.iconName))
+        icon.tintColor = entry.isCompleted ? .systemGreen : .label
+        icon.contentMode = .scaleAspectFit
+        icon.preferredSymbolConfiguration = UIImage.SymbolConfiguration(pointSize: 18, weight: .semibold)
+
+        let label = UILabel()
+        label.text = entry.title
+        label.font = UIFont.preferredFont(forTextStyle: .subheadline)
+        label.numberOfLines = 2
+        label.textColor = entry.isCompleted ? .secondaryLabel : .label
+
+        let checkmark = UIImageView(image: UIImage(systemName: entry.isCompleted ? "checkmark.circle.fill" : "circle"))
+        checkmark.tintColor = entry.isCompleted ? .systemGreen : .systemGray3
+        checkmark.contentMode = .scaleAspectFit
+        checkmark.snp.makeConstraints { $0.width.height.equalTo(22) }
+
+        let h = UIStackView(arrangedSubviews: [icon, label, checkmark])
+        h.axis = .horizontal
+        h.alignment = .center
+        h.spacing = 10
+        row.addSubview(h)
+        h.snp.makeConstraints { $0.edges.equalToSuperview().inset(12) }
+        row.snp.makeConstraints { $0.height.greaterThanOrEqualTo(48) }
+
+        // Tap to toggle
+        let tap = UITapGestureRecognizer(target: self, action: #selector(entryTapped(_:)))
+        row.addGestureRecognizer(tap)
+        row.tag = entry.hashValue
+
+        // Long press to delete
+        let longPress = UILongPressGestureRecognizer(target: self, action: #selector(entryLongPressed(_:)))
+        row.addGestureRecognizer(longPress)
+
+        return row
     }
 
     private func fetchEntries() -> [PlanEntry] {
@@ -165,180 +210,36 @@ final class PlanViewController: UIViewController {
         return (try? DataManager.shared.context.fetch(descriptor)) ?? []
     }
 
-    private func makeEntryCard(_ entry: PlanEntry) -> UIView {
-        let glass = UIVisualEffectView(effect: UIBlurEffect(style: .systemThinMaterial))
-        glass.layer.cornerRadius = 16
-        glass.layer.cornerCurve = .continuous
-        glass.clipsToBounds = true
-        glass.layer.borderWidth = 0.5
-        glass.layer.borderColor = UIColor.white.withAlphaComponent(0.15).cgColor
-
-        let icon = UIImageView(image: UIImage(systemName: entry.iconName))
-        icon.tintColor = entry.isCompleted ? .systemGreen : .label
-        icon.contentMode = .scaleAspectFit
-        icon.preferredSymbolConfiguration = UIImage.SymbolConfiguration(pointSize: 22, weight: .semibold)
-
-        let label = UILabel()
-        label.text = entry.title
-        label.font = UIFont.preferredFont(forTextStyle: .body)
-        label.numberOfLines = 2
-        label.textColor = entry.isCompleted ? .secondaryLabel : .label
-
-        let checkmark = UIImageView(image: UIImage(systemName: entry.isCompleted ? "checkmark.circle.fill" : "circle"))
-        checkmark.tintColor = entry.isCompleted ? .systemGreen : .systemGray3
-        checkmark.contentMode = .scaleAspectFit
-
-        glass.contentView.addSubview(icon)
-        glass.contentView.addSubview(label)
-        glass.contentView.addSubview(checkmark)
-
-        icon.snp.makeConstraints {
-            $0.leading.equalToSuperview().inset(16)
-            $0.centerY.equalToSuperview()
-            $0.width.height.equalTo(30)
-        }
-        label.snp.makeConstraints {
-            $0.leading.equalTo(icon.snp.trailing).offset(12)
-            $0.trailing.equalTo(checkmark.snp.leading).offset(-12)
-            $0.centerY.equalToSuperview()
-        }
-        checkmark.snp.makeConstraints {
-            $0.trailing.equalToSuperview().inset(16)
-            $0.centerY.equalToSuperview()
-            $0.width.height.equalTo(26)
-        }
-
-        glass.snp.makeConstraints { $0.height.equalTo(64) }
-
-        // Long press to delete
-        let longPress = UILongPressGestureRecognizer(target: self, action: #selector(entryLongPressed(_:)))
-        glass.addGestureRecognizer(longPress)
-
-        // Tap to toggle
-        let tap = UITapGestureRecognizer(target: self, action: #selector(entryTapped(_:)))
-        glass.addGestureRecognizer(tap)
-
-        glass.tag = entry.hashValue
-
-        return glass
-    }
-
     @objc private func entryTapped(_ gesture: UIGestureRecognizer) {
         let entries = fetchEntries()
         guard let view = gesture.view else { return }
-
-        // Find entry by tag
-        for (index, entry) in entries.enumerated() {
+        for entry in entries {
             if entry.hashValue == view.tag {
                 entry.isCompleted.toggle()
                 try? DataManager.shared.context.save()
                 UIImpactFeedbackGenerator(style: .medium).impactOccurred()
-                animateEntryToggle(view: view, completed: entry.isCompleted, index: index)
+                render()
                 break
-            }
-        }
-    }
-
-    private func animateEntryToggle(view: UIView, completed: Bool, index: Int) {
-        let icon = view.subviews.first(where: { $0 is UIImageView }) as? UIImageView
-        let label = view.subviews.dropFirst().first(where: { $0 is UILabel }) as? UILabel
-
-        UIView.animate(withDuration: 0.3, delay: 0, usingSpringWithDamping: 0.7, initialSpringVelocity: 0.4, options: .curveEaseOut) {
-            view.transform = CGAffineTransform(scaleX: 0.95, y: 0.95)
-        } completion: { _ in
-            icon?.image = UIImage(systemName: completed ? "checkmark.circle.fill" : "circle")
-            icon?.tintColor = completed ? .systemGreen : .systemGray3
-            label?.textColor = completed ? .secondaryLabel : .label
-            UIView.animate(withDuration: 0.4, delay: 0, usingSpringWithDamping: 0.6, initialSpringVelocity: 0.5, options: .curveEaseOut) {
-                view.transform = .identity
             }
         }
     }
 
     @objc private func entryLongPressed(_ gesture: UILongPressGestureRecognizer) {
         guard gesture.state == .began, let view = gesture.view else { return }
-
         let entries = fetchEntries()
         for entry in entries {
             if entry.hashValue == view.tag {
                 UIImpactFeedbackGenerator(style: .heavy).impactOccurred()
-
-                // Show delete confirmation with glass effect
-                showDeleteConfirmation(entry: entry, in: view)
+                let alert = UIAlertController(title: entry.title, message: nil, preferredStyle: .actionSheet)
+                alert.addAction(UIAlertAction(title: "Удалить", style: .destructive) { [weak self] _ in
+                    DataManager.shared.context.delete(entry)
+                    try? DataManager.shared.context.save()
+                    self?.render()
+                })
+                alert.addAction(UIAlertAction(title: "Отмена", style: .cancel))
+                present(alert, animated: true)
                 break
             }
-        }
-    }
-
-    private func showDeleteConfirmation(entry: PlanEntry, in view: UIView) {
-        let overlay = UIView()
-        overlay.backgroundColor = UIColor.black.withAlphaComponent(0.4)
-        overlay.layer.cornerRadius = 16
-        overlay.alpha = 0
-        view.addSubview(overlay)
-        overlay.snp.makeConstraints { $0.edges.equalToSuperview() }
-
-        let glass2 = UIVisualEffectView(effect: UIBlurEffect(style: .systemThinMaterial))
-        glass2.layer.cornerRadius = 16
-        glass2.layer.cornerCurve = .continuous
-        glass2.clipsToBounds = true
-
-        var deleteConfig = UIButton.Configuration.filled()
-        deleteConfig.title = "Удалить"
-        deleteConfig.image = UIImage(systemName: "trash.fill")
-        deleteConfig.imagePadding = 8
-        deleteConfig.baseBackgroundColor = .systemRed
-        deleteConfig.baseForegroundColor = .white
-        deleteConfig.cornerStyle = .large
-
-        var cancelConfig = UIButton.Configuration.filled()
-        cancelConfig.title = "Отмена"
-        cancelConfig.image = UIImage(systemName: "xmark")
-        cancelConfig.imagePadding = 8
-        cancelConfig.baseBackgroundColor = .secondarySystemBackground
-        cancelConfig.baseForegroundColor = .label
-        cancelConfig.cornerStyle = .large
-
-        let deleteBtn = UIButton(configuration: deleteConfig)
-        let cancelBtn = UIButton(configuration: cancelConfig)
-
-        let stack = UIStackView(arrangedSubviews: [deleteBtn, cancelBtn])
-        stack.axis = .vertical
-        stack.spacing = 8
-        stack.distribution = .fillEqually
-
-        glass2.contentView.addSubview(stack)
-        stack.snp.makeConstraints { $0.edges.equalToSuperview().inset(14) }
-        deleteBtn.snp.makeConstraints { $0.height.equalTo(44) }
-        cancelBtn.snp.makeConstraints { $0.height.equalTo(44) }
-
-        view.addSubview(glass2)
-        glass2.snp.makeConstraints { $0.edges.equalToSuperview() }
-
-        deleteBtn.addAction(UIAction { [weak self] _ in
-            DataManager.shared.context.delete(entry)
-            try? DataManager.shared.context.save()
-            UIImpactFeedbackGenerator(style: .medium).impactOccurred()
-            self?.render()
-        }, for: .touchUpInside)
-
-        cancelBtn.addAction(UIAction { [weak self] _ in
-            self?.dismissDeleteConfirmation(glass: glass2, overlay: overlay)
-        }, for: .touchUpInside)
-
-        UIView.animate(withDuration: 0.3, delay: 0, usingSpringWithDamping: 0.8, initialSpringVelocity: 0.3, options: .curveEaseOut) {
-            overlay.alpha = 1
-            glass2.alpha = 1
-        }
-    }
-
-    private func dismissDeleteConfirmation(glass: UIView, overlay: UIView) {
-        UIView.animate(withDuration: 0.25, delay: 0, options: .curveEaseIn) {
-            glass.alpha = 0
-            overlay.alpha = 0
-        } completion: { _ in
-            glass.removeFromSuperview()
-            overlay.removeFromSuperview()
         }
     }
 
@@ -350,10 +251,36 @@ final class PlanViewController: UIViewController {
         UIImpactFeedbackGenerator(style: .light).impactOccurred()
         let detail = PlanDetailViewController(plan: plan)
         let nav = UINavigationController(rootViewController: detail)
+        if let sheet = nav.sheetPresentationController {
+            sheet.detents = [.large(), .medium()]
+            sheet.prefersGrabberVisible = true
+            sheet.preferredCornerRadius = 28
+        }
         present(nav, animated: true)
     }
 
-    @objc private func regeneratePlan() {
+    @objc private func handleLongPressOnPlan(_ gesture: UILongPressGestureRecognizer) {
+        guard gesture.state == .began, plan != nil else { return }
+
+        let alert = UIAlertController(title: "План тренировок", message: nil, preferredStyle: .actionSheet)
+
+        let regenerate = UIAlertAction(title: "Пересоздать", style: .default) { [weak self] _ in
+            self?.regeneratePlan()
+        }
+        regenerate.setValue(UIImage(systemName: "arrow.clockwise"), forKey: "image")
+
+        let delete = UIAlertAction(title: "Удалить", style: .destructive) { [weak self] _ in
+            self?.deletePlan()
+        }
+        delete.setValue(UIImage(systemName: "trash"), forKey: "image")
+
+        alert.addAction(regenerate)
+        alert.addAction(delete)
+        alert.addAction(UIAlertAction(title: "Отмена", style: .cancel))
+        present(alert, animated: true)
+    }
+
+    private func regeneratePlan() {
         dismiss(animated: true) { [weak self] in
             guard let scene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
                   let rootVC = scene.windows.first?.rootViewController else { return }
@@ -368,39 +295,12 @@ final class PlanViewController: UIViewController {
         }
     }
 
-    @objc private func handleLongPressOnPlan(_ gesture: UILongPressGestureRecognizer) {
-        guard gesture.state == .began, plan != nil else { return }
-        
-        let alert = UIAlertController(title: "План тренировок", message: nil, preferredStyle: .actionSheet)
-        
-        let regenerate = UIAlertAction(title: "Пересоздать", style: .default) { [weak self] _ in
-            self?.regeneratePlan()
-        }
-        regenerate.setValue(UIImage(systemName: "arrow.clockwise"), forKey: "image")
-        
-        let delete = UIAlertAction(title: "Удалить", style: .destructive) { [weak self] _ in
-            self?.deletePlan()
-        }
-        delete.setValue(UIImage(systemName: "trash"), forKey: "image")
-        
-        let cancel = UIAlertAction(title: "Отмена", style: .cancel)
-        
-        alert.addAction(regenerate)
-        alert.addAction(delete)
-        alert.addAction(cancel)
-        
-        present(alert, animated: true)
-    }
-    
     private func deletePlan() {
         guard let plan = plan else { return }
-        
         DataManager.shared.context.delete(plan)
         try? DataManager.shared.context.save()
-        
         UIImpactFeedbackGenerator(style: .medium).impactOccurred()
         SPIndicator.present(title: "План удалён", preset: .done, haptic: .success)
-        
         render()
     }
 
@@ -410,5 +310,13 @@ final class PlanViewController: UIViewController {
 
     @objc private func close() {
         dismiss(animated: true)
+    }
+
+    private func dateString(_ date: Date) -> String {
+        let f = DateFormatter()
+        f.dateStyle = .medium
+        f.timeStyle = .none
+        f.locale = Locale(identifier: "ru_RU")
+        return f.string(from: date)
     }
 }

@@ -242,9 +242,17 @@ final class DataManager {
         let index = (fetchHabits().map(\.sortIndex).max() ?? -1) + 1
         let habit = Habit(title: title, iconName: iconName, category: category, sortIndex: index)
         context.insert(habit)
-        try? context.save()
-        NotificationCenter.default.post(name: .steelHabitsChanged, object: nil)
-        KeychainHelper.backupAllData()
+        do {
+            try context.save()
+        } catch {
+            print("⚠️ Error saving habit: \(error)")
+        }
+        // Откладываем уведомление на следующую итерацию RunLoop,
+        // чтобы SwiftData завершил вставку до того, как VC попытается прочитать данные
+        DispatchQueue.main.async {
+            NotificationCenter.default.post(name: .steelHabitsChanged, object: nil)
+            KeychainHelper.backupAllData()
+        }
         return habit
     }
 
@@ -273,9 +281,15 @@ final class DataManager {
 
     func removeHabit(_ habit: Habit) {
         context.delete(habit)
-        try? context.save()
-        NotificationCenter.default.post(name: .steelHabitsChanged, object: nil)
-        KeychainHelper.backupAllData()
+        do {
+            try context.save()
+        } catch {
+            print("⚠️ Error deleting habit: \(error)")
+        }
+        DispatchQueue.main.async {
+            NotificationCenter.default.post(name: .steelHabitsChanged, object: nil)
+            KeychainHelper.backupAllData()
+        }
     }
 
     func removeHabit(matching name: String) {
@@ -283,9 +297,15 @@ final class DataManager {
         for habit in fetchHabits() where habit.title.lowercased().contains(lower) {
             context.delete(habit)
         }
-        try? context.save()
-        NotificationCenter.default.post(name: .steelHabitsChanged, object: nil)
-        KeychainHelper.backupAllData()
+        do {
+            try context.save()
+        } catch {
+            print("⚠️ Error deleting habits: \(error)")
+        }
+        DispatchQueue.main.async {
+            NotificationCenter.default.post(name: .steelHabitsChanged, object: nil)
+            KeychainHelper.backupAllData()
+        }
     }
 
     func savePlan(title: String, body: String) {
