@@ -79,8 +79,8 @@ final class TaskDetailViewController: UIViewController {
         gifImageView.snp.makeConstraints {
             $0.top.equalToSuperview().offset(24)
             $0.centerX.equalToSuperview()
-            $0.width.equalTo(260)
-            $0.height.equalTo(180)
+            $0.width.equalTo(240)
+            $0.height.equalTo(160)
         }
 
         // Title
@@ -120,10 +120,10 @@ final class TaskDetailViewController: UIViewController {
 
         // Buttons
         var doneConfig = UIButton.Configuration.filled()
-        doneConfig.title = "Выполнил ✅"
-        doneConfig.image = UIImage(systemName: "checkmark.seal.fill")
+        doneConfig.title = wasCompleted ? "Отменить" : "Выполнил"
+        doneConfig.image = UIImage(systemName: wasCompleted ? "arrow.uturn.backward" : "checkmark.seal.fill")
         doneConfig.imagePadding = 8
-        doneConfig.baseBackgroundColor = .systemGreen
+        doneConfig.baseBackgroundColor = wasCompleted ? .systemOrange : .systemGreen
         doneConfig.baseForegroundColor = .white
         doneConfig.cornerStyle = .large
         doneButton.configuration = doneConfig
@@ -247,6 +247,9 @@ final class TaskDetailViewController: UIViewController {
 
     @objc private func doneTapped() {
         if !task.isCompleted {
+            DataManager.shared.toggleTask(task)
+        } else {
+            // Если задача уже выполнена, откатываем её
             DataManager.shared.toggleTask(task)
         }
         UIImpactFeedbackGenerator(style: .heavy).impactOccurred()

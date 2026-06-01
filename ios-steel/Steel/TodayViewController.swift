@@ -46,6 +46,12 @@ final class TodayViewController: UIViewController {
     }
 
     private func setupRightButtons() {
+        let goalsButton = UIBarButtonItem(
+            image: UIImage(systemName: "target"),
+            style: .plain,
+            target: self,
+            action: #selector(openGoals)
+        )
         let bgButton = UIBarButtonItem(
             image: UIImage(systemName: "photo.on.rectangle.angled"),
             style: .plain,
@@ -65,7 +71,7 @@ final class TodayViewController: UIViewController {
             action: #selector(toggleActionBarButton)
         )
         hideButton.tag = 100
-        navigationItem.rightBarButtonItems = [plusButton, bgButton, hideButton]
+        navigationItem.rightBarButtonItems = [plusButton, bgButton, goalsButton, hideButton]
     }
 
     private func setupCollection() {
@@ -316,5 +322,11 @@ extension TodayViewController: UICollectionViewDataSource, UICollectionViewDeleg
             }
             return UIMenu(children: [delete])
         }
+    }
+
+    @objc private func openGoals() {
+        let goalsVC = GoalsViewController()
+        let navController = UINavigationController(rootViewController: goalsVC)
+        navigationController?.pushViewController(goalsVC, animated: true)
     }
 }
