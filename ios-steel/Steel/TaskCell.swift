@@ -9,7 +9,10 @@ final class TaskCell: UICollectionViewCell {
     private let iconView = UIImageView()
     private let titleLabel = UILabel()
     private let detailLabel = UILabel()
-    private let lottieView = LottieAnimationView(name: "success")
+    private let lottieView: LottieAnimationView? = {
+        let view = LottieAnimationView(name: "success")
+        return view
+    }()
 
 
     override init(frame: CGRect) {
@@ -69,12 +72,14 @@ final class TaskCell: UICollectionViewCell {
         }
 
 
-        lottieView.contentMode = .scaleAspectFit
-        lottieView.isUserInteractionEnabled = false
-        content.addSubview(lottieView)
-        lottieView.snp.makeConstraints {
-            $0.center.equalTo(iconView)
-            $0.width.height.equalTo(90)
+        if let lottie = lottieView {
+            lottie.contentMode = .scaleAspectFit
+            lottie.isUserInteractionEnabled = false
+            content.addSubview(lottie)
+            lottie.snp.makeConstraints {
+                $0.center.equalTo(iconView)
+                $0.width.height.equalTo(90)
+            }
         }
     }
 
@@ -135,8 +140,8 @@ final class TaskCell: UICollectionViewCell {
                 self.detailLabel.text = "Готово"
             }
 
-            lottieView.play { [weak self] _ in
-                self?.lottieView.currentProgress = 0
+            lottieView?.play { [weak self] _ in
+                self?.lottieView?.currentProgress = 0
             }
 
             if #available(iOS 17.0, *) {
@@ -169,8 +174,8 @@ final class TaskCell: UICollectionViewCell {
 
     override func prepareForReuse() {
         super.prepareForReuse()
-        lottieView.stop()
-        lottieView.currentProgress = 0
+        lottieView?.stop()
+        lottieView?.currentProgress = 0
         iconView.alpha = 1
         iconView.transform = .identity
         glass.alpha = 1

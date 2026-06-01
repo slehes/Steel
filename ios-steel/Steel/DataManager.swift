@@ -43,7 +43,21 @@ final class DataManager {
         do {
             container = try ModelContainer(for: schema, configurations: [config])
         } catch {
-            fatalError("ModelContainer error: \(error)")
+            // If ModelContainer fails (e.g. schema migration), delete corrupt DB and retry
+            print("⚠️ ModelContainer error: \(error). Resetting database.")
+            Self.deleteDatabase()
+            do {
+                container = try ModelContainer(for: schema, configurations: [config])
+            } catch {
+                // Last resort: in-memory container so app doesn't crash
+                print("⚠️ ModelContainer still failing after reset. Using in-memory store.")
+                let memConfig = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
+                do {
+                    container = try ModelContainer(for: schema, configurations: [memConfig])
+                } catch {
+                    fatalError("ModelContainer unrecoverable error: \(error)")
+                }
+            }
         }
 
         if let data = UserDefaults.standard.data(forKey: settingsKey),
@@ -51,6 +65,17 @@ final class DataManager {
             settings = decoded
         } else {
             settings = .default
+        }
+    }
+
+    /// Delete the SwiftData database files so they can be recreated cleanly
+    private static func deleteDatabase() {
+        guard let url = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first else { return }
+        let defaultDir = url.appendingPathComponent("default.store")
+        let files = ["default.store", "default.store-wal", "default.store-shm"]
+        for file in files {
+            let fileURL = defaultDir.deletingLastPathComponent().appendingPathComponent(file)
+            try? FileManager.default.removeItem(at: fileURL)
         }
     }
 

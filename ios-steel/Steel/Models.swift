@@ -123,6 +123,21 @@ struct BackgroundConfig: Codable, Equatable {
     var fileName: String
     var dimmed: Bool
 
+    // Memberwise init
+    init(kind: BackgroundKind, fileName: String, dimmed: Bool) {
+        self.kind = kind
+        self.fileName = fileName
+        self.dimmed = dimmed
+    }
+
+    // Backward-compatible decoder
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        kind = try container.decodeIfPresent(BackgroundKind.self, forKey: .kind) ?? .none
+        fileName = try container.decodeIfPresent(String.self, forKey: .fileName) ?? ""
+        dimmed = try container.decodeIfPresent(Bool.self, forKey: .dimmed) ?? true
+    }
+
     static let disabled = BackgroundConfig(kind: .none, fileName: "", dimmed: true)
 }
 
@@ -166,6 +181,67 @@ struct AppSettings: Codable {
     var regionTimeZone: String
     var userTrainingLocation: String
     var yearGoals: [YearGoal]
+
+    // Explicit memberwise init (needed because custom Codable init removes auto-generated one)
+    init(
+        userName: String,
+        streakDays: Int,
+        lastDayKey: String,
+        lastCompletedDayKey: String,
+        totalCompletedTasks: Int,
+        exerciseCounts: [String: Int],
+        reminderHours: [Int],
+        background: BackgroundConfig,
+        customFontFileName: String,
+        customFontName: String,
+        customFontDisplayName: String,
+        streakPaused: Bool,
+        streakPausedSince: String,
+        regionCity: String,
+        regionTimeZone: String,
+        userTrainingLocation: String,
+        yearGoals: [YearGoal]
+    ) {
+        self.userName = userName
+        self.streakDays = streakDays
+        self.lastDayKey = lastDayKey
+        self.lastCompletedDayKey = lastCompletedDayKey
+        self.totalCompletedTasks = totalCompletedTasks
+        self.exerciseCounts = exerciseCounts
+        self.reminderHours = reminderHours
+        self.background = background
+        self.customFontFileName = customFontFileName
+        self.customFontName = customFontName
+        self.customFontDisplayName = customFontDisplayName
+        self.streakPaused = streakPaused
+        self.streakPausedSince = streakPausedSince
+        self.regionCity = regionCity
+        self.regionTimeZone = regionTimeZone
+        self.userTrainingLocation = userTrainingLocation
+        self.yearGoals = yearGoals
+    }
+
+    // Backward-compatible decoder: handles missing keys from older app versions
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        userName = try container.decodeIfPresent(String.self, forKey: .userName) ?? "Воин"
+        streakDays = try container.decodeIfPresent(Int.self, forKey: .streakDays) ?? 0
+        lastDayKey = try container.decodeIfPresent(String.self, forKey: .lastDayKey) ?? ""
+        lastCompletedDayKey = try container.decodeIfPresent(String.self, forKey: .lastCompletedDayKey) ?? ""
+        totalCompletedTasks = try container.decodeIfPresent(Int.self, forKey: .totalCompletedTasks) ?? 0
+        exerciseCounts = try container.decodeIfPresent([String: Int].self, forKey: .exerciseCounts) ?? [:]
+        reminderHours = try container.decodeIfPresent([Int].self, forKey: .reminderHours) ?? [9, 19, 22]
+        background = try container.decodeIfPresent(BackgroundConfig.self, forKey: .background) ?? .disabled
+        customFontFileName = try container.decodeIfPresent(String.self, forKey: .customFontFileName) ?? ""
+        customFontName = try container.decodeIfPresent(String.self, forKey: .customFontName) ?? ""
+        customFontDisplayName = try container.decodeIfPresent(String.self, forKey: .customFontDisplayName) ?? ""
+        streakPaused = try container.decodeIfPresent(Bool.self, forKey: .streakPaused) ?? false
+        streakPausedSince = try container.decodeIfPresent(String.self, forKey: .streakPausedSince) ?? ""
+        regionCity = try container.decodeIfPresent(String.self, forKey: .regionCity) ?? "Москва"
+        regionTimeZone = try container.decodeIfPresent(String.self, forKey: .regionTimeZone) ?? "Europe/Moscow"
+        userTrainingLocation = try container.decodeIfPresent(String.self, forKey: .userTrainingLocation) ?? ""
+        yearGoals = try container.decodeIfPresent([YearGoal].self, forKey: .yearGoals) ?? []
+    }
 
     static let `default` = AppSettings(
         userName: "Воин",
