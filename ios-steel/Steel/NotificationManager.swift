@@ -1,6 +1,7 @@
 import Foundation
 import UserNotifications
 import UIKit
+import SPIndicator
 
 @MainActor
 final class NotificationManager {
@@ -90,6 +91,74 @@ final class NotificationManager {
         let trigger = UNCalendarNotificationTrigger(dateMatching: calendar.dateComponents([.year, .month, .day, .hour, .minute], from: warnTime), repeats: false)
         let request = UNNotificationRequest(identifier: "steel.streak.warning.\(calendar.startOfDay(for: now).timeIntervalSince1970)", content: content, trigger: trigger)
         UNUserNotificationCenter.current().add(request)
+    }
+
+    func scheduleBirthdayNotifications(birthdayString: String) {
+        let fmt = DateFormatter()
+        fmt.dateFormat = "yyyy-MM-dd"
+        guard !birthdayString.isEmpty, let date = fmt.date(from: birthdayString) else { return }
+
+        let cal = Calendar.current
+        let month = cal.component(.month, from: date)
+        let day   = cal.component(.day,   from: date)
+
+        UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: [
+            "steel.birthday.midnight", "steel.birthday.noon"
+        ])
+
+        for (hour, identifier) in [(0, "steel.birthday.midnight"), (12, "steel.birthday.noon")] {
+            let content = UNMutableNotificationContent()
+            content.title = "С Днём Рождения! 🎉"
+            content.body  = "Сегодня твой праздник — отдыхай без нагрузки. +1 к серии!"
+            content.sound = .default
+            content.categoryIdentifier = "STEEL_BIRTHDAY"
+
+            var comps = DateComponents()
+            comps.month = month; comps.day = day; comps.hour = hour; comps.minute = 0
+
+            let trigger = UNCalendarNotificationTrigger(dateMatching: comps, repeats: true)
+            let request = UNNotificationRequest(identifier: identifier, content: content, trigger: trigger)
+            UNUserNotificationCenter.current().add(request)
+        }
+    }
+
+    func checkBirthdayAndCongratulate() {
+        let settings = DataManager.shared.settings
+        guard !settings.birthdayDateString.isEmpty else { return }
+
+        let fmt = DateFormatter()
+        fmt.dateFormat = "yyyy-MM-dd"
+        guard let bdate = fmt.date(from: settings.birthdayDateString) else { return }
+
+        let cal   = Calendar.current
+        let today = cal.startOfDay(for: Date())
+        let bMonth = cal.component(.month, from: bdate)
+        let bDay   = cal.component(.day,   from: bdate)
+        let tMonth = cal.component(.month, from: today)
+        let tDay   = cal.component(.day,   from: today)
+
+        guard bMonth == tMonth && bDay == tDay else { return }
+
+        let birthdayKey = "steel.birthday.congratulated.\(fmt.string(from: today))"
+        guard !UserDefaults.standard.bool(forKey: birthdayKey) else { return }
+        UserDefaults.standard.set(true, forKey: birthdayKey)
+
+        DataManager.shared.awardBirthdayBonus()
+
+        SteelNotificationStore.shared.add(
+            type: .birthday,
+            title: "С Днём Рождения! 🎉",
+            body: "Сегодня твой праздник. +1 к серии начислен. Отдыхай!"
+        )
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) {
+            SPIndicator.present(
+                title: "С Днём Рождения! 🎉",
+                message: "Сегодня отдыхай без нагрузки",
+                preset: .custom(UIImage(systemName: "gift.fill")!),
+                haptic: .success
+            )
+        }
     }
 
     func sendCoachNotification(message: String, delay: TimeInterval = 2) {

@@ -10,6 +10,10 @@ final class AppDelegate: UIResponder, UIApplicationDelegate {
         NotificationManager.shared.requestAuthorization()
         NotificationManager.shared.rescheduleAll()
         NotificationManager.shared.scheduleStreakWarningIfNeeded()
+        NotificationManager.shared.scheduleBirthdayNotifications(
+            birthdayString: DataManager.shared.settings.birthdayDateString
+        )
+        NotificationManager.shared.checkBirthdayAndCongratulate()
         observeSignificantTimeChange()
         return true
     }

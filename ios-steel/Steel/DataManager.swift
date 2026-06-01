@@ -405,6 +405,19 @@ final class DataManager {
         return "bolt.fill"
     }
 
+    func awardBirthdayBonus() {
+        updateSettings { $0.streakDays += 1 }
+        for habit in fetchHabits() where habit.category == .good {
+            habit.resetStreak()
+        }
+        try? context.save()
+        SteelNotificationStore.shared.add(
+            type: .achievement,
+            title: "+1 к серии",
+            body: "Бонус за день рождения начислен!"
+        )
+    }
+
     func addMessage(_ text: String, isUser: Bool) {
         context.insert(ChatMessageModel(text: text, isUser: isUser))
         try? context.save()

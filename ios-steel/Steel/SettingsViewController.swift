@@ -2,6 +2,7 @@ import UIKit
 import SnapKit
 import SPIndicator
 import UniformTypeIdentifiers
+import UserNotifications
 
 final class SettingsViewController: UIViewController {
     private let scrollView = UIScrollView()
@@ -89,10 +90,11 @@ final class SettingsViewController: UIViewController {
 
     private func setupCategoriesSection() {
         let rows: [(title: String, subtitle: String, icon: String, iconBg: UIColor, action: () -> Void)] = [
-            ("Оформление",  "Фон, шрифт",    "paintpalette.fill",         .systemIndigo, { [weak self] in self?.openAppearance() }),
-            ("Провайдеры",  "Groq, Gemini",   "network",                   .systemTeal,   { [weak self] in self?.openProviders() }),
-            ("Регион",      currentRegionSubtitle(), "globe.europe.africa.fill", .systemBlue, { [weak self] in self?.openRegionPicker() }),
-            ("Серия",       "Пауза серии",    "bolt.fill",                 .systemGreen,  { [weak self] in self?.openStreakSettings() }),
+            ("День рождения", birthdaySubtitle(),    "gift.fill",                 .systemPink,   { [weak self] in self?.openBirthdayPicker() }),
+            ("Оформление",    "Фон, шрифт",          "paintpalette.fill",         .systemIndigo, { [weak self] in self?.openAppearance() }),
+            ("Провайдеры",    "Groq, Gemini",         "network",                   .systemTeal,   { [weak self] in self?.openProviders() }),
+            ("Регион",        currentRegionSubtitle(), "globe.europe.africa.fill", .systemBlue,   { [weak self] in self?.openRegionPicker() }),
+            ("Серия",         "Пауза серии",          "bolt.fill",                 .systemGreen,  { [weak self] in self?.openStreakSettings() }),
         ]
 
         for row in rows {
@@ -109,6 +111,44 @@ final class SettingsViewController: UIViewController {
             rowView.snp.makeConstraints { $0.edges.equalToSuperview() }
             contentStack.addArrangedSubview(glass)
         }
+    }
+
+    private func birthdaySubtitle() -> String {
+        let s = DataManager.shared.settings.birthdayDateString
+        guard !s.isEmpty else { return "Не указан" }
+        let fmt = DateFormatter(); fmt.dateFormat = "yyyy-MM-dd"
+        guard let d = fmt.date(from: s) else { return "Не указан" }
+        let display = DateFormatter(); display.dateFormat = "d MMMM yyyy"; display.locale = Locale(identifier: "ru_RU")
+        return display.string(from: d)
+    }
+
+    private func openBirthdayPicker() {
+        let alert = UIAlertController(title: "День рождения", message: "\n\n\n\n\n\n\n\n\n\n", preferredStyle: .alert)
+        let picker = UIDatePicker()
+        picker.datePickerMode = .date
+        picker.preferredDatePickerStyle = .wheels
+        picker.maximumDate = Date()
+        picker.locale = Locale(identifier: "ru_RU")
+
+        let fmt = DateFormatter(); fmt.dateFormat = "yyyy-MM-dd"
+        let current = DataManager.shared.settings.birthdayDateString
+        if !current.isEmpty, let d = fmt.date(from: current) { picker.date = d }
+
+        picker.frame = CGRect(x: 0, y: 44, width: 270, height: 160)
+        alert.view.addSubview(picker)
+
+        alert.addAction(UIAlertAction(title: "Сохранить", style: .default) { _ in
+            let dateStr = fmt.string(from: picker.date)
+            DataManager.shared.updateSettings { $0.birthdayDateString = dateStr }
+            NotificationManager.shared.scheduleBirthdayNotifications(birthdayString: dateStr)
+            SPIndicator.present(title: "Дата сохранена", preset: .done, haptic: .success)
+        })
+        alert.addAction(UIAlertAction(title: "Очистить", style: .destructive) { _ in
+            DataManager.shared.updateSettings { $0.birthdayDateString = "" }
+            UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: ["steel.birthday.midnight","steel.birthday.noon"])
+        })
+        alert.addAction(UIAlertAction(title: "Отмена", style: .cancel))
+        present(alert, animated: true)
     }
 
     private func currentRegionSubtitle() -> String {

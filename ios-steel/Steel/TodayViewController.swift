@@ -20,10 +20,10 @@ final class TodayViewController: UIViewController {
     private var bgButton: UIBarButtonItem!
     private var hideButton: UIBarButtonItem!
 
-    // Кастомные view для анимируемых кнопок
     private let goalsButtonView = UIButton(type: .system)
-    private let bgButtonView = UIButton(type: .system)
-    private let hideButtonView = UIButton(type: .system)
+    private let bgButtonView    = UIButton(type: .system)
+    private let hideButtonView  = UIButton(type: .system)
+    private let extraGlassContainer = LiquidGlassView(cornerRadius: 16, intensity: .thin)
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -58,33 +58,50 @@ final class TodayViewController: UIViewController {
     }
 
     private func setupRightButtons() {
-        configureNavButton(goalsButtonView, icon: "target", action: #selector(openGoals))
-        configureNavButton(bgButtonView, icon: "photo.on.rectangle.angled", action: #selector(chooseBackground))
-        configureNavButton(hideButtonView, icon: "chevron.down", action: #selector(toggleActionBarButton))
+        configureNavButton(goalsButtonView, icon: "target",                      action: #selector(openGoals))
+        configureNavButton(bgButtonView,    icon: "photo.on.rectangle.angled",   action: #selector(chooseBackground))
+        configureNavButton(hideButtonView,  icon: "chevron.down",                action: #selector(toggleActionBarButton))
 
-        goalsButton = UIBarButtonItem(customView: goalsButtonView)
-        bgButton    = UIBarButtonItem(customView: bgButtonView)
-        hideButton  = UIBarButtonItem(customView: hideButtonView)
+        extraGlassContainer.backgroundColor = UIColor.secondarySystemBackground.withAlphaComponent(0.28)
+        let btnStack = UIStackView(arrangedSubviews: [goalsButtonView, bgButtonView, hideButtonView])
+        btnStack.spacing = 2
+        extraGlassContainer.contentView.addSubview(btnStack)
+        btnStack.snp.makeConstraints { $0.edges.equalToSuperview().inset(UIEdgeInsets(top: 2, left: 6, bottom: 2, right: 6)) }
+        extraGlassContainer.snp.makeConstraints { $0.height.equalTo(36) }
 
-        let plusButton = UIBarButtonItem(
-            image: UIImage(systemName: "plus"),
-            style: .plain,
-            target: self,
-            action: #selector(addTask)
-        )
+        let extraBarItem = UIBarButtonItem(customView: extraGlassContainer)
+        let notifBarItem = UIBarButtonItem(image: UIImage(systemName: "line.3.horizontal"),
+                                           style: .plain, target: self,
+                                           action: #selector(openNotifications))
+        let plusButton   = UIBarButtonItem(image: UIImage(systemName: "plus"),
+                                           style: .plain, target: self,
+                                           action: #selector(addTask))
 
         let navBarLongPress = UILongPressGestureRecognizer(target: self, action: #selector(toggleExtraButtons))
         navBarLongPress.minimumPressDuration = 0.6
         navigationController?.navigationBar.addGestureRecognizer(navBarLongPress)
 
-        navigationItem.rightBarButtonItems = [plusButton, bgButton, goalsButton, hideButton]
+        navigationItem.leftBarButtonItem  = notifBarItem
+        navigationItem.rightBarButtonItems = [plusButton, extraBarItem]
     }
 
     private func configureNavButton(_ button: UIButton, icon: String, action: Selector) {
         button.setImage(UIImage(systemName: icon), for: .normal)
         button.tintColor = .label
-        button.frame = CGRect(x: 0, y: 0, width: 44, height: 44)
+        button.frame = CGRect(x: 0, y: 0, width: 36, height: 36)
         button.addTarget(self, action: action, for: .touchUpInside)
+    }
+
+    @objc private func openNotifications() {
+        let vc = NotificationsCenterViewController()
+        let nav = UINavigationController(rootViewController: vc)
+        nav.modalPresentationStyle = .pageSheet
+        if let sheet = nav.sheetPresentationController {
+            sheet.detents = [.medium(), .large()]
+            sheet.prefersGrabberVisible = true
+            sheet.preferredCornerRadius = 28
+        }
+        present(nav, animated: true)
     }
 
     /// Долгое нажатие на навбар — плавно скрывает/показывает кнопки фона, цели и стрелки.
@@ -102,9 +119,7 @@ final class TodayViewController: UIViewController {
             initialSpringVelocity: 0,
             options: .curveEaseOut
         ) {
-            self.bgButtonView.alpha    = targetAlpha
-            self.goalsButtonView.alpha = targetAlpha
-            self.hideButtonView.alpha  = targetAlpha
+            self.extraGlassContainer.alpha = targetAlpha
         }
         UIImpactFeedbackGenerator(style: feedback).impactOccurred()
     }
@@ -228,9 +243,7 @@ final class TodayViewController: UIViewController {
         }
         collectionView.contentInset.bottom = actionBarHidden ? 20 : 140
 
-        if !extraButtonsHidden {
-            hideButtonView.setImage(UIImage(systemName: actionBarHidden ? "chevron.up" : "chevron.down"), for: .normal)
-        }
+        hideButtonView.setImage(UIImage(systemName: actionBarHidden ? "chevron.up" : "chevron.down"), for: .normal)
 
         if animated {
             UIView.animate(

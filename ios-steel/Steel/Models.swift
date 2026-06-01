@@ -226,6 +226,7 @@ struct AppSettings: Codable {
     var regionTimeZone: String
     var userTrainingLocation: String
     var yearGoals: [YearGoal]
+    var birthdayDateString: String
 
     // Explicit memberwise init (needed because custom Codable init removes auto-generated one)
     init(
@@ -245,7 +246,8 @@ struct AppSettings: Codable {
         regionCity: String,
         regionTimeZone: String,
         userTrainingLocation: String,
-        yearGoals: [YearGoal]
+        yearGoals: [YearGoal],
+        birthdayDateString: String = ""
     ) {
         self.userName = userName
         self.streakDays = streakDays
@@ -264,6 +266,7 @@ struct AppSettings: Codable {
         self.regionTimeZone = regionTimeZone
         self.userTrainingLocation = userTrainingLocation
         self.yearGoals = yearGoals
+        self.birthdayDateString = birthdayDateString
     }
 
     // Backward-compatible decoder: handles missing keys from older app versions
@@ -286,6 +289,7 @@ struct AppSettings: Codable {
         regionTimeZone = try container.decodeIfPresent(String.self, forKey: .regionTimeZone) ?? "Europe/Moscow"
         userTrainingLocation = try container.decodeIfPresent(String.self, forKey: .userTrainingLocation) ?? ""
         yearGoals = try container.decodeIfPresent([YearGoal].self, forKey: .yearGoals) ?? []
+        birthdayDateString = try container.decodeIfPresent(String.self, forKey: .birthdayDateString) ?? ""
     }
 
     static let `default` = AppSettings(

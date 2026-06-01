@@ -62,13 +62,24 @@ final class HabitsViewController: UIViewController {
     }
 
     private func setupRightButton() {
-        let plusButton = UIBarButtonItem(
-            image: UIImage(systemName: "plus"),
-            style: .plain,
-            target: self,
-            action: #selector(addHabit)
-        )
+        let plusButton  = UIBarButtonItem(image: UIImage(systemName: "plus"),
+                                          style: .plain, target: self, action: #selector(addHabit))
+        let notifButton = UIBarButtonItem(image: UIImage(systemName: "line.3.horizontal"),
+                                          style: .plain, target: self, action: #selector(openNotifications))
         navigationItem.rightBarButtonItem = plusButton
+        navigationItem.leftBarButtonItem  = notifButton
+    }
+
+    @objc private func openNotifications() {
+        let vc = NotificationsCenterViewController()
+        let nav = UINavigationController(rootViewController: vc)
+        nav.modalPresentationStyle = .pageSheet
+        if let sheet = nav.sheetPresentationController {
+            sheet.detents = [.medium(), .large()]
+            sheet.prefersGrabberVisible = true
+            sheet.preferredCornerRadius = 28
+        }
+        present(nav, animated: true)
     }
 
     private func setupSegmentedControl() {

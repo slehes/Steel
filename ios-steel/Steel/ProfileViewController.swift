@@ -8,9 +8,10 @@ final class ProfileViewController: UIViewController {
     private let contentStack = UIStackView()
     private let backgroundView = PersonalBackgroundView()
 
-    private let avatarView = UIImageView()
-    private let nameField = UITextField()
-    private let streakLabel = UILabel()
+    private let avatarView     = UIImageView()
+    private let nameField      = UITextField()
+    private let birthdayLabel  = UILabel()
+    private let streakLabel    = UILabel()
     private let statsStack = UIStackView()
     private var reminderPickers: [UIDatePicker] = []
 
@@ -48,13 +49,24 @@ final class ProfileViewController: UIViewController {
     }
 
     private func setupRightButton() {
-        let settingsButton = UIBarButtonItem(
-            image: UIImage(systemName: "gearshape.fill"),
-            style: .plain,
-            target: self,
-            action: #selector(openSettings)
-        )
+        let settingsButton = UIBarButtonItem(image: UIImage(systemName: "gearshape.fill"),
+                                             style: .plain, target: self, action: #selector(openSettings))
+        let notifButton    = UIBarButtonItem(image: UIImage(systemName: "line.3.horizontal"),
+                                             style: .plain, target: self, action: #selector(openNotifications))
         navigationItem.rightBarButtonItem = settingsButton
+        navigationItem.leftBarButtonItem  = notifButton
+    }
+
+    @objc private func openNotifications() {
+        let vc = NotificationsCenterViewController()
+        let nav = UINavigationController(rootViewController: vc)
+        nav.modalPresentationStyle = .pageSheet
+        if let sheet = nav.sheetPresentationController {
+            sheet.detents = [.medium(), .large()]
+            sheet.prefersGrabberVisible = true
+            sheet.preferredCornerRadius = 28
+        }
+        present(nav, animated: true)
     }
 
     private func setup() {
@@ -98,10 +110,16 @@ final class ProfileViewController: UIViewController {
         nameField.returnKeyType = .done
         nameField.delegate = self
 
-        let header = UIStackView(arrangedSubviews: [avatarView, nameField])
+        birthdayLabel.font = UIFont.systemFont(ofSize: 13, weight: .regular)
+        birthdayLabel.textColor = .secondaryLabel
+        birthdayLabel.textAlignment = .center
+        birthdayLabel.isHidden = true
+
+        let header = UIStackView(arrangedSubviews: [avatarView, nameField, birthdayLabel])
         header.axis = .vertical
         header.alignment = .center
-        header.spacing = 8
+        header.spacing = 4
+        header.setCustomSpacing(8, after: avatarView)
         contentStack.addArrangedSubview(header)
     }
 
@@ -236,10 +254,43 @@ final class ProfileViewController: UIViewController {
 
 
 
+    private func refreshBirthdayLabel(birthdayString: String) {
+        guard !birthdayString.isEmpty else { birthdayLabel.isHidden = true; return }
+        let fmt = DateFormatter()
+        fmt.dateFormat = "yyyy-MM-dd"
+        guard let bdate = fmt.date(from: birthdayString) else { birthdayLabel.isHidden = true; return }
+
+        let cal   = Calendar.current
+        let today = cal.startOfDay(for: Date())
+        let bMonth = cal.component(.month, from: bdate)
+        let bDay   = cal.component(.day,   from: bdate)
+        let bYear  = cal.component(.year,  from: bdate)
+
+        var nextComps   = DateComponents()
+        nextComps.month = bMonth; nextComps.day = bDay
+        var nextBday    = cal.nextDate(after: today, matching: nextComps, matchingPolicy: .nextTime) ?? today
+        if cal.isDate(today, equalTo: nextBday, toGranularity: .day) { nextBday = today }
+
+        let days = cal.dateComponents([.day], from: today, to: nextBday).day ?? 0
+
+        let russianMonths = ["","января","февраля","марта","апреля","мая","июня",
+                             "июля","августа","сентября","октября","ноября","декабря"]
+        let monthName = bMonth < russianMonths.count ? russianMonths[bMonth] : ""
+        let dateStr = "\(bDay) \(monthName) \(bYear)"
+
+        if days == 0 {
+            birthdayLabel.text = "🎉 Сегодня твой день рождения! (\(dateStr))"
+        } else {
+            birthdayLabel.text = "осталось \(days) дн. (\(dateStr))"
+        }
+        birthdayLabel.isHidden = false
+    }
+
     @objc private func refresh() {
         let settings = DataManager.shared.settings
         nameField.text = settings.userName
         streakLabel.text = "\(settings.streakDays)"
+        refreshBirthdayLabel(birthdayString: settings.birthdayDateString)
 
         statsStack.arrangedSubviews.forEach { $0.removeFromSuperview() }
         let tasks = DataManager.shared.fetchTasks()
