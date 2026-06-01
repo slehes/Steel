@@ -106,7 +106,7 @@ final class SettingsViewController: UIViewController {
         let appearance = makeCategoryRow(
             title: "Оформление",
             subtitle: "Фон, шрифт",
-            icon: "paintbrush.fill",
+            icon: "paintpalette.fill",
             iconBg: .systemIndigo
         ) { [weak self] in
             self?.openAppearance()
@@ -114,7 +114,7 @@ final class SettingsViewController: UIViewController {
         let providers = makeCategoryRow(
             title: "Провайдеры",
             subtitle: "Groq, Gemini",
-            icon: "cloud.fill",
+            icon: "network",
             iconBg: .systemTeal
         ) { [weak self] in
             self?.openProviders()
@@ -122,7 +122,7 @@ final class SettingsViewController: UIViewController {
         let region = makeCategoryRow(
             title: "Регион",
             subtitle: currentRegionSubtitle(),
-            icon: "globe",
+            icon: "globe.europe.africa.fill",
             iconBg: .systemBlue
         ) { [weak self] in
             self?.openRegionPicker()
@@ -130,7 +130,7 @@ final class SettingsViewController: UIViewController {
         let streak = makeCategoryRow(
             title: "Серия",
             subtitle: "Пауза серии",
-            icon: "flame.fill",
+            icon: "bolt.fill",
             iconBg: .systemOrange
         ) { [weak self] in
             self?.openStreakSettings()
