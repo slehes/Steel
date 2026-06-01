@@ -6,23 +6,22 @@ import SwiftData
 final class HabitsViewController: UIViewController {
     private var goodHabits: [Habit] = []
     private var badHabits: [Habit] = []
+    private var selectedTab: HabitCategory = .bad
+
     private let backgroundView = PersonalBackgroundView()
     private var collectionView: UICollectionView!
     private let emptyView = UILabel()
 
-    private enum Section: Int, CaseIterable {
-        case good = 0
-        case bad  = 1
+    // Таб-бар с жидким стеклом: «Вредные» | «Полезные»
+    private let segmentedControl = UISegmentedControl(items: [
+        HabitCategory.bad.pluralTitle,   // Вредные — index 0
+        HabitCategory.good.pluralTitle   // Полезные — index 1
+    ])
+    private let segmentGlass = LiquidGlassView(cornerRadius: 16, intensity: .regular)
 
-        var category: HabitCategory {
-            switch self {
-            case .good: return .good
-            case .bad:  return .bad
-            }
-        }
-
-        var title: String { category.pluralTitle }
-        var icon: String   { category.systemImage }
+    // Текущий список привычек в зависимости от выбранной вкладки
+    private var currentHabits: [Habit] {
+        selectedTab == .good ? goodHabits : badHabits
     }
 
     override func viewDidLoad() {
@@ -32,6 +31,7 @@ final class HabitsViewController: UIViewController {
         navigationItem.largeTitleDisplayMode = .always
         setupBackground()
         setupRightButton()
+        setupSegmentedControl()
         setupCollection()
         setupEmpty()
         NotificationCenter.default.addObserver(self, selector: #selector(reload), name: .steelHabitsChanged, object: nil)
@@ -67,28 +67,49 @@ final class HabitsViewController: UIViewController {
         navigationItem.rightBarButtonItem = plusButton
     }
 
+    private func setupSegmentedControl() {
+        segmentedControl.selectedSegmentIndex = 0 // Вредные по умолчанию
+        segmentedControl.addTarget(self, action: #selector(tabChanged), for: .valueChanged)
+        applySegmentStyle()
+
+        segmentGlass.backgroundColor = UIColor.secondarySystemBackground.withAlphaComponent(0.35)
+        segmentGlass.contentView.addSubview(segmentedControl)
+        segmentedControl.snp.makeConstraints { $0.edges.equalToSuperview().inset(5) }
+
+        view.addSubview(segmentGlass)
+        segmentGlass.snp.makeConstraints {
+            $0.top.equalTo(view.safeAreaLayoutGuide).offset(8)
+            $0.leading.trailing.equalToSuperview().inset(20)
+            $0.height.equalTo(48)
+        }
+    }
+
+    private func applySegmentStyle() {
+        let tint: UIColor = selectedTab == .good ? .systemGreen : .systemRed
+        segmentedControl.selectedSegmentTintColor = tint
+        segmentedControl.setTitleTextAttributes(
+            [.foregroundColor: UIColor.label, .font: UIFont.systemFont(ofSize: 14, weight: .semibold)],
+            for: .normal
+        )
+        segmentedControl.setTitleTextAttributes(
+            [.foregroundColor: UIColor.white, .font: UIFont.systemFont(ofSize: 14, weight: .bold)],
+            for: .selected
+        )
+    }
+
     private func setupCollection() {
-        let layout = UICollectionViewCompositionalLayout { [weak self] sectionIndex, _ in
+        let layout = UICollectionViewCompositionalLayout { [weak self] _, _ in
             guard let self else { return nil }
             let item = NSCollectionLayoutItem(
                 layoutSize: .init(widthDimension: .fractionalWidth(1), heightDimension: .fractionalHeight(1))
             )
             let group = NSCollectionLayoutGroup.horizontal(
-                layoutSize: .init(widthDimension: .fractionalWidth(1), heightDimension: .absolute(190)),
+                layoutSize: .init(widthDimension: .fractionalWidth(1), heightDimension: .absolute(200)),
                 subitems: [item]
             )
             let section = NSCollectionLayoutSection(group: group)
             section.interGroupSpacing = 14
             section.contentInsets = .init(top: 8, leading: 16, bottom: 24, trailing: 16)
-
-            // Заголовок секции («Полезные» / «Вредные») с красивой стеклянной плашкой
-            let header = NSCollectionLayoutBoundarySupplementaryItem(
-                layoutSize: .init(widthDimension: .fractionalWidth(1), heightDimension: .absolute(56)),
-                elementKind: UICollectionView.elementKindSectionHeader,
-                alignment: .top
-            )
-            header.pinToVisibleBounds = false
-            section.boundarySupplementaryItems = [header]
             return section
         }
 
@@ -98,13 +119,11 @@ final class HabitsViewController: UIViewController {
         collectionView.delegate = self
         collectionView.dataSource = self
         collectionView.register(HabitCell.self, forCellWithReuseIdentifier: HabitCell.reuseID)
-        collectionView.register(
-            HabitSectionHeader.self,
-            forSupplementaryViewOfKind: UICollectionView.elementKindSectionHeader,
-            withReuseIdentifier: HabitSectionHeader.reuseID
-        )
         view.addSubview(collectionView)
-        collectionView.snp.makeConstraints { $0.edges.equalToSuperview() }
+        collectionView.snp.makeConstraints {
+            $0.top.equalTo(segmentGlass.snp.bottom).offset(12)
+            $0.leading.trailing.bottom.equalToSuperview()
+        }
     }
 
     private func setupEmpty() {
@@ -123,15 +142,39 @@ final class HabitsViewController: UIViewController {
         goodHabits = grouped.good
         badHabits  = grouped.bad
         collectionView.reloadData()
-        emptyView.isHidden = !(goodHabits.isEmpty && badHabits.isEmpty)
+        updateEmptyState()
     }
 
     @objc private func reloadBackground() {
         backgroundView.apply(BackgroundManager.shared.config)
     }
 
+    private func updateEmptyState() {
+        let habits = currentHabits
+        emptyView.isHidden = !habits.isEmpty
+        if habits.isEmpty {
+            emptyView.text = selectedTab == .good
+                ? "Нет полезных привычек.\nНажми «+» чтобы добавить."
+                : "Нет вредных привычек.\nНажми «+» чтобы добавить."
+        }
+    }
+
+    @objc private func tabChanged() {
+        selectedTab = segmentedControl.selectedSegmentIndex == 1 ? .good : .bad
+        applySegmentStyle()
+        UIImpactFeedbackGenerator.tap(.light)
+
+        // Плавная анимация переключения
+        collectionView.reloadData()
+        updateEmptyState()
+
+        UIView.transition(with: collectionView, duration: 0.3, options: .transitionCrossDissolve) {
+            self.collectionView.reloadData()
+        }
+    }
+
     @objc private func addHabit() {
-        let vc = AddHabitViewController()
+        let vc = AddHabitViewController(initialCategory: selectedTab)
         let nav = UINavigationController(rootViewController: vc)
         if let sheet = nav.sheetPresentationController {
             sheet.detents = [.medium(), .large()]
@@ -151,9 +194,7 @@ final class HabitsViewController: UIViewController {
     }
 
     private func markDayDone(_ habit: Habit, cell: HabitCell?) {
-        // Для полезных привычек «relapse» не имеет смысла — там считаем «отмеченные дни».
-        // Используем тот же метод, что и для вредных, но сбрасываем streakStart,
-        // имитируя «сделал сегодня». Это визуально обновляет счётчик.
+        // Для полезных привычек — отмечаем сегодняшний день
         habit.resetStreak()
         try? DataManager.shared.context.save()
         UIImpactFeedbackGenerator.tap(.light)
@@ -162,60 +203,46 @@ final class HabitsViewController: UIViewController {
     }
 }
 
+// MARK: - UICollectionViewDataSource & Delegate
+
 extension HabitsViewController: UICollectionViewDataSource, UICollectionViewDelegate {
-    func numberOfSections(in collectionView: UICollectionView) -> Int { Section.allCases.count }
+    func numberOfSections(in collectionView: UICollectionView) -> Int { 1 }
 
     func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
-        switch Section(rawValue: section) {
-        case .good: return goodHabits.count
-        case .bad:  return badHabits.count
-        case .none: return 0
-        }
+        currentHabits.count
     }
 
     func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
         let cell = collectionView.dequeueReusableCell(withReuseIdentifier: HabitCell.reuseID, for: indexPath) as! HabitCell
-        let habit: Habit
-        switch Section(rawValue: indexPath.section) {
-        case .good: habit = goodHabits[indexPath.item]
-        case .bad:  habit = badHabits[indexPath.item]
-        case .none: return cell
-        }
+        guard indexPath.item < currentHabits.count else { return cell }
+        let habit = currentHabits[indexPath.item]
         cell.configure(with: habit)
-        cell.onRelapse = { [weak self, weak cell] in
-            self?.relapse(habit, cell: cell)
+
+        // Разное действие для полезных и вредных привычек
+        if habit.category == .good {
+            cell.onRelapse = { [weak self, weak cell] in
+                self?.markDayDone(habit, cell: cell)
+            }
+        } else {
+            cell.onRelapse = { [weak self, weak cell] in
+                self?.relapse(habit, cell: cell)
+            }
         }
         return cell
     }
 
-    func collectionView(_ collectionView: UICollectionView, viewForSupplementaryElementOfKind kind: String, at indexPath: IndexPath) -> UICollectionReusableView {
-        let header = collectionView.dequeueReusableSupplementaryView(
-            ofKind: kind,
-            withReuseIdentifier: HabitSectionHeader.reuseID,
-            for: indexPath
-        ) as! HabitSectionHeader
-        let section = Section(rawValue: indexPath.section) ?? .good
-        let count: Int
-        switch section {
-        case .good: count = goodHabits.count
-        case .bad:  count = badHabits.count
-        }
-        header.configure(title: section.title, icon: section.icon, count: count)
-        return header
-    }
-
     func collectionView(_ collectionView: UICollectionView, contextMenuConfigurationForItemAt indexPath: IndexPath, point: CGPoint) -> UIContextMenuConfiguration? {
-        let habit: Habit
-        switch Section(rawValue: indexPath.section) {
-        case .good: habit = goodHabits[indexPath.item]
-        case .bad:  habit = badHabits[indexPath.item]
-        case .none: return nil
-        }
+        guard indexPath.item < currentHabits.count else { return nil }
+        let habit = currentHabits[indexPath.item]
         return UIContextMenuConfiguration(identifier: nil, previewProvider: nil) { _ in
             let reset = UIAction(title: "Сбросить", image: UIImage(systemName: "arrow.counterclockwise")) { [weak self] _ in
                 guard let self else { return }
                 let cell = collectionView.cellForItem(at: indexPath) as? HabitCell
-                self.relapse(habit, cell: cell)
+                if habit.category == .good {
+                    self.markDayDone(habit, cell: cell)
+                } else {
+                    self.relapse(habit, cell: cell)
+                }
             }
             let delete = UIAction(title: "Удалить", image: UIImage(systemName: "trash"), attributes: .destructive) { [weak self] _ in
                 DataManager.shared.removeHabit(habit)

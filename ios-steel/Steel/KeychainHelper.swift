@@ -1,6 +1,7 @@
 import Foundation
 import KeychainSwift
 
+@MainActor
 enum KeychainHelper {
     private static let keychain = KeychainSwift()
     private static let groqKeyName = "steel.groq.apiKey"
@@ -86,7 +87,8 @@ enum KeychainHelper {
 
     // MARK: - Full Data Backup (survives reinstall)
 
-    /// Backup all app data to Keychain so it survives app deletion and reinstall
+    /// Backup all app data to Keychain so it survives app deletion and reinstall.
+    /// Вызывается только из @MainActor-контекста (DataManager), поэтому потокобезопасно.
     static func backupAllData() {
         // Backup settings
         if let settingsData = try? JSONEncoder().encode(DataManager.shared.settings) {

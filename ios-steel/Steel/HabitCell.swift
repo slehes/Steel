@@ -11,7 +11,7 @@ final class HabitCell: UICollectionViewCell {
     private let categoryBadge = UILabel()
     private let daysLabel = UILabel()
     private let daysCaption = UILabel()
-    private let relapseButton = UIButton(type: .system)
+    private let actionButton = UIButton(type: .system)
     private let track = UIView()
     private let fill = UIView()
     private let shimmerView = UIView()
@@ -126,10 +126,10 @@ final class HabitCell: UICollectionViewCell {
         config.imagePadding = 6
         config.baseForegroundColor = .label
         config.cornerStyle = .large
-        relapseButton.configuration = config
-        relapseButton.addTarget(self, action: #selector(relapseTapped), for: .touchUpInside)
-        content.addSubview(relapseButton)
-        relapseButton.snp.makeConstraints {
+        actionButton.configuration = config
+        actionButton.addTarget(self, action: #selector(actionTapped), for: .touchUpInside)
+        content.addSubview(actionButton)
+        actionButton.snp.makeConstraints {
             $0.leading.trailing.equalToSuperview().inset(16)
             $0.top.equalTo(track.snp.bottom).offset(14)
             $0.bottom.lessThanOrEqualToSuperview().inset(16)
@@ -153,33 +153,35 @@ final class HabitCell: UICollectionViewCell {
         // Кнопка и подпись счётчика зависят от категории
         if habit.category == .good {
             daysCaption.text = "дней подряд"
-            var cfg = relapseButton.configuration ?? UIButton.Configuration.gray()
+            var cfg = actionButton.configuration ?? UIButton.Configuration.gray()
             cfg.title = "Отметил сегодня"
             cfg.image = UIImage(systemName: "checkmark.seal.fill")
             cfg.baseForegroundColor = .systemGreen
-            relapseButton.configuration = cfg
+            actionButton.configuration = cfg
         } else {
             daysCaption.text = "дней чисто"
-            var cfg = relapseButton.configuration ?? UIButton.Configuration.gray()
+            var cfg = actionButton.configuration ?? UIButton.Configuration.gray()
             cfg.title = "Сорвался"
             cfg.image = UIImage(systemName: "arrow.counterclockwise")
             cfg.baseForegroundColor = .label
-            relapseButton.configuration = cfg
+            actionButton.configuration = cfg
         }
 
         daysLabel.text = "\(habit.cleanDays)"
 
+        // Прогресс-бар: минимум 30 для шкалы, чтобы даже при 0 лучших дней
+        // полоска правильно масштабировалась
         let best = max(habit.bestStreak, 30)
         let ratio = best > 0 ? min(1, CGFloat(habit.cleanDays) / CGFloat(best)) : 0
 
-        // Start from zero — this establishes the initial layout state
+        // Начинаем с нуля — устанавливаем начальное состояние
         fillWidth?.update(offset: 0)
         layoutIfNeeded()
 
-        // Now update constraint and animate in the same block
+        // Устанавливаем целевое значение и анимируем
         fillWidth?.update(offset: track.bounds.width * ratio)
 
-        // Smooth slow animation for fill bar
+        // Плавная медленная анимация заполнения
         UIView.animate(
             withDuration: 2.5,
             delay: 0,
@@ -194,7 +196,7 @@ final class HabitCell: UICollectionViewCell {
             }
         }
 
-        // Цвет заполнения в зависимости от прогресса И категории
+        // Цвет заполнения в зависимости от прогресса и категории
         if habit.category == .good {
             fill.backgroundColor = ratio >= 1.0 ? .systemGreen : .systemBlue
         } else {
@@ -224,7 +226,7 @@ final class HabitCell: UICollectionViewCell {
         }
     }
 
-    @objc private func relapseTapped() {
+    @objc private func actionTapped() {
         onRelapse?()
     }
 
@@ -233,5 +235,12 @@ final class HabitCell: UICollectionViewCell {
         shake.values = [0, -8, 8, -6, 6, 0]
         shake.duration = 0.4
         glass.layer.add(shake, forKey: "shake")
+    }
+
+    override func prepareForReuse() {
+        super.prepareForReuse()
+        shimmerView.isHidden = true
+        fillWidth?.update(offset: 0)
+        layoutIfNeeded()
     }
 }

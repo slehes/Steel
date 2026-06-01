@@ -8,7 +8,7 @@ final class AddHabitViewController: UIViewController {
         HabitCategory.good.title,
         HabitCategory.bad.title
     ])
-    private var selectedCategory: HabitCategory = .bad
+    private var selectedCategory: HabitCategory
     private var selectedIcon: String
 
     /// Иконки разделены по типичной семантике: полезные = растения, зарядка, книга;
@@ -36,14 +36,21 @@ final class AddHabitViewController: UIViewController {
         selectedCategory == .good ? goodIcons : badIcons
     }
 
-    init() {
+    /// Инициализатор принимает текущую категорию вкладки, чтобы
+    /// новая привычка по умолчанию создавалась в активной вкладке.
+    init(initialCategory: HabitCategory = .bad) {
         let layout = UICollectionViewFlowLayout()
         layout.scrollDirection = .horizontal
         layout.itemSize = CGSize(width: 60, height: 60)
         layout.minimumLineSpacing = 12
         iconCollection = UICollectionView(frame: .zero, collectionViewLayout: layout)
-        // дефолтная иконка — инициализируем ДО super.init
-        self.selectedIcon = "xmark.octagon.fill"
+
+        self.selectedCategory = initialCategory
+        // Дефолтная иконка зависит от категории
+        self.selectedIcon = initialCategory == .good
+            ? (goodIcons.first ?? "leaf.fill")
+            : (badIcons.first ?? "xmark.octagon.fill")
+
         super.init(nibName: nil, bundle: nil)
     }
 
@@ -71,7 +78,7 @@ final class AddHabitViewController: UIViewController {
         titleField.leftView = UIView(frame: CGRect(x: 0, y: 0, width: 14, height: 1))
         titleField.leftViewMode = .always
 
-        // Обёртываем поле ввода в жидкое стекло — в iOS 26 это смотрится органично
+        // Обёртываем поле ввода в жидкое стекло
         let titleGlass = LiquidGlassView(cornerRadius: 14, intensity: .thin)
         titleGlass.backgroundColor = UIColor.secondarySystemBackground.withAlphaComponent(0.4)
         titleGlass.contentView.addSubview(titleField)
@@ -124,7 +131,6 @@ final class AddHabitViewController: UIViewController {
     }
 
     private func applyCategoryStyle() {
-        // Тонируем заголовок сегментед-контрола в цвет категории
         let tint: UIColor = selectedCategory == .good ? .systemGreen : .systemRed
         categoryControl.selectedSegmentTintColor = tint
         categoryControl.setTitleTextAttributes([.foregroundColor: UIColor.label], for: .normal)
@@ -136,7 +142,7 @@ final class AddHabitViewController: UIViewController {
         selectedIcon = icons.first ?? "xmark.octagon.fill"
         iconCollection.reloadData()
         applyCategoryStyle()
-        UIImpactFeedbackGenerator.tap(.light)
+        UIImpactFeedbackGenerator(style: .light).impactOccurred()
     }
 
     @objc private func cancel() { dismiss(animated: true) }
@@ -148,7 +154,7 @@ final class AddHabitViewController: UIViewController {
             return
         }
         DataManager.shared.addHabit(title: title, iconName: selectedIcon, category: selectedCategory)
-        UIImpactFeedbackGenerator.tap(.light)
+        UIImpactFeedbackGenerator(style: .light).impactOccurred()
         dismiss(animated: true)
     }
 }
@@ -165,7 +171,7 @@ extension AddHabitViewController: UICollectionViewDataSource, UICollectionViewDe
 
     func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
         selectedIcon = icons[indexPath.item]
-        UIImpactFeedbackGenerator.tap(.light)
+        UIImpactFeedbackGenerator(style: .light).impactOccurred()
         collectionView.reloadData()
     }
 }
