@@ -52,6 +52,28 @@ final class AIChatViewController: UIViewController {
     override func viewWillDisappear(_ animated: Bool) {
         super.viewWillDisappear(animated)
         backgroundView.pauseVideo()
+        
+        // Send random coach notification when leaving chat
+        if !isThinking && !messages.isEmpty {
+            let coachTips = [
+                "Помни, что дисциплина — это свобода!",
+                "Каждая тренировка приближает тебя к цели.",
+                "Продолжай идти вперёд, ты справишься!",
+                "Боль — это просто сигнал, что ты растёшь.",
+                "Не жалей себя, своё будущее благодаришь.",
+                "Чемпионы делают то, что необходимо, а не то, что хочется.",
+                "Каждый день — новый шанс стать лучше.",
+                "Возьми себя в руки и покажи, на что ты способен!",
+                "Твоё тело будет благодарно за каждое повторение.",
+                "Помни, почему ты начал. Теперь переходи дальше."
+            ]
+            
+            if let randomTip = coachTips.randomElement() {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+                    NotificationManager.shared.sendCoachNotification(message: randomTip, delay: 1)
+                }
+            }
+        }
     }
 
     private func setupBackground() {

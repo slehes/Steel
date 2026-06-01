@@ -90,4 +90,25 @@ final class NotificationManager {
         let request = UNNotificationRequest(identifier: "steel.streak.warning.\(calendar.startOfDay(for: now).timeIntervalSince1970)", content: content, trigger: trigger)
         UNUserNotificationCenter.current().add(request)
     }
+
+    func sendCoachNotification(message: String, delay: TimeInterval = 2) {
+        let coachMessages = [
+            "💪 Тренер: " + message,
+            "🎯 Совет тренера: " + message,
+            "⚡ От тренера: " + message,
+            "🔥 Мотивация: " + message
+        ]
+        
+        let content = UNMutableNotificationContent()
+        content.title = "Сообщение от тренера"
+        content.body = coachMessages.randomElement() ?? coachMessages[0]
+        content.sound = .default
+        content.categoryIdentifier = "STEEL_COACH"
+        content.badge = NSNumber(value: UIApplication.shared.applicationIconBadgeNumber + 1)
+        
+        let trigger = UNTimeIntervalNotificationTrigger(timeInterval: max(delay, 1), repeats: false)
+        let id = "steel.coach.\(UUID().uuidString)"
+        let request = UNNotificationRequest(identifier: id, content: content, trigger: trigger)
+        UNUserNotificationCenter.current().add(request)
+    }
 }
