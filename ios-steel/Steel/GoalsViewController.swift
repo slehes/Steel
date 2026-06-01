@@ -235,7 +235,7 @@ final class GoalsViewController: UIViewController {
         let goal = DataManager.shared.settings.yearGoals[index]
         if current > 0 {
             DataManager.shared.addMessage(
-                "Моя цель: \"\\(goal.title)\" — до конца года \(goal.targetValue). Уже сделано: \\(current) из \\(goal.targetValue).",
+                "Моя цель: \(goal.title) — до конца года \(goal.targetValue). Уже сделано: \(current) из \(goal.targetValue).",
                 isUser: true
             )
         }
@@ -274,7 +274,7 @@ final class GoalsViewController: UIViewController {
 
             // Tell AI trainer about new goal
             DataManager.shared.addMessage(
-                "Моя цель на год: \"\(title)\" — достичь \(value) до 31 декабря 2026.",
+                "Моя цель на год: \(title) — достичь \(value) до 31 декабря 2026.",
                 isUser: true
             )
             SPIndicator.present(title: "Цель добавлена!", preset: .done, haptic: .success)
