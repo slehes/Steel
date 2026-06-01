@@ -127,7 +127,7 @@ enum GroqAI {
         var context = "- Серия: \(settings.streakDays) дней\n"
         context += "- Выполнено сегодня: \(done)/\(total) (\(pct)%)\n"
         context += "- Всего выполнено за всё время: \(settings.totalCompletedTasks)\n"
-        context += "- Уровень: \(DataManager.shared.level), XP: \(DataManager.shared.xp)\n"
+        context += "- Дисциплина: \(settings.totalCompletedTasks) выполнено, серия \(settings.streakDays) дн.\n"
         context += "- Место тренировок: \(settings.userTrainingLocation.isEmpty ? "не указано" : (settings.userTrainingLocation == "home" ? "дома" : "зал"))\n"
 
         if !tasks.isEmpty {
