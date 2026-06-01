@@ -54,13 +54,6 @@ final class HabitCell: UICollectionViewCell {
         titleLabel.font = UIFont.preferredFont(forTextStyle: .headline)
         titleLabel.adjustsFontForContentSizeCategory = true
         titleLabel.textColor = .label
-        content.addSubview(titleLabel)
-        titleLabel.snp.makeConstraints {
-            $0.leading.equalTo(iconBackdrop.snp.trailing).offset(12)
-            $0.top.equalTo(iconBackdrop).offset(2)
-            $0.trailing.lessThanOrEqualTo(categoryBadge.snp.leading).offset(-8)
-        }
-
         categoryBadge.font = UIFont.systemFont(ofSize: 10, weight: .semibold)
         categoryBadge.textColor = .white
         categoryBadge.textAlignment = .center
@@ -68,6 +61,14 @@ final class HabitCell: UICollectionViewCell {
         categoryBadge.layer.cornerCurve = .continuous
         categoryBadge.clipsToBounds = true
         content.addSubview(categoryBadge)
+
+        content.addSubview(titleLabel)
+        titleLabel.snp.makeConstraints {
+            $0.leading.equalTo(iconBackdrop.snp.trailing).offset(12)
+            $0.top.equalTo(iconBackdrop).offset(2)
+            $0.trailing.lessThanOrEqualTo(categoryBadge.snp.leading).offset(-8)
+        }
+
         categoryBadge.snp.makeConstraints {
             $0.trailing.equalToSuperview().inset(18)
             $0.centerY.equalTo(titleLabel)

@@ -20,6 +20,11 @@ final class TodayViewController: UIViewController {
     private var bgButton: UIBarButtonItem!
     private var hideButton: UIBarButtonItem!
 
+    // Кастомные view для анимируемых кнопок
+    private let goalsButtonView = UIButton(type: .system)
+    private let bgButtonView = UIButton(type: .system)
+    private let hideButtonView = UIButton(type: .system)
+
     override func viewDidLoad() {
         super.viewDidLoad()
         view.backgroundColor = .systemBackground
@@ -53,19 +58,13 @@ final class TodayViewController: UIViewController {
     }
 
     private func setupRightButtons() {
-        goalsButton = UIBarButtonItem(
-            image: UIImage(systemName: "target"),
-            style: .plain,
-            target: self,
-            action: #selector(openGoals)
-        )
+        configureNavButton(goalsButtonView, icon: "target", action: #selector(openGoals))
+        configureNavButton(bgButtonView, icon: "photo.on.rectangle.angled", action: #selector(chooseBackground))
+        configureNavButton(hideButtonView, icon: "chevron.down", action: #selector(toggleActionBarButton))
 
-        bgButton = UIBarButtonItem(
-            image: UIImage(systemName: "photo.on.rectangle.angled"),
-            style: .plain,
-            target: self,
-            action: #selector(chooseBackground)
-        )
+        goalsButton = UIBarButtonItem(customView: goalsButtonView)
+        bgButton    = UIBarButtonItem(customView: bgButtonView)
+        hideButton  = UIBarButtonItem(customView: hideButtonView)
 
         let plusButton = UIBarButtonItem(
             image: UIImage(systemName: "plus"),
@@ -74,19 +73,6 @@ final class TodayViewController: UIViewController {
             action: #selector(addTask)
         )
 
-        hideButton = UIBarButtonItem(
-            image: UIImage(systemName: "chevron.down"),
-            style: .plain,
-            target: self,
-            action: #selector(toggleActionBarButton)
-        )
-        hideButton.tag = 100
-
-        // Долгое нажатие на цель → скрыть доп. кнопки
-        let goalsLongPress = UILongPressGestureRecognizer(target: self, action: #selector(toggleExtraButtons))
-        goalsLongPress.minimumPressDuration = 0.6
-        goalsButton.customView = nil // используем стандартный UIBarButtonItem
-        // Для стандартных UIBarButtonItem нужен другой подход — добавляем длинное нажатие через navigationBar
         let navBarLongPress = UILongPressGestureRecognizer(target: self, action: #selector(toggleExtraButtons))
         navBarLongPress.minimumPressDuration = 0.6
         navigationController?.navigationBar.addGestureRecognizer(navBarLongPress)
@@ -94,20 +80,33 @@ final class TodayViewController: UIViewController {
         navigationItem.rightBarButtonItems = [plusButton, bgButton, goalsButton, hideButton]
     }
 
-    /// Невидимая фича: долгое нажатие на навбар прячет кнопки фона, цели и стрелку.
-    /// Остается только «+». Повторное долгое нажатие — возвращает всё.
+    private func configureNavButton(_ button: UIButton, icon: String, action: Selector) {
+        button.setImage(UIImage(systemName: icon), for: .normal)
+        button.tintColor = .label
+        button.frame = CGRect(x: 0, y: 0, width: 44, height: 44)
+        button.addTarget(self, action: action, for: .touchUpInside)
+    }
+
+    /// Долгое нажатие на навбар — плавно скрывает/показывает кнопки фона, цели и стрелки.
     @objc private func toggleExtraButtons(_ gesture: UILongPressGestureRecognizer) {
         guard gesture.state == .began else { return }
         extraButtonsHidden.toggle()
 
-        let plusButton = navigationItem.rightBarButtonItems?.first
-        if extraButtonsHidden {
-            navigationItem.rightBarButtonItems = [plusButton].compactMap { $0 }
-            UIImpactFeedbackGenerator(style: .heavy).impactOccurred()
-        } else {
-            navigationItem.rightBarButtonItems = [plusButton, bgButton, goalsButton, hideButton].compactMap { $0 }
-            UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+        let targetAlpha: CGFloat = extraButtonsHidden ? 0 : 1
+        let feedback: UIImpactFeedbackGenerator.FeedbackStyle = extraButtonsHidden ? .heavy : .medium
+
+        UIView.animate(
+            withDuration: 0.55,
+            delay: 0,
+            usingSpringWithDamping: 0.85,
+            initialSpringVelocity: 0,
+            options: .curveEaseOut
+        ) {
+            self.bgButtonView.alpha    = targetAlpha
+            self.goalsButtonView.alpha = targetAlpha
+            self.hideButtonView.alpha  = targetAlpha
         }
+        UIImpactFeedbackGenerator(style: feedback).impactOccurred()
     }
 
     private func setupCollection() {
@@ -230,7 +229,7 @@ final class TodayViewController: UIViewController {
         collectionView.contentInset.bottom = actionBarHidden ? 20 : 140
 
         if !extraButtonsHidden {
-            hideButton.image = UIImage(systemName: actionBarHidden ? "chevron.up" : "chevron.down")
+            hideButtonView.setImage(UIImage(systemName: actionBarHidden ? "chevron.up" : "chevron.down"), for: .normal)
         }
 
         if animated {

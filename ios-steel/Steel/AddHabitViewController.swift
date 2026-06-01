@@ -15,21 +15,56 @@ final class AddHabitViewController: UIViewController {
     /// вредные = сигареты, бокал, крестик. Объединены в один список для удобства,
     /// но фильтруются по выбранной категории.
     private let goodIcons = [
-        "leaf.fill", "drop.fill", "figure.run", "figure.yoga",
-        "figure.strengthtraining.traditional", "figure.flexibility",
-        "book.fill", "graduationcap.fill", "pencil", "brain.head.profile",
-        "sun.max.fill", "moon.zzz.fill", "bed.double.fill", "apple.logo",
-        "carrot.fill", "fork.knife", "cup.and.saucer.fill", "dumbbell.fill",
-        "heart.fill", "lungs.fill", "sparkles", "trophy.fill"
+        // Спорт и движение
+        "figure.run", "figure.walk", "figure.hiking", "figure.cycling",
+        "figure.strengthtraining.traditional", "figure.strengthtraining.functional",
+        "figure.core.training", "figure.flexibility", "figure.yoga",
+        "figure.mind.and.body", "figure.mixed.cardio", "figure.highintensity.intervaltraining",
+        "figure.rowing", "figure.stairs", "figure.arms.raised", "figure.cooldown",
+        "figure.cross.training", "figure.play", "dumbbell.fill", "figure.swimming.full",
+        // Здоровье
+        "drop.fill", "heart.fill", "lungs.fill", "brain.head.profile", "brain.fill",
+        "bolt.heart.fill", "heart.circle.fill", "bandage.fill", "pill.fill",
+        // Питание
+        "leaf.fill", "carrot.fill", "apple.logo", "fork.knife",
+        "cup.and.saucer.fill", "takeoutbag.and.cup.and.straw.fill",
+        // Сон и режим
+        "bed.double.fill", "moon.zzz.fill", "moon.stars.fill", "sun.max.fill",
+        "sunrise.fill", "sunset.fill", "clock.fill", "timer",
+        // Обучение и продуктивность
+        "book.fill", "graduationcap.fill", "pencil", "pencil.line",
+        "text.book.closed.fill", "doc.fill", "note.text", "checklist",
+        "checkmark.seal.fill", "checkmark.circle.fill",
+        // Медитация и ментальность
+        "sparkles", "hands.sparkles.fill", "eye.fill", "antenna.radiowaves.left.and.right",
+        // Награды
+        "trophy.fill", "medal.fill", "star.fill", "flag.fill",
+        "seal.fill", "rosette", "crown.fill",
+        // Музыка и отдых
+        "music.note", "headphones", "figure.socialdance",
     ]
 
     private let badIcons = [
-        "xmark.octagon.fill", "smoke.fill", "cigarette.fill", "wineglass.fill",
-        "cube.fill", "hand.raised.slash.fill", "eye.slash.fill", "takeoutbag.and.cup.and.straw.fill",
-        "iphone", "gamecontroller.fill", "creditcard.fill", "moon.zzz",
-        "alarm.fill", "flame.fill", "exclamationmark.bubble.fill",
-        "hand.point.up.braille", "person.badge.minus", "banknote.fill",
-        "bed.double.fill", "tired.fill", "birthday.cake.fill", "zzz"
+        // Вредные привычки
+        "smoke.fill", "cigarette.fill", "wineglass.fill",
+        "takeoutbag.and.cup.and.straw.fill", "birthday.cake.fill",
+        "cube.fill", "pills.fill",
+        // Технологии и соцсети
+        "iphone", "iphone.slash", "app.badge.fill",
+        "gamecontroller.fill", "tv.fill", "desktopcomputer",
+        // Финансы
+        "creditcard.fill", "banknote.fill", "cart.fill", "bag.fill",
+        // Прокрастинация и лень
+        "moon.zzz", "alarm.fill", "zzz", "tired.fill",
+        "bed.double.fill", "clock.badge.xmark",
+        // Запреты
+        "xmark.octagon.fill", "nosign", "minus.circle.fill",
+        "hand.raised.slash.fill", "eye.slash.fill",
+        "person.badge.minus", "bolt.slash.fill",
+        // Негатив
+        "flame.fill", "exclamationmark.bubble.fill",
+        "exclamationmark.triangle.fill", "hand.point.up.braille",
+        "trash.fill", "x.circle.fill",
     ]
 
     private var icons: [String] {

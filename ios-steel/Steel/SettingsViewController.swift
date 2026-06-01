@@ -88,71 +88,27 @@ final class SettingsViewController: UIViewController {
     }
 
     private func setupCategoriesSection() {
-        let card = makeCard()
-        let stack = UIStackView()
-        stack.axis = .vertical
-        stack.spacing = 0
-        card.contentView.addSubview(stack)
-        stack.snp.makeConstraints { $0.edges.equalToSuperview() }
+        let rows: [(title: String, subtitle: String, icon: String, iconBg: UIColor, action: () -> Void)] = [
+            ("Оформление",  "Фон, шрифт",    "paintpalette.fill",         .systemIndigo, { [weak self] in self?.openAppearance() }),
+            ("Провайдеры",  "Groq, Gemini",   "network",                   .systemTeal,   { [weak self] in self?.openProviders() }),
+            ("Регион",      currentRegionSubtitle(), "globe.europe.africa.fill", .systemBlue, { [weak self] in self?.openRegionPicker() }),
+            ("Серия",       "Пауза серии",    "bolt.fill",                 .systemGreen,  { [weak self] in self?.openStreakSettings() }),
+        ]
 
-        let goals = makeCategoryRow(
-            title: "Цели до конца года",
-            subtitle: goalSubtitle(),
-            icon: "target",
-            iconBg: .systemRed
-        ) { [weak self] in
-            self?.openGoals()
+        for row in rows {
+            let glass = LiquidGlassView(cornerRadius: 18, intensity: .thin)
+            glass.backgroundColor = UIColor.secondarySystemBackground.withAlphaComponent(0.35)
+            let rowView = makeCategoryRow(
+                title: row.title,
+                subtitle: row.subtitle,
+                icon: row.icon,
+                iconBg: row.iconBg,
+                action: row.action
+            )
+            glass.contentView.addSubview(rowView)
+            rowView.snp.makeConstraints { $0.edges.equalToSuperview() }
+            contentStack.addArrangedSubview(glass)
         }
-        let appearance = makeCategoryRow(
-            title: "Оформление",
-            subtitle: "Фон, шрифт",
-            icon: "paintpalette.fill",
-            iconBg: .systemIndigo
-        ) { [weak self] in
-            self?.openAppearance()
-        }
-        let providers = makeCategoryRow(
-            title: "Провайдеры",
-            subtitle: "Groq, Gemini",
-            icon: "network",
-            iconBg: .systemTeal
-        ) { [weak self] in
-            self?.openProviders()
-        }
-        let region = makeCategoryRow(
-            title: "Регион",
-            subtitle: currentRegionSubtitle(),
-            icon: "globe.europe.africa.fill",
-            iconBg: .systemBlue
-        ) { [weak self] in
-            self?.openRegionPicker()
-        }
-        let streak = makeCategoryRow(
-            title: "Серия",
-            subtitle: "Пауза серии",
-            icon: "bolt.fill",
-            iconBg: .systemGreen
-        ) { [weak self] in
-            self?.openStreakSettings()
-        }
-
-        let items: [UIView] = [goals, separator(), appearance, separator(), providers, separator(), region, separator(), streak]
-        for item in items {
-            stack.addArrangedSubview(item)
-        }
-
-        contentStack.addArrangedSubview(card)
-    }
-
-    private func goalSubtitle() -> String {
-        let goals = DataManager.shared.settings.yearGoals
-        if goals.isEmpty { return "Не заданы" }
-        return "\(goals.count) целей"
-    }
-
-    private func openGoals() {
-        let vc = GoalsViewController()
-        navigationController?.pushViewController(vc, animated: true)
     }
 
     private func currentRegionSubtitle() -> String {
@@ -203,32 +159,14 @@ final class SettingsViewController: UIViewController {
         navigationController?.pushViewController(vc, animated: true)
     }
 
-    private func makeCard() -> UIVisualEffectView {
-        let card = UIVisualEffectView(effect: UIBlurEffect(style: .systemUltraThinMaterial))
-        card.backgroundColor = UIColor.secondarySystemBackground.withAlphaComponent(0.5)
-        card.layer.cornerRadius = 20
-        card.layer.cornerCurve = .continuous
-        card.clipsToBounds = true
-        card.layer.borderWidth = 0.5
-        card.layer.borderColor = UIColor.white.withAlphaComponent(0.15).cgColor
-        return card
-    }
-
-    private func separator() -> UIView {
-        let line = UIView()
-        line.backgroundColor = .separator
-        line.snp.makeConstraints { $0.height.equalTo(0.5) }
-        return line
-    }
-
     private func makeCategoryRow(title: String, subtitle: String, icon: String, iconBg: UIColor, action: @escaping () -> Void) -> UIView {
         let iconContainer = UIView()
-        iconContainer.layer.cornerRadius = 7
+        iconContainer.layer.cornerRadius = 10
         iconContainer.layer.cornerCurve = .continuous
         iconContainer.backgroundColor = iconBg
-        iconContainer.snp.makeConstraints { $0.size.equalTo(30) }
+        iconContainer.snp.makeConstraints { $0.size.equalTo(38) }
 
-        let iconView = UIImageView(image: UIImage(systemName: icon, withConfiguration: UIImage.SymbolConfiguration(pointSize: 16, weight: .medium)))
+        let iconView = UIImageView(image: UIImage(systemName: icon, withConfiguration: UIImage.SymbolConfiguration(pointSize: 18, weight: .semibold)))
         iconView.tintColor = .white
         iconView.contentMode = .center
         iconContainer.addSubview(iconView)
@@ -246,16 +184,16 @@ final class SettingsViewController: UIViewController {
 
         let textStack = UIStackView(arrangedSubviews: [titleLabel, subtitleLabel])
         textStack.axis = .vertical
-        textStack.spacing = 2
+        textStack.spacing = 3
 
         let chevron = UIImageView(image: UIImage(systemName: "chevron.right", withConfiguration: UIImage.SymbolConfiguration(pointSize: 12, weight: .semibold)))
         chevron.tintColor = .tertiaryLabel
 
         let row = UIStackView(arrangedSubviews: [iconContainer, textStack, UIView(), chevron])
         row.alignment = .center
-        row.spacing = 12
+        row.spacing = 14
         row.isLayoutMarginsRelativeArrangement = true
-        row.layoutMargins = .init(top: 12, left: 16, bottom: 12, right: 16)
+        row.layoutMargins = .init(top: 14, left: 16, bottom: 14, right: 16)
 
         let tap = UITapGestureRecognizer(target: self, action: #selector(handleRowTap(_:)))
         row.addGestureRecognizer(tap)

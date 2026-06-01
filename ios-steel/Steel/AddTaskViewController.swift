@@ -9,35 +9,44 @@ final class AddTaskViewController: UIViewController {
     private var selectedIcon = "figure.run"
 
     private let icons = [
-        // Fitness & Body
-        "figure.run", "figure.strengthtraining.traditional", "figure.core.training",
-        "figure.cross.training", "figure.mind.and.body", "figure.play", "figure.walk",
-        "figure.stairs", "figure.rowing", "figure.cycling", "figure.hiking",
-        "figure.flexibility", "figure.arms.raised", "figure.cooldown",
+        // Кардио и бег
+        "figure.run", "figure.walk", "figure.hiking", "figure.cycling",
+        "figure.rowing", "figure.stairs", "figure.swimming.full",
         "figure.mixed.cardio", "figure.highintensity.intervaltraining",
-        // Health
-        "drop.fill", "drop.triangle.fill", "heart.fill", "heart.circle.fill",
-        "bolt.heart.fill", "lungs.fill", "brain.head.profile", "figure.brain",
-        // Strength
-        "dumbbell.fill", "scalemass.fill", "figure.strengthtraining.functional",
-        "figure.strengthtraining.traditional", "trophy.fill", "medal.fill",
-        // Lifestyle
-        "bed.double.fill", "moon.zzz.fill", "sun.max.fill", "sunrise.fill",
-        "sunset.fill", "moon.stars.fill", "cloud.sun.fill", "cloud.moon.fill",
-        // Food & Diet
-        "leaf.fill", "carrot.fill", "apple.logo", "flame.fill",
-        "cup.and.saucer.fill", "wineglass.fill", "fork.knife", "takeoutbag.and.cup.and.straw.fill",
-        // Focus & Mind
-        "brain.fill", "book.fill", "pencil", "graduationcap.fill",
-        "eye.fill", "hand.raised.fill", "hand.thumbsup.fill",
-        // Energy
-        "bolt.fill", "zap.fill", "flashlight.on.fill", "battery.100.bolt",
-        // Rewards
-        "star.fill", "star.circle.fill", "sparkles", "seal.fill",
-        "flag.fill", "target", "scope", "cross.vair.fill",
-        // Progress
-        "chart.line.uptrend.xyaxis", "chart.bar.fill", "arrow.up.right.circle.fill",
-        "checkmark.seal.fill", "checkmark.circle.fill", "circle.fill",
+        "figure.play", "figure.socialdance",
+        // Силовые
+        "figure.strengthtraining.traditional", "figure.strengthtraining.functional",
+        "figure.cross.training", "figure.arms.raised", "dumbbell.fill", "scalemass.fill",
+        // Гибкость и йога
+        "figure.flexibility", "figure.yoga", "figure.mind.and.body",
+        "figure.cooldown", "figure.core.training", "figure.pilates",
+        // Боевые и танцы
+        "figure.martial.arts", "figure.kickboxing", "figure.boxing",
+        "figure.dance", "figure.american.football", "figure.basketball",
+        "figure.soccer", "figure.tennis", "figure.volleyball",
+        // Здоровье
+        "heart.fill", "heart.circle.fill", "bolt.heart.fill",
+        "lungs.fill", "brain.head.profile", "brain.fill",
+        "drop.fill", "bandage.fill", "cross.fill",
+        // Питание и вода
+        "leaf.fill", "carrot.fill", "apple.logo", "fork.knife",
+        "cup.and.saucer.fill", "drop.triangle.fill",
+        // Сон и режим
+        "bed.double.fill", "moon.zzz.fill", "sun.max.fill",
+        "sunrise.fill", "sunset.fill", "clock.fill", "timer",
+        // Обучение
+        "book.fill", "brain.fill", "graduationcap.fill",
+        "pencil", "checklist", "note.text",
+        // Энергия
+        "bolt.fill", "flame.fill", "battery.100.bolt", "flashlight.on.fill",
+        // Медитация и ментальность
+        "sparkles", "hands.sparkles.fill", "eye.fill", "antenna.radiowaves.left.and.right",
+        // Награды и прогресс
+        "trophy.fill", "medal.fill", "star.fill", "flag.fill",
+        "seal.fill", "crown.fill", "target",
+        "chart.line.uptrend.xyaxis", "chart.bar.fill",
+        "checkmark.seal.fill", "checkmark.circle.fill",
+        "arrow.up.right.circle.fill",
     ]
 
     init() {
