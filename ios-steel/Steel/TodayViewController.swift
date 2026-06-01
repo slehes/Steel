@@ -181,7 +181,7 @@ final class TodayViewController: UIViewController {
     }
 
     private func updateActionBarPosition(animated: Bool) {
-        let offset: CGFloat = actionBarHidden ? 200 : -8
+        let offset: CGFloat = actionBarHidden ? 220 : -8
         actionBar.snp.updateConstraints {
             $0.bottom.equalTo(view.safeAreaLayoutGuide.snp.bottom).offset(offset)
         }
@@ -192,10 +192,18 @@ final class TodayViewController: UIViewController {
         }
 
         if animated {
-            UIView.animate(withDuration: 0.35, delay: 0, usingSpringWithDamping: 0.85, initialSpringVelocity: 0.5, options: .curveEaseInOut) {
+            UIView.animate(
+                withDuration: 0.6,
+                delay: 0,
+                usingSpringWithDamping: 0.75,
+                initialSpringVelocity: 0.15,
+                options: .curveEaseOut
+            ) {
                 self.view.layoutIfNeeded()
+                self.actionBar.alpha = self.actionBarHidden ? 0.4 : 1.0
             }
         } else {
+            actionBar.alpha = 1.0
             self.view.layoutIfNeeded()
         }
     }

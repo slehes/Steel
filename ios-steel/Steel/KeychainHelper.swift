@@ -143,28 +143,27 @@ enum KeychainHelper {
             }
         }
 
-        // Restore settings if they seem like defaults (fresh install)
+        // Restore settings if backup exists — ALWAYS restore streak/series data
+        // This ensures streak survives reinstall regardless of current SwiftData state
         if let settingsData = keychain.getData(settingsBackupKey),
            let backupSettings = try? JSONDecoder().decode(AppSettings.self, from: settingsData) {
-            let current = DataManager.shared.settings
-            // If current settings look like defaults (no completed tasks, streak 0), restore backup
-            if current.totalCompletedTasks == 0 && current.streakDays == 0 && current.lastDayKey.isEmpty {
-                // Restore only non-default values
-                DataManager.shared.updateSettings {
-                    $0.totalCompletedTasks = backupSettings.totalCompletedTasks
-                    $0.exerciseCounts = backupSettings.exerciseCounts
-                    $0.streakDays = backupSettings.streakDays
-                    $0.lastCompletedDayKey = backupSettings.lastCompletedDayKey
-                    $0.lastDayKey = backupSettings.lastDayKey
-                    $0.userName = backupSettings.userName
-                    $0.streakPaused = backupSettings.streakPaused
-                    $0.streakPausedSince = backupSettings.streakPausedSince
-                    $0.regionCity = backupSettings.regionCity
-                    $0.regionTimeZone = backupSettings.regionTimeZone
-                    $0.userTrainingLocation = backupSettings.userTrainingLocation
-                    if backupSettings.background.kind != .none {
-                        $0.background = backupSettings.background
-                    }
+            // Always restore streak, completed tasks, exercise counts, user profile
+            // This ensures series (streakDays) survives app deletion + reinstall
+            DataManager.shared.updateSettings {
+                $0.totalCompletedTasks = backupSettings.totalCompletedTasks
+                $0.exerciseCounts = backupSettings.exerciseCounts
+                $0.streakDays = backupSettings.streakDays
+                $0.lastCompletedDayKey = backupSettings.lastCompletedDayKey
+                $0.lastDayKey = backupSettings.lastDayKey
+                $0.userName = backupSettings.userName
+                $0.streakPaused = backupSettings.streakPaused
+                $0.streakPausedSince = backupSettings.streakPausedSince
+                $0.regionCity = backupSettings.regionCity
+                $0.regionTimeZone = backupSettings.regionTimeZone
+                $0.userTrainingLocation = backupSettings.userTrainingLocation
+                $0.reminderHours = backupSettings.reminderHours
+                if backupSettings.background.kind != .none {
+                    $0.background = backupSettings.background
                 }
             }
         }

@@ -42,7 +42,9 @@ enum CommandExecutor {
 
         case let .buildPlan(plan):
             guard !plan.isEmpty else { return nil }
-            data.savePlan(plan)
+            let lines = plan.components(separatedBy: "\n")
+            let title = lines.first?.trimmingCharacters(in: .whitespaces).prefix(50).description ?? "Тренировочный план"
+            data.savePlan(title: title, body: plan)
             return CommandFeedback(title: "План готов")
 
         case let .changeBackground(action):

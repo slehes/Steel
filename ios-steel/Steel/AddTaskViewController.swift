@@ -9,10 +9,35 @@ final class AddTaskViewController: UIViewController {
     private var selectedIcon = "figure.run"
 
     private let icons = [
+        // Fitness & Body
         "figure.run", "figure.strengthtraining.traditional", "figure.core.training",
-        "figure.cross.training", "figure.mind.and.body", "figure.play", "drop.fill",
-        "dumbbell.fill", "bolt.heart.fill", "flame.fill", "book.fill", "pencil",
-        "brain.head.profile", "bed.double.fill", "leaf.fill", "sun.max.fill",
+        "figure.cross.training", "figure.mind.and.body", "figure.play", "figure.walk",
+        "figure.stairs", "figure.rowing", "figure.cycling", "figure.hiking",
+        "figure.flexibility", "figure.arms.raised", "figure.cooldown",
+        "figure.mixed.cardio", "figure.highintensity.intervaltraining",
+        // Health
+        "drop.fill", "drop.triangle.fill", "heart.fill", "heart.circle.fill",
+        "bolt.heart.fill", "lungs.fill", "brain.head.profile", "figure.brain",
+        // Strength
+        "dumbbell.fill", "scalemass.fill", "figure.strengthtraining.functional",
+        "figure.strengthtraining.traditional", "trophy.fill", "medal.fill",
+        // Lifestyle
+        "bed.double.fill", "moon.zzz.fill", "sun.max.fill", "sunrise.fill",
+        "sunset.fill", "moon.stars.fill", "cloud.sun.fill", "cloud.moon.fill",
+        // Food & Diet
+        "leaf.fill", "carrot.fill", "apple.logo", "flame.fill",
+        "cup.and.saucer.fill", "wineglass.fill", "fork.knife", "takeoutbag.and.cup.and.straw.fill",
+        // Focus & Mind
+        "brain.fill", "book.fill", "pencil", "graduationcap.fill",
+        "eye.fill", "hand.raised.fill", "hand.thumbsup.fill",
+        // Energy
+        "bolt.fill", "zap.fill", "flashlight.on.fill", "battery.100.bolt",
+        // Rewards
+        "star.fill", "star.circle.fill", "sparkles", "seal.fill",
+        "flag.fill", "target", "scope", "cross.vair.fill",
+        // Progress
+        "chart.line.uptrend.xyaxis", "chart.bar.fill", "arrow.up.right.circle.fill",
+        "checkmark.seal.fill", "checkmark.circle.fill", "circle.fill",
     ]
 
     init() {

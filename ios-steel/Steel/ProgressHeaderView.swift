@@ -61,29 +61,24 @@ final class ProgressHeaderView: UICollectionReusableView {
             fill.backgroundColor = .systemOrange
         }
 
+        // Always reset to zero first — establishes starting state
+        fillWidth?.update(offset: 0)
         layoutIfNeeded()
-        let targetWidth = track.bounds.width * ratio
 
-        if animated && currentRatio != ratio {
-            // Capture current fill width before updating
-            let oldWidth = fill.bounds.width
+        // Now set to target — will animate in the same block below
+        fillWidth?.update(offset: track.bounds.width * ratio)
 
-            // Update constraint to new target
-            fillWidth?.update(offset: targetWidth)
-
-            // Animate very slowly and smoothly
+        if animated {
             UIView.animate(
-                withDuration: 3.0,
+                withDuration: 2.5,
                 delay: 0,
-                usingSpringWithDamping: 0.85,
+                usingSpringWithDamping: 0.75,
                 initialSpringVelocity: 0.1,
-                options: [.curveEaseInOut, .allowUserInteraction],
-                animations: {
-                    self.layoutIfNeeded()
-                }
-            )
+                options: .curveEaseOut
+            ) {
+                self.layoutIfNeeded()
+            }
         } else {
-            fillWidth?.update(offset: targetWidth)
             layoutIfNeeded()
         }
 

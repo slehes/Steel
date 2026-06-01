@@ -101,28 +101,37 @@ final class TaskCell: UICollectionViewCell {
 
         detailLabel.text = task.isCompleted ? "Готово" : task.displayDetail
         glass.alpha = task.isCompleted ? 0.7 : 1
+
+        // Always animate the fill bar on first appear — smooth and slow
+        // (ProgressHeaderView calls configure with animated:true on task change)
+        // We track this via the icon transform state
     }
 
     func configureAnimated(with task: DailyTask, wasCompleted: Bool) {
+        // Always smooth — no fast snap anymore
         if !wasCompleted {
-            UIView.animate(withDuration: 0.3, delay: 0, options: .curveEaseInOut) {
-                self.iconView.transform = CGAffineTransform(scaleX: 0.6, y: 0.6)
+            // Completing task
+            UIView.animate(withDuration: 0.35, delay: 0, usingSpringWithDamping: 0.6, initialSpringVelocity: 0.3, options: .curveEaseOut) {
+                self.iconView.transform = CGAffineTransform(scaleX: 0.7, y: 0.7)
+                self.iconView.alpha = 0.6
             } completion: { _ in
                 self.iconView.image = UIImage(systemName: "checkmark.circle.fill")
                 self.iconView.tintColor = .systemGreen
-
-                UIView.animate(withDuration: 0.4, delay: 0, usingSpringWithDamping: 0.5, initialSpringVelocity: 0.5, options: .curveEaseOut) {
-                    self.iconView.transform = .identity
+                self.iconView.transform = .identity
+                UIView.animate(withDuration: 0.5, delay: 0, usingSpringWithDamping: 0.5, initialSpringVelocity: 0.6, options: .curveEaseOut) {
+                    self.iconView.alpha = 1.0
                 }
             }
 
-            UIView.animate(withDuration: 0.4, delay: 0.1, options: .curveEaseOut) {
+            UIView.animate(withDuration: 0.5, delay: 0.1, options: .curveEaseOut) {
                 self.glass.alpha = 0.7
-                let attrs: [NSAttributedString.Key: Any] = [
-                    .strikethroughStyle: NSUnderlineStyle.single.rawValue,
-                    .foregroundColor: UIColor.secondaryLabel
-                ]
-                self.titleLabel.attributedText = NSAttributedString(string: task.title, attributes: attrs)
+                self.titleLabel.attributedText = NSAttributedString(
+                    string: task.title,
+                    attributes: [
+                        .strikethroughStyle: NSUnderlineStyle.single.rawValue,
+                        .foregroundColor: UIColor.secondaryLabel
+                    ]
+                )
                 self.detailLabel.text = "Готово"
             }
 
@@ -134,24 +143,27 @@ final class TaskCell: UICollectionViewCell {
                 iconView.addSymbolEffect(.bounce)
             }
         } else {
-            UIView.animate(withDuration: 0.3, delay: 0, options: .curveEaseInOut) {
-                self.iconView.transform = CGAffineTransform(scaleX: 0.6, y: 0.6)
+            // Uncompleting task
+            UIView.animate(withDuration: 0.35, delay: 0, usingSpringWithDamping: 0.6, initialSpringVelocity: 0.3, options: .curveEaseOut) {
+                self.iconView.transform = CGAffineTransform(scaleX: 0.7, y: 0.7)
+                self.iconView.alpha = 0.6
             } completion: { _ in
                 self.iconView.image = UIImage(systemName: task.iconName)
                 self.iconView.tintColor = .label
-
-                UIView.animate(withDuration: 0.4, delay: 0, usingSpringWithDamping: 0.5, initialSpringVelocity: 0.5, options: .curveEaseOut) {
-                    self.iconView.transform = .identity
+                self.iconView.transform = .identity
+                UIView.animate(withDuration: 0.5, delay: 0, usingSpringWithDamping: 0.5, initialSpringVelocity: 0.6, options: .curveEaseOut) {
+                    self.iconView.alpha = 1.0
                 }
             }
 
-            UIView.animate(withDuration: 0.4, delay: 0.1, options: .curveEaseOut) {
-                self.glass.alpha = 1
-                let attrs: [NSAttributedString.Key: Any] = [.foregroundColor: UIColor.label]
-                self.titleLabel.attributedText = NSAttributedString(string: task.title, attributes: attrs)
+            UIView.animate(withDuration: 0.5, delay: 0.1, options: .curveEaseOut) {
+                self.glass.alpha = 1.0
+                self.titleLabel.attributedText = NSAttributedString(
+                    string: task.title,
+                    attributes: [.foregroundColor: UIColor.label]
+                )
                 self.detailLabel.text = task.displayDetail
             }
-
         }
     }
 

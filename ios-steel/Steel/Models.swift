@@ -83,13 +83,32 @@ final class ChatMessageModel {
 @Model
 final class TrainingPlan {
     var id: UUID
+    var title: String
     var body: String
     var updatedAt: Date
 
-    init(body: String) {
+    init(title: String, body: String) {
         self.id = UUID()
+        self.title = title
         self.body = body
         self.updatedAt = Date()
+    }
+}
+
+@Model
+final class PlanEntry {
+    var id: UUID
+    var title: String
+    var iconName: String
+    var isCompleted: Bool
+    var createdAt: Date
+
+    init(title: String, iconName: String) {
+        self.id = UUID()
+        self.title = title
+        self.iconName = iconName
+        self.isCompleted = false
+        self.createdAt = Date()
     }
 }
 

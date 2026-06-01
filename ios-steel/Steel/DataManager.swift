@@ -38,7 +38,7 @@ final class DataManager {
     private var mskTimeZone: TimeZone = TimeZone(identifier: "Europe/Moscow")!
 
     private init() {
-        let schema = Schema([DailyTask.self, Habit.self, ChatMessageModel.self, TrainingPlan.self])
+        let schema = Schema([DailyTask.self, Habit.self, ChatMessageModel.self, TrainingPlan.self, PlanEntry.self])
         let config = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
         do {
             container = try ModelContainer(for: schema, configurations: [config])
@@ -252,14 +252,59 @@ final class DataManager {
         KeychainHelper.backupAllData()
     }
 
-    func savePlan(_ body: String) {
+    func savePlan(title: String, body: String) {
         if let existing = currentPlan() {
+            existing.title = title
             existing.body = body
             existing.updatedAt = Date()
         } else {
-            context.insert(TrainingPlan(body: body))
+            context.insert(TrainingPlan(title: title, body: body))
         }
         try? context.save()
+
+        // Also parse plan body and create PlanEntry items
+        parsePlanEntries(body: body)
+    }
+
+    func parsePlanEntries(body: String) {
+        // Parse lines from plan body — each line that starts with bullet/dash/number is an entry
+        let lines = body.components(separatedBy: "\n")
+        for line in lines {
+            let trimmed = line.trimmingCharacters(in: .whitespaces)
+            guard !trimmed.isEmpty,
+                  trimmed.count > 3,
+                  !trimmed.lowercased().contains("день") || trimmed.contains("1.") || trimmed.contains("2.") || trimmed.contains("3.") || trimmed.contains("4.") || trimmed.contains("5.")
+            else { continue }
+
+            // Strip numbers, bullets, dashes from beginning
+            let cleaned = trimmed
+                .replacingOccurrences(of: "^\\d+[.)].*", with: "", options: .regularExpression)
+                .trimmingCharacters(in: .whitespaces)
+
+            guard !cleaned.isEmpty else { continue }
+
+            let icon = iconForEntry(cleaned)
+            let entry = PlanEntry(title: cleaned, iconName: icon)
+            context.insert(entry)
+        }
+        try? context.save()
+        NotificationCenter.default.post(name: .steelTasksChanged, object: nil)
+    }
+
+    private func iconForEntry(_ text: String) -> String {
+        let lower = text.lowercased()
+        if lower.contains("отжима") || lower.contains("push") { return "figure.strengthtraining.traditional" }
+        if lower.contains("приседа") || lower.contains("squat") { return "figure.walk" }
+        if lower.contains("планк") || lower.contains("plank") { return "figure.core.training" }
+        if lower.contains("бег") || lower.contains("run") { return "figure.run" }
+        if lower.contains("пресс") || lower.contains("скручи") { return "figure.core.training" }
+        if lower.contains("бёрпи") || lower.contains("burpee") { return "figure.mixed.cardio" }
+        if lower.contains("выпад") || lower.contains("lunge") { return "figure.arms.raised" }
+        if lower.contains("растяжк") || lower.contains("stretch") { return "figure.flexibility" }
+        if lower.contains("жим") || lower.contains("bench") { return "dumbbell.fill" }
+        if lower.contains("подтягив") || lower.contains("pull") { return "figure.arms.raised" }
+        if lower.contains("скакалк") || lower.contains("jump") { return "figure.play" }
+        return "bolt.fill"
     }
 
     func addMessage(_ text: String, isUser: Bool) {

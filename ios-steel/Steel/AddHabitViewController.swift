@@ -7,10 +7,31 @@ final class AddHabitViewController: UIViewController {
     private var selectedIcon = "xmark.octagon"
 
     private let icons = [
-        "xmark.octagon", "cube", "iphone.slash", "smoke", "wineglass",
-        "takeoutbag.and.cup.and.straw", "hand.point.up.braille", "exclamationmark.bubble",
-        "alarm", "desktopcomputer", "hand.raised.slash", "gamecontroller",
-        "creditcard", "cup.and.saucer", "moon.zzz", "eye.slash",
+        // Habits & Lifestyle
+        "xmark.octagon.fill", "cube.fill", "leaf.fill", "drop.fill",
+        "flame.fill", "moon.zzz.fill", "sun.max.fill", "cloud.moon.fill",
+        // Body
+        "figure.arms.raised", "figure.cooldown", "figure.mixed.cardio",
+        "heart.fill", "lungs.fill", "brain.head.profile", "figure.brain",
+        // Discipline
+        "alarm.fill", "clock.fill", "timer", "stopwatch.fill",
+        "flag.fill", "target", "scope", "trophy.fill", "medal.fill",
+        // Tech & Productivity
+        "desktopcomputer", "laptopcomputer", "iphone", "ipad",
+        "gamecontroller.fill", "book.fill", "pencil", "graduationcap.fill",
+        // Food & Restriction
+        "takeoutbag.and.cup.and.straw.fill", "cup.and.saucer.fill", "wineglass.fill",
+        "carrot.fill", "apple.logo", "fork.knife", "birthday.cake.fill",
+        // Bad habits
+        "smoke.fill", "cigarette.fill", "exclamationmark.bubble.fill",
+        "hand.raised.slash.fill", "eye.slash.fill", "hand.point.up.braille",
+        // Mind
+        "sparkles", "brain.fill", "moon.stars.fill", "sunrise.fill",
+        // Social
+        "person.2.fill", "person.badge.minus", "person.crop.circle.badge.checkmark",
+        "creditcard.fill", "dollarsign.circle.fill", "banknote.fill",
+        // Sleep
+        "bed.double.fill", "moon.zzz", "tired.fill", "zzz",
     ]
 
     init() {
