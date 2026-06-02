@@ -149,12 +149,14 @@ final class HabitCell: UICollectionViewCell {
         categoryBadge.backgroundColor = tint
 
         if habit.category == .good {
-            daysCaption.text = "дней подряд"
+            let alreadyMarked = habit.isMarkedToday
+            daysCaption.text = alreadyMarked ? "дней подряд (✓)" : "дней подряд"
             var cfg = actionButton.configuration ?? UIButton.Configuration.gray()
-            cfg.title = "Отметил сегодня"
-            cfg.image = UIImage(systemName: "checkmark.seal.fill")
-            cfg.baseForegroundColor = .systemGreen
+            cfg.title = alreadyMarked ? "Отмечено сегодня" : "Отметить сегодня"
+            cfg.image = UIImage(systemName: alreadyMarked ? "checkmark.seal.fill" : "checkmark.seal")
+            cfg.baseForegroundColor = alreadyMarked ? .systemGreen : .systemGreen
             actionButton.configuration = cfg
+            actionButton.isEnabled = !alreadyMarked
         } else {
             daysCaption.text = "дней чисто"
             var cfg = actionButton.configuration ?? UIButton.Configuration.gray()
@@ -162,6 +164,7 @@ final class HabitCell: UICollectionViewCell {
             cfg.image = UIImage(systemName: "arrow.counterclockwise")
             cfg.baseForegroundColor = .label
             actionButton.configuration = cfg
+            actionButton.isEnabled = true
         }
 
         daysLabel.text = "\(habit.cleanDays)"

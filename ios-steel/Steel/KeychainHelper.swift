@@ -209,6 +209,7 @@ struct HabitDTO: Codable {
     let relapseCount: Int
     let streakStart: Date
     let categoryRaw: String
+    let lastMarkedDate: Date?
 
     init(from habit: Habit) {
         self.title = habit.title
@@ -217,6 +218,7 @@ struct HabitDTO: Codable {
         self.relapseCount = habit.relapseCount
         self.streakStart = habit.streakStart
         self.categoryRaw = (habit.categoryRaw?.isEmpty ?? true) ? HabitCategory.bad.rawValue : habit.categoryRaw!
+        self.lastMarkedDate = habit.lastMarkedDate
     }
 
     init(from decoder: Decoder) throws {
@@ -227,5 +229,6 @@ struct HabitDTO: Codable {
         relapseCount = try container.decode(Int.self, forKey: .relapseCount)
         streakStart = try container.decode(Date.self, forKey: .streakStart)
         categoryRaw = try container.decodeIfPresent(String.self, forKey: .categoryRaw) ?? HabitCategory.bad.rawValue
+        lastMarkedDate = try container.decodeIfPresent(Date.self, forKey: .lastMarkedDate)
     }
 }

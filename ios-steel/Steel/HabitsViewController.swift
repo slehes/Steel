@@ -211,10 +211,16 @@ final class HabitsViewController: UIViewController {
     }
 
     private func markDayDone(_ habit: Habit, cell: HabitCell?) {
-        habit.resetStreak()
+        if habit.isMarkedToday {
+            SPIndicator.present(title: "Уже отмечено", message: "Сегодня уже отмечено", preset: .done, haptic: .success)
+            return
+        }
+        let didMark = habit.markTodayDone()
         try? DataManager.shared.context.save()
-        UIImpactFeedbackGenerator(style: .light).impactOccurred()
-        SPIndicator.present(title: "День засчитан", message: "Так держать", preset: .done, haptic: .success)
+        if didMark {
+            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+            SPIndicator.present(title: "День засчитан", message: "+1 день к серии", preset: .done, haptic: .success)
+        }
         reload()
     }
 }

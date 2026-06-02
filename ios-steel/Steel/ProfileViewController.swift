@@ -288,15 +288,19 @@ final class ProfileViewController: UIViewController {
         refreshBirthdayLabel(birthdayString: settings.birthdayDateString)
 
         statsStack.arrangedSubviews.forEach { $0.removeFromSuperview() }
-        let tasks = DataManager.shared.fetchTasks()
+        let progress = DataManager.shared.taskProgress
         let habits = DataManager.shared.fetchHabits()
-        let totalItems = tasks.count + habits.count
-        let cleanDays = habits.map(\.cleanDays).max() ?? 0
+        let bestHabitStreak = habits.map(\.bestStreak).max() ?? 0
+        let avgPerDay = settings.streakDays > 0
+            ? settings.totalCompletedTasks / settings.streakDays
+            : 0
         let rows = [
-            ("Всего заданий", "\(totalItems)"),
-            ("Выполнено всего", "\(settings.totalCompletedTasks)"),
+            ("Выполнено дней", "\(settings.streakDays)"),
+            ("Заданий сегодня", "\(progress.done)/\(progress.total)"),
+            ("Всего выполнено", "\(settings.totalCompletedTasks)"),
+            ("В среднем в день", "~\(avgPerDay)"),
+            ("Лучший рекорд", "\(bestHabitStreak) дн."),
             ("Частое упражнение", settings.mostFrequentExercise),
-            ("Дней без срыва", "\(cleanDays)"),
         ]
         for (i, row) in rows.enumerated() {
             statsStack.addArrangedSubview(statRow(title: row.0, value: row.1, isLast: i == rows.count - 1))

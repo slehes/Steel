@@ -151,12 +151,25 @@ final class HabitStreakDetailViewController: UIViewController {
 
         let daysWord = UILabel()
         let days = habit.cleanDays
-        let caption = habit.category == .good ? "\(russianDays(days)) подряд" : "\(russianDays(days)) чисто"
+        var caption = habit.category == .good ? "\(russianDays(days)) подряд" : "\(russianDays(days)) чисто"
+        if habit.category == .good && habit.isMarkedToday {
+            caption += " (сегодня ✓)"
+        }
         daysWord.text = caption
         daysWord.font = UIFont.systemFont(ofSize: 15, weight: .medium)
-        daysWord.textColor = .secondaryLabel
+        daysWord.textColor = habit.category == .good && habit.isMarkedToday ? .systemGreen : .secondaryLabel
         daysWord.textAlignment = .center
         cardStack.addArrangedSubview(daysWord)
+
+        // Show last marked date for good habits
+        if habit.category == .good, let lastMarked = habit.lastMarkedDate {
+            let lastLabel = UILabel()
+            lastLabel.text = "Последнее: \(formattedDate(lastMarked))"
+            lastLabel.font = UIFont.systemFont(ofSize: 12, weight: .regular)
+            lastLabel.textColor = .tertiaryLabel
+            lastLabel.textAlignment = .center
+            cardStack.addArrangedSubview(lastLabel)
+        }
 
         stack.addArrangedSubview(card)
         card.snp.makeConstraints { $0.leading.trailing.equalToSuperview() }

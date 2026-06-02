@@ -74,6 +74,7 @@ final class Habit {
     var bestStreak: Int
     var relapseCount: Int
     var sortIndex: Int
+    var lastMarkedDate: Date?  // For good habits: last date the habit was marked as done
 
     init(title: String, iconName: String, category: HabitCategory, sortIndex: Int) {
         self.id = UUID()
@@ -84,6 +85,7 @@ final class Habit {
         self.bestStreak = 0
         self.relapseCount = 0
         self.sortIndex = sortIndex
+        self.lastMarkedDate = nil
     }
 
     var category: HabitCategory {
@@ -94,6 +96,40 @@ final class Habit {
     var cleanDays: Int {
         let comps = Calendar.current.dateComponents([.day], from: Calendar.current.startOfDay(for: streakStart), to: Calendar.current.startOfDay(for: Date()))
         return max(0, comps.day ?? 0)
+    }
+
+    /// Whether this good habit has already been marked as done today
+    var isMarkedToday: Bool {
+        guard category == .good, let last = lastMarkedDate else { return false }
+        return Calendar.current.isDate(last, inSameDayAs: Date())
+    }
+
+    /// For good habits: mark today as done without resetting the streak.
+    /// Returns true if the mark was new (first time today), false if already marked.
+    @discardableResult
+    func markTodayDone() -> Bool {
+        guard category == .good else { return false }
+
+        // Already marked today — do nothing
+        if isMarkedToday { return false }
+
+        // Check if the streak is still valid (last marked was yesterday or today)
+        if let last = lastMarkedDate {
+            let daysSinceLastMark = Calendar.current.dateComponents([.day],
+                from: Calendar.current.startOfDay(for: last),
+                to: Calendar.current.startOfDay(for: Date())).day ?? 0
+
+            // If more than 1 day was missed, reset streak
+            if daysSinceLastMark > 1 {
+                bestStreak = max(bestStreak, cleanDays)
+                relapseCount += 1
+                // Set streakStart to yesterday so cleanDays = 1 after marking
+                streakStart = Calendar.current.date(byAdding: .day, value: -1, to: Date()) ?? Date()
+            }
+        }
+
+        lastMarkedDate = Date()
+        return true
     }
 
     func relapse() {

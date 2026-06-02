@@ -70,7 +70,8 @@ final class TelegramManager {
             lines.append("\(CHECK) <b>Полезные привычки:</b>")
             for h in good {
                 let d = h.cleanDays
-                lines.append("  \(CHECK) \(h.title)  \(BOLT)\(ruDays(d))  \(FIRE)\(ruDays(d))")
+                let marked = h.isMarkedToday ? " ✓" : ""
+                lines.append("  \(CHECK) \(h.title)  \(BOLT)\(ruDays(d))  \(FIRE)\(ruDays(d))\(marked)")
             }
         }
 

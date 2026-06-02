@@ -172,7 +172,9 @@ def build_report(data: dict, time_label: str) -> str:
         lines += ["", f"{CHECK} <b>Полезные привычки:</b>"]
         for h in good:
             d = clean_days(h["streak_start"])
-            lines.append(f"  {CHECK} {h['title']}  {BOLT}{ru_days(d)}  {FIRE}{ru_days(d)}")
+            marked = h.get("isMarkedToday", False)
+            status = f" {GREEN}" if marked else ""
+            lines.append(f"  {CHECK} {h['title']}  {BOLT}{ru_days(d)}  {FIRE}{ru_days(d)}{status}")
 
     lines += ["", f"{GRAPH} <b>Так держать!</b>"]
     return "\n".join(lines)

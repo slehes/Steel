@@ -86,7 +86,7 @@ final class DataManager {
     }
 
     private let seedVersionKey = "steel.seed.version"
-    private let currentSeedVersion = 2
+    private let currentSeedVersion = 3
     private let lockedSeedKey = "steel.locked.seed.v1"
 
     private func seedInitialDataIfNeeded() {
@@ -127,6 +127,7 @@ final class DataManager {
         for (i, s) in goodSeeds.enumerated() {
             let h = Habit(title: s.0, iconName: s.1, category: .good, sortIndex: i + badSeeds.count)
             h.streakStart = daysAgo(s.2)
+            h.lastMarkedDate = Calendar.current.startOfDay(for: Date()) // Marked today
             context.insert(h)
         }
 
@@ -140,7 +141,7 @@ final class DataManager {
         }
 
         try? context.save()
-        updateSettings { $0.streakDays = 15 }
+        updateSettings { $0.streakDays = 15; $0.totalCompletedTasks = 45 }
         UserDefaults.standard.set(currentSeedVersion, forKey: seedVersionKey)
 
         DispatchQueue.main.async {
@@ -342,6 +343,7 @@ final class DataManager {
         habit.bestStreak = dto.bestStreak
         habit.relapseCount = dto.relapseCount
         habit.streakStart = dto.streakStart
+        habit.lastMarkedDate = dto.lastMarkedDate
         context.insert(habit)
         try? context.save()
         NotificationCenter.default.post(name: .steelHabitsChanged, object: nil)
@@ -472,7 +474,7 @@ final class DataManager {
     func awardBirthdayBonus() {
         updateSettings { $0.streakDays += 1 }
         for habit in fetchHabits() where habit.category == .good {
-            habit.resetStreak()
+            habit.markTodayDone()
         }
         try? context.save()
         SteelNotificationStore.shared.add(
