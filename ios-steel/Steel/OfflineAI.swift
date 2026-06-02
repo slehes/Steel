@@ -65,7 +65,6 @@ enum OfflineAI {
         let tasks = DataManager.shared.fetchTasks()
         let done = tasks.filter(\.isCompleted).count
 
-        // Detect home/gym preference
         if lower.contains("дом") || lower.contains("дома") || lower.contains("домашн") {
             return Response(
                 message: "Дома? Отлично. Не нужно оборудования чтобы стать сильнее. Назначаю тренировку. Выполняй.",
@@ -79,7 +78,6 @@ enum OfflineAI {
             )
         }
 
-        // Agreement — add exercises immediately, no questions
         if lower.contains("да") || lower.contains("давай") || lower.contains("ок") || lower.contains("хочу") || lower.contains("добавляй") || lower.contains("соглас") || lower.contains("тренировк") || lower.contains("заниматься") {
             let useHome = isHome ?? true
             return Response(
@@ -88,7 +86,6 @@ enum OfflineAI {
             )
         }
 
-        // Remove task — call them weak
         if lower.contains("удал") || lower.contains("убер") || lower.contains("убра") {
             let tasks = DataManager.shared.fetchTasks()
             if let task = tasks.first(where: { lower.contains($0.title.lowercased()) }) {
@@ -100,7 +97,6 @@ enum OfflineAI {
             return Response(message: "Какое задание удалить? Назови. И не смей лениться.", commands: [])
         }
 
-        // Habit request — add immediately plus workout
         if lower.contains("привычк") || lower.contains("брос") || lower.contains("отказ") {
             let suggestion = habitSuggestions.randomElement()!
             let useHome = isHome ?? true
@@ -112,7 +108,6 @@ enum OfflineAI {
             )
         }
 
-        // Plan request — full program
         if lower.contains("план") || lower.contains("программ") || lower.contains("расписан") {
             let useHome = isHome ?? true
             let exercises = useHome ? homeExercises : gymExercises
@@ -126,7 +121,6 @@ enum OfflineAI {
             )
         }
 
-        // Strength
         if lower.contains("сил") || lower.contains("мощ") || lower.contains("мышц") {
             let useHome = isHome ?? true
             let exercises = useHome ? homeExercises : gymExercises
@@ -140,7 +134,6 @@ enum OfflineAI {
             )
         }
 
-        // Endurance
         if lower.contains("выносл") || lower.contains("кардио") || lower.contains("бег") {
             let endurance = homeExercises.filter { $0.1 >= 40 }.shuffled().prefix(4)
             var commands: [AICommand] = []
@@ -152,7 +145,6 @@ enum OfflineAI {
             )
         }
 
-        // Weight loss
         if lower.contains("похуд") || lower.contains("вес") || lower.contains("жиры") || lower.contains("фигур") {
             let cardio = homeExercises.filter { $0.1 >= 30 }.shuffled().prefix(4)
             var commands: [AICommand] = []
@@ -164,7 +156,6 @@ enum OfflineAI {
             )
         }
 
-        // Complaining — tough love
         if lower.contains("устал") || lower.contains("боль") || lower.contains("тяжело") || lower.contains("не могу") || lower.contains("лень") || lower.contains("не хоч") {
             let useHome = isHome ?? true
             var cmds = buildWorkoutCommands(isHome: useHome, count: 3)
@@ -175,7 +166,6 @@ enum OfflineAI {
             )
         }
 
-        // Greeting — assign training immediately
         if lower.contains("привет") || lower.contains("здравств") || lower.contains("хай") || lower.contains("хелло") {
             let useHome = isHome ?? true
             let cmds = buildWorkoutCommands(isHome: useHome, count: 3)
@@ -185,7 +175,6 @@ enum OfflineAI {
             )
         }
 
-        // Check progress — scold if incomplete
         if lower.contains("прогресс") || lower.contains("как я") || lower.contains("результат") {
             if done < tasks.count {
                 let remaining = tasks.count - done
@@ -201,7 +190,6 @@ enum OfflineAI {
             }
         }
 
-        // Default — assign training + habit
         let useHome = isHome ?? true
         var cmds = buildWorkoutCommands(isHome: useHome, count: 3)
         let habit = habitSuggestions.randomElement()!

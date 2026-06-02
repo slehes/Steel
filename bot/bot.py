@@ -1,10 +1,3 @@
-#!/usr/bin/env python3
-"""
-Steel Telegram Bot
-Отчёты по привычкам в 00:00 и 12:00 по МСК.
-Синхронизация через /sync <backup_строка> из приложения Steel.
-"""
-
 import asyncio
 import base64
 import json
@@ -25,17 +18,11 @@ from aiogram.client.default import DefaultBotProperties
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
 
-# ─── Config ──────────────────────────────────────────────────────────────────
-
 BOT_TOKEN = "8112616068:AAGR9fsSClI7CViqXNZTFDHk-o8ijWpE-iw"
 DB_PATH   = Path(__file__).parent / "steel.db"
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s [%(levelname)s] %(message)s"
-)
+logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 
-# ─── Premium Emoji ────────────────────────────────────────────────────────────
 
 def pe(emoji_id: str, fallback: str) -> str:
     return f'<tg-emoji emoji-id="{emoji_id}">{fallback}</tg-emoji>'
@@ -51,12 +38,9 @@ BOTIE = pe("6030400221232501136", "🤖")
 UP    = pe("5963103826075456248", "⬆")
 INFO  = pe("6028435952299413210", "ℹ")
 LOCK  = pe("6037249452824072506", "🔒")
-GIFT  = pe("6032644646587338669", "🎁")
 PERSON= pe("5870994129244131212", "👤")
-CAL   = pe("5890937706803894250", "📅")
 GREEN = pe("5416081784641168838", "🟢")
 
-# ─── Database ─────────────────────────────────────────────────────────────────
 
 def db() -> sqlite3.Connection:
     conn = sqlite3.connect(DB_PATH)
@@ -144,7 +128,6 @@ def all_chat_ids() -> list[int]:
     with db() as c:
         return [r["chat_id"] for r in c.execute("SELECT chat_id FROM users").fetchall()]
 
-# ─── Helpers ──────────────────────────────────────────────────────────────────
 
 def ru_days(n: int) -> str:
     last2, last1 = n % 100, n % 10
@@ -154,17 +137,14 @@ def ru_days(n: int) -> str:
     return f"{n} дней"
 
 def clean_days(ts: float) -> int:
-    start = date.fromtimestamp(ts)
-    return max(0, (date.today() - start).days)
-
-# ─── Report Builder ───────────────────────────────────────────────────────────
+    return max(0, (date.today() - date.fromtimestamp(ts)).days)
 
 def build_report(data: dict, time_label: str) -> str:
-    streak  = data["streakDays"]
-    user    = data.get("userName", "Воин")
-    habits  = data["habits"]
-    tasks   = data["tasks"]
-    today   = datetime.now().strftime("%d.%m.%Y")
+    streak = data["streakDays"]
+    user   = data.get("userName", "Воин")
+    habits = data["habits"]
+    tasks  = data["tasks"]
+    today  = datetime.now().strftime("%d.%m.%Y")
 
     bad  = [h for h in habits if h["category"] == "bad"]
     good = [h for h in habits if h["category"] == "good"]
@@ -197,7 +177,6 @@ def build_report(data: dict, time_label: str) -> str:
     lines += ["", f"{GRAPH} <b>Так держать!</b>"]
     return "\n".join(lines)
 
-# ─── Keyboards ────────────────────────────────────────────────────────────────
 
 def main_kb() -> ReplyKeyboardMarkup:
     return ReplyKeyboardMarkup(
@@ -206,9 +185,7 @@ def main_kb() -> ReplyKeyboardMarkup:
                 KeyboardButton(text="Отчёт",         icon_custom_emoji_id="5870930636742595124"),
                 KeyboardButton(text="Синхронизация", icon_custom_emoji_id="5963103826075456248"),
             ],
-            [
-                KeyboardButton(text="Помощь", icon_custom_emoji_id="6028435952299413210"),
-            ],
+            [KeyboardButton(text="Помощь", icon_custom_emoji_id="6028435952299413210")],
         ],
         resize_keyboard=True
     )
@@ -222,7 +199,6 @@ def sync_help_kb() -> InlineKeyboardMarkup:
         )
     ]])
 
-# ─── Handlers ────────────────────────────────────────────────────────────────
 
 router = Router()
 
@@ -268,8 +244,7 @@ async def cmd_report(msg: Message):
             reply_markup=sync_help_kb()
         )
         return
-    now_lbl = datetime.now().strftime("%H:%M")
-    await msg.answer(build_report(data, now_lbl), parse_mode=ParseMode.HTML)
+    await msg.answer(build_report(data, datetime.now().strftime("%H:%M")), parse_mode=ParseMode.HTML)
 
 
 @router.message(F.text == "Синхронизация")
@@ -324,13 +299,10 @@ async def cmd_sync(msg: Message):
     upsert_user(msg.chat.id, msg.from_user.username or "", msg.from_user.first_name or "")
     save_sync(msg.chat.id, payload)
 
-    habits_n = len(payload.get("habits", []))
-    streak   = payload.get("streakDays", 0)
-
     await msg.answer(
         f"{CHECK} <b>Синхронизация успешна!</b>\n\n"
-        f"{FIRE} Серия: <b>{ru_days(streak)}</b>\n"
-        f"{BOLT} Привычек: <b>{habits_n}</b>\n\n"
+        f"{FIRE} Серия: <b>{ru_days(payload.get('streakDays', 0))}</b>\n"
+        f"{BOLT} Привычек: <b>{len(payload.get('habits', []))}</b>\n\n"
         f"{CLOCK} Отчёты будут приходить в <b>00:00</b> и <b>12:00</b>",
         parse_mode=ParseMode.HTML
     )
@@ -350,51 +322,28 @@ async def cb_sync_help(cb: CallbackQuery):
     await cb.answer()
 
 
-# ─── Scheduler ───────────────────────────────────────────────────────────────
-
 async def send_reports(bot: Bot, time_label: str):
     for chat_id in all_chat_ids():
         data = get_data(chat_id)
         if not data:
             continue
         try:
-            await bot.send_message(
-                chat_id,
-                build_report(data, time_label),
-                parse_mode=ParseMode.HTML
-            )
+            await bot.send_message(chat_id, build_report(data, time_label), parse_mode=ParseMode.HTML)
         except Exception as e:
-            logging.warning(f"Report failed for {chat_id}: {e}")
+            logging.warning(f"Report failed {chat_id}: {e}")
 
-
-# ─── Main ─────────────────────────────────────────────────────────────────────
 
 async def main():
     init_db()
-
-    bot = Bot(
-        token=BOT_TOKEN,
-        default=DefaultBotProperties(parse_mode=ParseMode.HTML)
-    )
-    dp = Dispatcher()
+    bot = Bot(token=BOT_TOKEN, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
+    dp  = Dispatcher()
     dp.include_router(router)
 
     scheduler = AsyncIOScheduler(timezone="Europe/Moscow")
-    scheduler.add_job(
-        send_reports,
-        trigger=CronTrigger(hour=0, minute=0, timezone="Europe/Moscow"),
-        args=[bot, "00:00"],
-        id="midnight"
-    )
-    scheduler.add_job(
-        send_reports,
-        trigger=CronTrigger(hour=12, minute=0, timezone="Europe/Moscow"),
-        args=[bot, "12:00"],
-        id="noon"
-    )
+    scheduler.add_job(send_reports, CronTrigger(hour=0,  minute=0,  timezone="Europe/Moscow"), args=[bot, "00:00"], id="midnight")
+    scheduler.add_job(send_reports, CronTrigger(hour=12, minute=0,  timezone="Europe/Moscow"), args=[bot, "12:00"], id="noon")
     scheduler.start()
 
-    logging.info("Steel Bot запущен ✅")
     await dp.start_polling(bot, skip_updates=True)
 
 

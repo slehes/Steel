@@ -26,7 +26,6 @@ final class DataManager {
     }
 
 
-
     private var activeTimeZone: TimeZone {
         TimeZone(identifier: settings.regionTimeZone) ?? TimeZone(identifier: "Europe/Moscow")!
     }
@@ -43,13 +42,11 @@ final class DataManager {
         do {
             container = try ModelContainer(for: schema, configurations: [config])
         } catch {
-            // If ModelContainer fails (e.g. schema migration), delete corrupt DB and retry
             print("⚠️ ModelContainer error: \(error). Resetting database.")
             Self.deleteDatabase()
             do {
                 container = try ModelContainer(for: schema, configurations: [config])
             } catch {
-                // Last resort: in-memory container so app doesn't crash
                 print("⚠️ ModelContainer still failing after reset. Using in-memory store.")
                 let memConfig = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
                 do {
@@ -68,7 +65,6 @@ final class DataManager {
         }
     }
 
-    /// Delete the SwiftData database files so they can be recreated cleanly
     private static func deleteDatabase() {
         guard let url = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first else { return }
         let defaultDir = url.appendingPathComponent("default.store")
@@ -95,7 +91,6 @@ final class DataManager {
         let storedVersion = UserDefaults.standard.integer(forKey: seedVersionKey)
         guard storedVersion < currentSeedVersion else { return }
 
-        // Wipe previous data for clean reseed
         fetchHabits().forEach { context.delete($0) }
         fetchTasks().forEach { context.delete($0) }
         try? context.save()
@@ -105,7 +100,6 @@ final class DataManager {
             cal.date(byAdding: .day, value: -n, to: cal.startOfDay(for: Date())) ?? Date()
         }
 
-        // Вредные привычки — отказываемся
         let badSeeds: [(String, String, Int)] = [
             ("18+ контент",    "hand.raised.slash.fill",  7),
             ("Алкоголь",       "wineglass.slash.fill",   25),
@@ -118,7 +112,6 @@ final class DataManager {
             context.insert(h)
         }
 
-        // Полезные привычки — формируем
         let goodSeeds: [(String, String, Int)] = [
             ("Кофе",                 "cup.and.saucer.fill",  4),
             ("2 л воды",             "drop.fill",            9),
@@ -135,7 +128,6 @@ final class DataManager {
             context.insert(h)
         }
 
-        // Ежедневные задачи — зарядка
         let taskSeeds: [(String, Int, String, String)] = [
             ("Отжимания", 50, "раз", "figure.strengthtraining.traditional"),
             ("Пресс",     50, "раз", "figure.core.training"),
@@ -166,7 +158,6 @@ final class DataManager {
         if let data = try? JSONEncoder().encode(settings) {
             UserDefaults.standard.set(data, forKey: settingsKey)
         }
-        // Auto-backup to Keychain on every settings change
         KeychainHelper.backupAllData()
     }
 
@@ -244,7 +235,6 @@ final class DataManager {
         return task
     }
 
-    /// Restore task from Keychain backup (no notification to avoid loops)
     func addTaskFromDTO(_ dto: TaskDTO) {
         let index = (fetchTasks().map(\.sortIndex).max() ?? -1) + 1
         let task = DailyTask(title: dto.title, amount: dto.amount, unit: dto.unit, iconName: dto.iconName, sortIndex: index)
@@ -276,7 +266,6 @@ final class DataManager {
         KeychainHelper.backupAllData()
     }
 
-    /// Toggle task completion
     func toggleTask(_ task: DailyTask) {
         task.isCompleted.toggle()
         if task.isCompleted {
@@ -315,8 +304,6 @@ final class DataManager {
         } catch {
             print("⚠️ Error saving habit: \(error)")
         }
-        // Откладываем уведомление на следующую итерацию RunLoop,
-        // чтобы SwiftData завершил вставку до того, как VC попытается прочитать данные
         DispatchQueue.main.async {
             NotificationCenter.default.post(name: .steelHabitsChanged, object: nil)
             KeychainHelper.backupAllData()
@@ -324,7 +311,6 @@ final class DataManager {
         return habit
     }
 
-    /// Restore habit from Keychain backup
     func addHabitFromDTO(_ dto: HabitDTO) {
         let index = (fetchHabits().map(\.sortIndex).max() ?? -1) + 1
         let category = HabitCategory(rawValue: dto.categoryRaw) ?? .bad
@@ -337,8 +323,6 @@ final class DataManager {
         NotificationCenter.default.post(name: .steelHabitsChanged, object: nil)
     }
 
-    /// Привычки разбитые по категориям. Полезные идут первыми — они позитивные,
-    /// вредные следом — это «от чего отказываемся».
     func fetchHabitsGrouped() -> (good: [Habit], bad: [Habit]) {
         let all = fetchHabits()
         return (
@@ -386,17 +370,10 @@ final class DataManager {
         }
         try? context.save()
 
-        // Also parse plan body and create PlanEntry items
         parsePlanEntries(body: body)
     }
 
     func parsePlanEntries(body: String) {
-        // Парсим структурированный план:
-        // - Пропускаем служебные заголовки (ПРОГРАММА, ЦЕЛЬ, ДЛИТЕЛЬНОСТЬ, УРОВЕНЬ,
-        //   НЕДЕЛЯ X, ПИТАНИЕ, РЕЖИМ ДНЯ, ВОССТАНОВЛЕНИЕ).
-        // - Из строк "- ДЕНЬ 1 (ПН): силовая — 50 отжиманий, 30 приседаний" берём
-        //   только тренировочную часть (после тире).
-        // - Из секции ПИТАНИЕ создаём записи с иконкой вилки.
         let lines = body.components(separatedBy: "\n")
 
         let sectionHeaders: [String] = [
@@ -411,7 +388,6 @@ final class DataManager {
             let trimmed = raw.trimmingCharacters(in: .whitespaces)
             guard !trimmed.isEmpty else { continue }
 
-            // Заголовки секций
             let upper = trimmed.uppercased()
             if sectionHeaders.contains(where: { upper.hasPrefix($0) }) {
                 inNutrition = upper.hasPrefix("ПИТАНИЕ")
@@ -419,26 +395,22 @@ final class DataManager {
                 continue
             }
 
-            // Ожидаем строку вида "- ДЕНЬ 1 (ПН): <что делаем>"
             guard trimmed.hasPrefix("-") || trimmed.hasPrefix("•") else { continue }
             let withoutBullet = trimmed.dropFirst().trimmingCharacters(in: .whitespaces)
             guard !withoutBullet.isEmpty else { continue }
 
-            // Убираем префиксы ДЕНЬ N (ДН):
             var title = withoutBullet
             if let range = title.range(of: ":") {
                 let after = title[range.upperBound...].trimmingCharacters(in: .whitespaces)
                 if !after.isEmpty { title = after }
             }
 
-            // Убираем « — » и берём хвост после тире
             if let dashRange = title.range(of: " — ") {
                 title = String(title[dashRange.upperBound...]).trimmingCharacters(in: .whitespaces)
             } else if let dashRange = title.range(of: " - ") {
                 title = String(title[dashRange.upperBound...]).trimmingCharacters(in: .whitespaces)
             }
 
-            // Ограничиваем длину для отображения
             if title.count > 120 { title = String(title.prefix(120)) + "…" }
             guard title.count > 3 else { continue }
 
@@ -496,7 +468,6 @@ final class DataManager {
         return (tasks.filter(\.isCompleted).count, tasks.count)
     }
 
-    /// Get motivational message based on current progress
     var motivationalMessage: String {
         let messages = [
             "Каждый шаг — победа!",

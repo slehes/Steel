@@ -4,16 +4,9 @@ import SwiftData
 import SnapKit
 import SPIndicator
 
-// MARK: - SteelSyncManager
-// Резервное копирование через буфер обмена — никакой регистрации и настройки.
-// Экспорт: все данные → JSON → base64 → буфер обмена.
-// Импорт: вставьте строку → данные восстановятся.
-
 @MainActor
 final class SteelSyncManager {
     static let shared = SteelSyncManager()
-
-    // MARK: - Export
 
     @discardableResult
     func exportToClipboard() -> Bool {
@@ -22,8 +15,6 @@ final class SteelSyncManager {
         UIPasteboard.general.string = data.base64EncodedString()
         return true
     }
-
-    // MARK: - Import
 
     @discardableResult
     func importFromString(_ input: String) -> Bool {
@@ -51,8 +42,6 @@ final class SteelSyncManager {
         return true
     }
 
-    // MARK: - Payload
-
     func buildPayload() -> SyncPayload {
         let habits = DataManager.shared.fetchHabits().map { HabitDTO(from: $0) }
         let tasks  = DataManager.shared.fetchTasks().map { TaskDTO(from: $0) }
@@ -76,8 +65,6 @@ final class SteelSyncManager {
         var lastSync: Double
     }
 }
-
-// MARK: - SyncViewController
 
 final class SyncViewController: UIViewController {
     private let scrollView  = UIScrollView()
@@ -133,8 +120,6 @@ final class SyncViewController: UIViewController {
         buildInfoCard()
     }
 
-    // MARK: - UUID Card
-
     private func buildUUIDCard() {
         let card = makeCard()
         let stack = UIStackView()
@@ -169,8 +154,6 @@ final class SyncViewController: UIViewController {
         contentStack.addArrangedSubview(card)
     }
 
-    // MARK: - Export Card
-
     private func buildExportCard() {
         let card = makeCard()
         let stack = UIStackView()
@@ -195,8 +178,6 @@ final class SyncViewController: UIViewController {
         contentStack.addArrangedSubview(card)
     }
 
-    // MARK: - Import Card
-
     private func buildImportCard() {
         let card = makeCard()
         let stack = UIStackView()
@@ -208,7 +189,6 @@ final class SyncViewController: UIViewController {
         stack.addArrangedSubview(makeSectionHeader(icon: "arrow.down.doc.fill", iconColor: .systemGreen, title: "Восстановить из копии"))
         stack.addArrangedSubview(makeSeparator())
 
-        // Text view for paste
         let fieldContainer = UIView()
         let textView = UITextView()
         textView.font = UIFont.monospacedSystemFont(ofSize: 12, weight: .regular)
@@ -229,7 +209,6 @@ final class SyncViewController: UIViewController {
         stack.addArrangedSubview(fieldContainer)
         stack.addArrangedSubview(makeSeparator())
 
-        // Paste from clipboard button
         stack.addArrangedSubview(makeActionRow(
             icon: "clipboard",
             iconColor: .systemTeal,
@@ -253,8 +232,6 @@ final class SyncViewController: UIViewController {
         contentStack.addArrangedSubview(card)
     }
 
-    // MARK: - Info Card
-
     private func buildInfoCard() {
         let card = makeCard()
         let stack = UIStackView()
@@ -275,8 +252,6 @@ final class SyncViewController: UIViewController {
         }
         contentStack.addArrangedSubview(card)
     }
-
-    // MARK: - Actions
 
     @objc private func copyUUID() {
         UIImpactFeedbackGenerator(style: .medium).impactOccurred()
@@ -322,8 +297,6 @@ final class SyncViewController: UIViewController {
     @objc private func reloadBackground() {
         backgroundView.apply(BackgroundManager.shared.config)
     }
-
-    // MARK: - Builders
 
     private func makeSectionHeader(icon: String, iconColor: UIColor, title: String) -> UIView {
         let iconContainer = UIView()
@@ -438,8 +411,6 @@ final class SyncViewController: UIViewController {
         action()
     }
 }
-
-// MARK: - UITextViewDelegate
 
 extension SyncViewController: UITextViewDelegate {
     func textViewDidBeginEditing(_ textView: UITextView) {

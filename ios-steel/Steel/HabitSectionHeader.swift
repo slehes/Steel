@@ -1,8 +1,6 @@
 import UIKit
 import SnapKit
 
-/// Заголовок секции в привычках: «Полезные» / «Вредные».
-/// Стеклянная плашка с иконкой и счётчиком привычек в секции.
 final class HabitSectionHeader: UICollectionReusableView {
     static let reuseID = "HabitSectionHeader"
 
@@ -60,7 +58,6 @@ final class HabitSectionHeader: UICollectionReusableView {
     }
 
     private func titleWordForm(_ n: Int) -> String {
-        // очень простая плюрализация для русского
         let mod10 = n % 10
         let mod100 = n % 100
         if mod100 >= 11 && mod100 <= 14 { return "штук" }

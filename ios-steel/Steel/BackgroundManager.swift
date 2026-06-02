@@ -32,7 +32,6 @@ final class BackgroundManager {
             $0.background = newConfig
         }
 
-        // Save to Keychain for persistence across reinstalls
         if let imageData = processed.jpegData(compressionQuality: 0.85) {
             KeychainHelper.saveBackgroundToKeychain(config: newConfig, imageData: imageData)
         }
@@ -51,7 +50,6 @@ final class BackgroundManager {
             $0.background = newConfig
         }
 
-        // Save config to Keychain (video data too large for Keychain)
         KeychainHelper.saveBackgroundToKeychain(config: newConfig, imageData: nil)
 
         NotificationCenter.default.post(name: .steelBackgroundChanged, object: nil)
@@ -62,7 +60,6 @@ final class BackgroundManager {
         clearOldFiles(except: nil)
         DataManager.shared.updateSettings { $0.background = .disabled }
 
-        // Clear from Keychain
         KeychainHelper.clearBackgroundFromKeychain()
 
         NotificationCenter.default.post(name: .steelBackgroundChanged, object: nil)
@@ -71,7 +68,6 @@ final class BackgroundManager {
     func setDimmed(_ dimmed: Bool) {
         DataManager.shared.updateSettings { $0.background.dimmed = dimmed }
 
-        // Update Keychain config
         KeychainHelper.saveBackgroundToKeychain(config: DataManager.shared.settings.background, imageData: KeychainHelper.savedBackgroundImageData)
 
         NotificationCenter.default.post(name: .steelBackgroundChanged, object: nil)

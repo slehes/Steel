@@ -3,8 +3,6 @@ import SnapKit
 import SPIndicator
 import UserNotifications
 
-// MARK: - SettingsViewController
-
 final class SettingsViewController: UIViewController {
 
     private let scrollView     = UIScrollView()
@@ -32,8 +30,6 @@ final class SettingsViewController: UIViewController {
         ("Норильск", "Asia/Krasnoyarsk"),
     ]
 
-    // MARK: - Lifecycle
-
     override func viewDidLoad() {
         super.viewDidLoad()
         title = "Настройки"
@@ -59,8 +55,6 @@ final class SettingsViewController: UIViewController {
         super.viewWillDisappear(animated)
         backgroundView.pauseVideo()
     }
-
-    // MARK: - Setup
 
     private func setup() {
         view.addSubview(backgroundView)
@@ -93,7 +87,6 @@ final class SettingsViewController: UIViewController {
 
         buildUUIDFooter()
 
-        // Floating glass tab bar
         view.addSubview(glassTabBar)
         glassTabBar.snp.makeConstraints {
             $0.leading.trailing.equalToSuperview().inset(16)
@@ -102,8 +95,6 @@ final class SettingsViewController: UIViewController {
         }
         glassTabBar.onTab = { [weak self] index in self?.switchToTab(index) }
     }
-
-    // MARK: - Group Builder
 
     private func buildGroup(rows: [UIView]) {
         let card = UIVisualEffectView(effect: UIBlurEffect(style: .systemUltraThinMaterial))
@@ -135,10 +126,7 @@ final class SettingsViewController: UIViewController {
         contentStack.addArrangedSubview(card)
     }
 
-    // MARK: - Row Factory
-
     private func makeRow(icon: String, color: UIColor, title: String, subtitle: String, action: @escaping () -> Void) -> UIView {
-        // Icon
         let iconWrap = UIView()
         iconWrap.backgroundColor = color
         iconWrap.layer.cornerRadius = 9
@@ -152,7 +140,6 @@ final class SettingsViewController: UIViewController {
         iconWrap.addSubview(iconImg)
         iconImg.snp.makeConstraints { $0.center.equalToSuperview() }
 
-        // Labels
         let titleLbl = UILabel()
         titleLbl.text = title
         titleLbl.font = UIFont.systemFont(ofSize: 16, weight: .regular)
@@ -165,7 +152,6 @@ final class SettingsViewController: UIViewController {
         subtitleLbl.setContentHuggingPriority(.required, for: .horizontal)
         subtitleLbl.setContentCompressionResistancePriority(.required, for: .horizontal)
 
-        // Chevron
         let chevron = UIImageView(image: UIImage(systemName: "chevron.right",
                                                   withConfiguration: UIImage.SymbolConfiguration(pointSize: 10, weight: .semibold)))
         chevron.tintColor = .tertiaryLabel
@@ -182,8 +168,6 @@ final class SettingsViewController: UIViewController {
         objc_setAssociatedObject(row, "rowAction", action, .OBJC_ASSOCIATION_COPY_NONATOMIC)
         return row
     }
-
-    // MARK: - UUID Footer
 
     private func buildUUIDFooter() {
         let stack = UIStackView()
@@ -208,15 +192,11 @@ final class SettingsViewController: UIViewController {
         contentStack.addArrangedSubview(stack)
     }
 
-    // MARK: - Tab Switch
-
     private func switchToTab(_ index: Int) {
         let presenter = navigationController?.presentingViewController ?? presentingViewController
         let tbc = presenter?.tabBarController ?? (presenter as? UITabBarController)
         dismiss(animated: true) { tbc?.selectedIndex = index }
     }
-
-    // MARK: - Actions
 
     @objc private func rowTapped(_ gesture: UITapGestureRecognizer) {
         guard let action = objc_getAssociatedObject(gesture.view, "rowAction") as? () -> Void else { return }
@@ -233,8 +213,6 @@ final class SettingsViewController: UIViewController {
     @objc private func close() { dismiss(animated: true) }
 
     @objc private func reloadBackground() { backgroundView.apply(BackgroundManager.shared.config) }
-
-    // MARK: - Navigation
 
     private func openBirthdayPicker() {
         let alert = UIAlertController(title: "День рождения", message: "\n\n\n\n\n\n\n\n\n\n", preferredStyle: .alert)
@@ -300,8 +278,6 @@ final class SettingsViewController: UIViewController {
         navigationController?.pushViewController(vc, animated: true)
     }
 
-    // MARK: - Helpers
-
     private func birthdaySubtitle() -> String {
         let s = DataManager.shared.settings.birthdayDateString
         guard !s.isEmpty else { return "Не указан" }
@@ -316,8 +292,6 @@ final class SettingsViewController: UIViewController {
         return c.isEmpty ? "Москва" : c
     }
 }
-
-// MARK: - SettingsGlassTabBar
 
 final class SettingsGlassTabBar: UIView {
 
@@ -399,8 +373,6 @@ final class SettingsGlassTabBar: UIView {
         onTab?(sender.tag)
     }
 }
-
-// MARK: - StreakSettingsViewController
 
 final class StreakSettingsViewController: UIViewController {
     private let backgroundView = PersonalBackgroundView()

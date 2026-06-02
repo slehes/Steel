@@ -38,14 +38,12 @@ final class TaskDetailViewController: UIViewController {
     }
 
     private func setup() {
-        // Container
         view.addSubview(containerView)
         containerView.snp.makeConstraints {
             $0.center.equalToSuperview()
             $0.leading.trailing.equalToSuperview().inset(20)
         }
 
-        // Glass card
         glassCard.layer.cornerRadius = 28
         glassCard.layer.cornerCurve = .continuous
         glassCard.clipsToBounds = true
@@ -57,7 +55,6 @@ final class TaskDetailViewController: UIViewController {
 
         let content = glassCard.contentView
 
-        // Close button (X)
         closeButton.setImage(UIImage(systemName: "xmark.circle.fill"), for: .normal)
         closeButton.tintColor = .secondaryLabel
         closeButton.addTarget(self, action: #selector(closeTapped), for: .touchUpInside)
@@ -67,7 +64,6 @@ final class TaskDetailViewController: UIViewController {
             $0.width.height.equalTo(32)
         }
 
-        // GIF image
         gifImageView.contentMode = .scaleAspectFit
         gifImageView.layer.cornerRadius = 20
         gifImageView.clipsToBounds = true
@@ -83,7 +79,6 @@ final class TaskDetailViewController: UIViewController {
             $0.height.equalTo(160)
         }
 
-        // Title
         titleLabel.text = task.title
         titleLabel.font = UIFont.preferredFont(forTextStyle: .title2).withWeight(.bold)
         titleLabel.textColor = .label
@@ -95,7 +90,6 @@ final class TaskDetailViewController: UIViewController {
             $0.leading.trailing.equalToSuperview().inset(20)
         }
 
-        // Detail
         detailLabel.text = task.displayDetail
         detailLabel.font = UIFont.systemFont(ofSize: 28, weight: .heavy)
         detailLabel.textColor = .systemGreen
@@ -106,7 +100,6 @@ final class TaskDetailViewController: UIViewController {
             $0.centerX.equalToSuperview()
         }
 
-        // Description / tips
         descriptionLabel.text = tipForTask(task.title)
         descriptionLabel.font = UIFont.preferredFont(forTextStyle: .subheadline)
         descriptionLabel.textColor = .secondaryLabel
@@ -118,7 +111,6 @@ final class TaskDetailViewController: UIViewController {
             $0.leading.trailing.equalToSuperview().inset(24)
         }
 
-        // Buttons
         var doneConfig = UIButton.Configuration.filled()
         doneConfig.title = wasCompleted ? "Отменить" : "Выполнил"
         doneConfig.image = UIImage(systemName: wasCompleted ? "arrow.uturn.backward" : "checkmark.seal.fill")
@@ -157,7 +149,6 @@ final class TaskDetailViewController: UIViewController {
         let taskName = task.title.lowercased()
         let gifName = gifNameForTask(taskName)
 
-        // Try to load GIF from bundle
         if let path = Bundle.main.path(forResource: gifName, ofType: "gif"),
            let data = try? Data(contentsOf: URL(fileURLWithPath: path)),
            let image = UIImage(data: data) {
@@ -165,7 +156,6 @@ final class TaskDetailViewController: UIViewController {
             gifImageView.contentMode = .scaleAspectFill
             gifImageView.backgroundColor = .clear
         } else {
-            // Fallback: show animated exercise icon
             let iconName = iconForExercise(taskName)
             gifImageView.image = UIImage(systemName: iconName)
             gifImageView.contentMode = .center
@@ -249,7 +239,6 @@ final class TaskDetailViewController: UIViewController {
         if !task.isCompleted {
             DataManager.shared.toggleTask(task)
         } else {
-            // Если задача уже выполнена, откатываем её
             DataManager.shared.toggleTask(task)
         }
         UIImpactFeedbackGenerator(style: .heavy).impactOccurred()

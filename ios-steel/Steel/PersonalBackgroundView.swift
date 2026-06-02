@@ -19,7 +19,6 @@ final class PersonalBackgroundView: UIView {
         setup()
     }
 
-    /// Allow touches to pass through to views below
     override func hitTest(_ point: CGPoint, with event: UIEvent?) -> UIView? {
         return nil
     }

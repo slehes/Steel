@@ -1,35 +1,5 @@
 import Foundation
 
-/// Парсер плана тренировок, который превращает плоский текст от ИИ-тренера
-/// в структурированную модель `ParsedPlan`.
-///
-/// Ожидаемый формат (заголовки заглавными, маркеры `-` или `•`):
-///
-///     ПРОГРАММА: <название>
-///     ЦЕЛЬ: <цель>
-///     ДЛИТЕЛЬНОСТЬ: 6 недель
-///     УРОВЕНЬ: средняк
-///
-///     НЕДЕЛЯ 1
-///     - ДЕНЬ 1 (ПН): силовая — 50 отжиманий, 30 приседаний
-///     - ДЕНЬ 2 (ВТ): кардио — 20 минут бег
-///     ...
-///
-///     НЕДЕЛЯ 2
-///     ...
-///
-///     ПИТАНИЕ
-///     - ЗАВТРАК (7:00–8:00): овсянка + яйца
-///     - ОБЕД (13:00): курица + гречка + овощи
-///     ...
-///
-///     РЕЖИМ ДНЯ
-///     - ПОДЪЁМ: 6:30
-///     - ОТБОЙ: 23:00
-///     ...
-///
-///     ВОССТАНОВЛЕНИЕ
-///     - ...
 struct ParsedPlan {
     struct Program {
         let title: String
@@ -38,7 +8,6 @@ struct ParsedPlan {
         let level: String
     }
 
-    /// День недели с типом и упражнениями/нагрузкой
     struct Day {
         let index: Int      // 1..7
         let weekday: String // "ПН" / "ВТ" / ...
@@ -95,11 +64,9 @@ enum PlanParser {
             guard !line.isEmpty else { continue }
             let upper = line.uppercased()
 
-            // Заголовки секций
             if upper.hasPrefix("ПРОГРАММА") { currentSection = .program; continue }
             if upper.hasPrefix("НЕДЕЛЯ") {
                 currentSection = .week
-                // НЕДЕЛЯ 1 → 1
                 let num = upper
                     .replacingOccurrences(of: "НЕДЕЛЯ", with: "")
                     .trimmingCharacters(in: .whitespaces)
@@ -114,7 +81,6 @@ enum PlanParser {
             if upper.hasPrefix("РЕЖИМ ДНЯ") { currentSection = .schedule; continue }
             if upper.hasPrefix("ВОССТАНОВЛЕНИЕ") { currentSection = .recovery; continue }
 
-            // Ключ: значение в шапке (ПРОГРАММА:, ЦЕЛЬ:, ДЛИТЕЛЬНОСТЬ:, УРОВЕНЬ:)
             if currentSection == .program, line.contains(":") {
                 let parts = line.split(separator: ":", maxSplits: 1, omittingEmptySubsequences: true)
                 guard parts.count == 2 else { continue }
@@ -130,7 +96,6 @@ enum PlanParser {
                 continue
             }
 
-            // Маркированные строки
             guard line.hasPrefix("-") || line.hasPrefix("•") else { continue }
             let content = line.dropFirst().trimmingCharacters(in: .whitespaces)
             guard !content.isEmpty else { continue }
@@ -163,12 +128,9 @@ enum PlanParser {
         )
     }
 
-    // MARK: - Парсинг отдельных строк
 
-    /// "ДЕНЬ 1 (ПН): силовая — 50 отжиманий, 30 приседаний"
     private static func parseDay(_ raw: String) -> ParsedPlan.Day {
         let upper = raw.uppercased()
-        // Номер дня — ищем первую цифру после слова ДЕНЬ
         var index = 0
         if let dayRange = upper.range(of: "ДЕНЬ") {
             let after = upper[dayRange.upperBound...]
@@ -179,7 +141,6 @@ enum PlanParser {
                 }
             }
         }
-        // День недели в скобках: (ПН) / (ВТ) / ...
         var weekday = ""
         if let paren = raw.range(of: #"\([А-Яа-я]{2}\)"#, options: .regularExpression) {
             weekday = String(raw[paren])
@@ -187,12 +148,10 @@ enum PlanParser {
                 .replacingOccurrences(of: ")", with: "")
                 .uppercased()
         }
-        // Тело — после первого двоеточия
         var body = raw
         if let colon = raw.firstIndex(of: ":") {
             body = String(raw[raw.index(after: colon)...]).trimmingCharacters(in: .whitespaces)
         }
-        // Тип — до тире (если есть)
         var type = body
         if let dashRange = body.range(of: " — ") {
             type = String(body[..<dashRange.lowerBound]).trimmingCharacters(in: .whitespaces)
@@ -204,7 +163,6 @@ enum PlanParser {
         return ParsedPlan.Day(index: index, weekday: weekday, type: type, body: body)
     }
 
-    /// "ЗАВТРАК (7:00–8:00): овсянка + яйца"
     private static func parseMeal(_ raw: String) -> ParsedPlan.Meal {
         var name = raw
         var time = ""
@@ -222,7 +180,6 @@ enum PlanParser {
         return ParsedPlan.Meal(name: name, time: time, body: body)
     }
 
-    /// "ПОДЪЁМ: 6:30" / "СОН: минимум 7–8 часов"
     private static func parseTip(_ raw: String) -> ParsedPlan.Tip {
         if let colon = raw.firstIndex(of: ":") {
             let k = String(raw[..<colon]).trimmingCharacters(in: .whitespaces)

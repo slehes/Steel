@@ -124,7 +124,6 @@ final class ProfileViewController: UIViewController {
     }
 
 
-
     private func setupStreak() {
         let card = makeLiquidGlassCard()
         streakLabel.font = UIFont.systemFont(ofSize: 44, weight: .heavy)
@@ -253,7 +252,6 @@ final class ProfileViewController: UIViewController {
     }
 
 
-
     private func refreshBirthdayLabel(birthdayString: String) {
         guard !birthdayString.isEmpty else { birthdayLabel.isHidden = true; return }
         let fmt = DateFormatter()
@@ -312,17 +310,14 @@ final class ProfileViewController: UIViewController {
         backgroundView.apply(BackgroundManager.shared.config)
     }
 
-    // MARK: - Avatar Persistence
 
     private func loadAvatar() {
-        // First try Keychain (survives reinstall)
         if let avatarData = KeychainHelper.savedAvatarData,
            let img = UIImage(data: avatarData) {
             avatarView.image = img
             avatarView.contentMode = .scaleAspectFill
             return
         }
-        // Then try documents directory
         let docs = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
         let avatarURL = docs.appendingPathComponent("avatar.jpg")
         if let data = try? Data(contentsOf: avatarURL),
@@ -331,19 +326,16 @@ final class ProfileViewController: UIViewController {
             avatarView.contentMode = .scaleAspectFill
             return
         }
-        // Default
         avatarView.image = UIImage(systemName: "person.crop.circle.fill")
         avatarView.contentMode = .center
     }
 
     private func saveAvatar(_ image: UIImage) {
-        // Save to documents directory
         if let data = image.jpegData(compressionQuality: 0.85) {
             let docs = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
             let avatarURL = docs.appendingPathComponent("avatar.jpg")
             try? data.write(to: avatarURL, options: .atomic)
 
-            // Also save to Keychain for reinstall persistence
             KeychainHelper.saveAvatarToKeychain(data)
         }
     }
@@ -360,7 +352,6 @@ final class ProfileViewController: UIViewController {
         alert.addAction(UIAlertAction(title: "Сбросить", style: .destructive) { [weak self] _ in
             self?.avatarView.image = UIImage(systemName: "person.crop.circle.fill")
             self?.avatarView.contentMode = .center
-            // Delete saved avatar
             let docs = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
             let avatarURL = docs.appendingPathComponent("avatar.jpg")
             try? FileManager.default.removeItem(at: avatarURL)

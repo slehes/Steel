@@ -47,7 +47,6 @@ final class ChatBubbleCell: UITableViewCell {
     func configure(text: String, isUser: Bool) {
         messageLabel.text = text
 
-        // Set preferredMaxLayoutWidth to prevent text overflow
         let maxWidth = UIScreen.main.bounds.width * 0.78 - 28 // bubble width - bubble padding
         messageLabel.preferredMaxLayoutWidth = maxWidth
 

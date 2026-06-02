@@ -74,18 +74,15 @@ final class PlanViewController: UIViewController {
     @objc private func render() {
         plan = DataManager.shared.currentPlan()
 
-        // Очистка предыдущих subviews
         contentStack.arrangedSubviews.forEach { $0.removeFromSuperview() }
 
         if let plan = plan, !plan.title.isEmpty || !plan.body.isEmpty {
             scrollView.isHidden = false
             emptyView.isHidden = true
 
-            // Карточка плана — только название + краткая инфа
             let card = makePlanCard(plan)
             contentStack.addArrangedSubview(card)
 
-            // Задания плана (компактно)
             let entries = fetchEntries()
             if !entries.isEmpty {
                 let sectionLabel = UILabel()
@@ -105,7 +102,6 @@ final class PlanViewController: UIViewController {
         }
     }
 
-    /// Карточка с названием плана — тап открывает модалку с подробным описанием
     private func makePlanCard(_ plan: TrainingPlan) -> UIView {
         let glass = LiquidGlassView(cornerRadius: 24, intensity: .regular)
         glass.backgroundColor = UIColor.systemBackground.withAlphaComponent(0.45)
@@ -148,12 +144,10 @@ final class PlanViewController: UIViewController {
         glass.contentView.addSubview(h)
         h.snp.makeConstraints { $0.edges.equalToSuperview().inset(18) }
 
-        // Тап — открываем модалку с подробным описанием
         let tap = UITapGestureRecognizer(target: self, action: #selector(openDetail))
         glass.addGestureRecognizer(tap)
         glass.isUserInteractionEnabled = true
 
-        // Длинное нажатие — меню (пересоздать/удалить)
         let longPress = UILongPressGestureRecognizer(target: self, action: #selector(handleLongPressOnPlan))
         longPress.minimumPressDuration = 0.5
         glass.addGestureRecognizer(longPress)
@@ -193,12 +187,10 @@ final class PlanViewController: UIViewController {
         h.snp.makeConstraints { $0.edges.equalToSuperview().inset(12) }
         row.snp.makeConstraints { $0.height.greaterThanOrEqualTo(48) }
 
-        // Tap to toggle
         let tap = UITapGestureRecognizer(target: self, action: #selector(entryTapped(_:)))
         row.addGestureRecognizer(tap)
         row.tag = entry.hashValue
 
-        // Long press to delete
         let longPress = UILongPressGestureRecognizer(target: self, action: #selector(entryLongPressed(_:)))
         row.addGestureRecognizer(longPress)
 

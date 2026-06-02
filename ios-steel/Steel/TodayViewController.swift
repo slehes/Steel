@@ -13,8 +13,6 @@ final class TodayViewController: UIViewController {
     private var actionBarHidden = false
     private let motivationLabel = UILabel()
 
-    /// Невидимая фича: долгое нажатие на кнопку фона/цели/стрелку прячет их,
-    /// оставляя только «+» видимым. Повторное долгое нажатие возвращает.
     private var extraButtonsHidden = false
     private var goalsButton: UIBarButtonItem!
     private var bgButton: UIBarButtonItem!
@@ -104,7 +102,6 @@ final class TodayViewController: UIViewController {
         present(nav, animated: true)
     }
 
-    /// Долгое нажатие на навбар — плавно скрывает/показывает кнопки фона, цели и стрелки.
     @objc private func toggleExtraButtons(_ gesture: UILongPressGestureRecognizer) {
         guard gesture.state == .began else { return }
         extraButtonsHidden.toggle()
@@ -312,7 +309,6 @@ final class TodayViewController: UIViewController {
     @objc private func finishDay() {
         let progress = DataManager.shared.taskProgress
 
-        // Нельзя завершить день без выполнения хотя бы одного задания
         guard progress.total > 0 else {
             SPIndicator.present(title: "Нет заданий", message: "Добавьте задания на сегодня", preset: .error, haptic: .error)
             return
@@ -356,12 +352,10 @@ extension TodayViewController: UICollectionViewDataSource, UICollectionViewDeleg
         let task = tasks[indexPath.item]
         UIImpactFeedbackGenerator(style: .light).impactOccurred()
 
-        // Open detail modal with exercise GIF
         let detailVC = TaskDetailViewController(task: task, wasCompleted: task.isCompleted)
         detailVC.modalPresentationStyle = .overCurrentContext
         detailVC.modalTransitionStyle = .crossDissolve
 
-        // Find the topmost presented view controller
         if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
            let window = windowScene.windows.first,
            let rootVC = window.rootViewController {

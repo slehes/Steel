@@ -11,9 +11,6 @@ final class AddHabitViewController: UIViewController {
     private var selectedCategory: HabitCategory
     private var selectedIcon: String
 
-    /// Иконки разделены по типичной семантике: полезные = растения, зарядка, книга;
-    /// вредные = сигареты, бокал, крестик. Объединены в один список для удобства,
-    /// но фильтруются по выбранной категории.
     private let goodIcons = [
         "figure.run", "figure.walk", "figure.hiking", "figure.cycling",
         "figure.strengthtraining.traditional", "figure.strengthtraining.functional",
@@ -57,8 +54,6 @@ final class AddHabitViewController: UIViewController {
         selectedCategory == .good ? goodIcons : badIcons
     }
 
-    /// Инициализатор принимает текущую категорию вкладки, чтобы
-    /// новая привычка по умолчанию создавалась в активной вкладке.
     init(initialCategory: HabitCategory = .bad) {
         let layout = UICollectionViewFlowLayout()
         layout.scrollDirection = .horizontal
@@ -67,7 +62,6 @@ final class AddHabitViewController: UIViewController {
         iconCollection = UICollectionView(frame: .zero, collectionViewLayout: layout)
 
         self.selectedCategory = initialCategory
-        // Дефолтная иконка зависит от категории
         self.selectedIcon = initialCategory == .good
             ? (goodIcons.first ?? "leaf.fill")
             : (badIcons.first ?? "xmark.octagon.fill")
@@ -99,7 +93,6 @@ final class AddHabitViewController: UIViewController {
         titleField.leftView = UIView(frame: CGRect(x: 0, y: 0, width: 14, height: 1))
         titleField.leftViewMode = .always
 
-        // Обёртываем поле ввода в жидкое стекло
         let titleGlass = LiquidGlassView(cornerRadius: 14, intensity: .thin)
         titleGlass.backgroundColor = UIColor.secondarySystemBackground.withAlphaComponent(0.4)
         titleGlass.contentView.addSubview(titleField)
@@ -108,7 +101,6 @@ final class AddHabitViewController: UIViewController {
         categoryControl.selectedSegmentIndex = selectedCategory == .good ? 0 : 1
         categoryControl.addTarget(self, action: #selector(categoryChanged), for: .valueChanged)
 
-        // Обёртываем сегментед-контрол в жидкое стекло
         let categoryGlass = LiquidGlassView(cornerRadius: 12, intensity: .thin)
         categoryGlass.backgroundColor = UIColor.secondarySystemBackground.withAlphaComponent(0.3)
         categoryGlass.contentView.addSubview(categoryControl)

@@ -28,8 +28,6 @@ final class AIChatViewController: UIViewController {
             target: self,
             action: #selector(newChat)
         )
-        // Кнопка «Мой план» — открывает текущий план тренировок, если он создан.
-        // Если плана нет — показывает подсказку с быстрым запросом к тренеру.
         let planButton = UIBarButtonItem(
             image: UIImage(systemName: "list.bullet.rectangle.portrait"),
             style: .plain,
@@ -60,7 +58,6 @@ final class AIChatViewController: UIViewController {
         super.viewWillDisappear(animated)
         backgroundView.pauseVideo()
         
-        // Send random coach notification when leaving chat
         if !isThinking && !messages.isEmpty {
             let coachTips = [
                 "Помни, что дисциплина — это свобода!",
@@ -299,7 +296,6 @@ final class AIChatViewController: UIViewController {
     }
 
     private func handleConversation(userText: String) async {
-        // Remember training location from user message
         let lower = userText.lowercased()
         if lower.contains("дом") || lower.contains("дома") || lower.contains("домашн") {
             DataManager.shared.updateSettings { $0.userTrainingLocation = "home" }
@@ -307,7 +303,6 @@ final class AIChatViewController: UIViewController {
             DataManager.shared.updateSettings { $0.userTrainingLocation = "gym" }
         }
 
-        // Offline mode: use local AI
         if isOffline || KeychainHelper.groqAPIKey.isEmpty {
             setThinking(true)
             defer { setThinking(false) }
@@ -331,7 +326,6 @@ final class AIChatViewController: UIViewController {
             return
         }
 
-        // Online mode: use Groq API
         setThinking(true)
         defer { setThinking(false) }
         do {

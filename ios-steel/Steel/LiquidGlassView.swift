@@ -1,20 +1,6 @@
 import UIKit
 import SnapKit
 
-/// «Жидкое стекло» — переиспользуемая стеклянная карточка.
-///
-/// Внутри:
-/// 1. UIVisualEffectView с тонким материалом — это даёт честный blur системного материала
-///    (виден фон, но приглушённо).
-/// 2. CAGradientLayer с белым градиентом 6% → 0% поверх — это «блик» сверху.
-/// 3. Внутренняя рамка из 1px белой линии на 18% alpha — стеклянная кромка.
-/// 4. Внешняя обводка тенью через contentView.dropShadow.
-///
-/// Использовать как обычный UIView:
-///     let glass = LiquidGlassView(cornerRadius: 22, intensity: .regular)
-///     glass.contentView.addSubview(myLabel)
-///
-/// Интенсивность (`intensity`) управляет толщиной blur и прозрачностью блика.
 final class LiquidGlassView: UIView {
 
     enum Intensity {
@@ -43,7 +29,6 @@ final class LiquidGlassView: UIView {
     private let highlightLayer = CAGradientLayer()
     private let innerBorderLayer = CAShapeLayer()
 
-    /// Сюда добавлять subviews (это `contentView` UIVisualEffectView).
     var contentView: UIView { visualEffectView.contentView }
 
     var cornerRadius: CGFloat = 22 {
@@ -80,7 +65,6 @@ final class LiquidGlassView: UIView {
         visualEffectView.layer.cornerCurve = .continuous
         visualEffectView.clipsToBounds = true
 
-        // Блик: прозрачный градиент сверху → вниз, с верхним белым highlight
         highlightLayer.colors = [
             UIColor.white.withAlphaComponent(intensity.highlightAlpha).cgColor,
             UIColor.white.withAlphaComponent(0.0).cgColor
@@ -90,7 +74,6 @@ final class LiquidGlassView: UIView {
         highlightLayer.endPoint   = CGPoint(x: 0.5, y: 1.0)
         visualEffectView.contentView.layer.addSublayer(highlightLayer)
 
-        // Внутренняя кромка для эффекта «стекла»
         innerBorderLayer.fillColor = nil
         innerBorderLayer.strokeColor = UIColor.white.withAlphaComponent(0.22).cgColor
         innerBorderLayer.lineWidth = 0.5
@@ -100,7 +83,6 @@ final class LiquidGlassView: UIView {
     }
 
     private func applyIntensity() {
-        // UIBlurEffect применяется через замену effect-а — для скорости делаем fade
         UIView.transition(with: visualEffectView, duration: 0.25, options: .transitionCrossDissolve) {
             self.visualEffectView.effect = UIBlurEffect(style: self.intensity.blurStyle)
         }
@@ -129,11 +111,8 @@ final class LiquidGlassView: UIView {
     }
 }
 
-// MARK: - Удобный модификатор для «жидкой» стилизации UIView
 
 extension UIView {
-    /// Применяет стандартный «жидкий стеклянный» стиль к UIView.
-    /// Используется когда нужна быстрая стеклянная обёртка без композиции.
     func applyLiquidGlass(cornerRadius: CGFloat = 22, intensity: LiquidGlassView.Intensity = .regular) {
         backgroundColor = .clear
         layer.cornerRadius = cornerRadius
@@ -142,7 +121,6 @@ extension UIView {
         layer.borderWidth = 0.5
         layer.borderColor = UIColor.white.withAlphaComponent(0.18).cgColor
 
-        // Внутренний CAGradientLayer-блик (если уже не добавлен)
         if layer.sublayers?.first(where: { $0.name == "liquidHighlight" }) == nil {
             let grad = CAGradientLayer()
             grad.name = "liquidHighlight"

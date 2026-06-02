@@ -12,18 +12,14 @@ final class HabitsViewController: UIViewController {
     private var collectionView: UICollectionView!
     private let emptyView = UILabel()
 
-    // Таб-бар с жидким стеклом: «Вредные» | «Полезные»
     private let segmentedControl = UISegmentedControl(items: [
         HabitCategory.bad.pluralTitle,   // Вредные — index 0
         HabitCategory.good.pluralTitle   // Полезные — index 1
     ])
     private let segmentGlass = LiquidGlassView(cornerRadius: 16, intensity: .regular)
 
-    /// Флаг защиты от повторного входа в reload() — предотвращает краш
-    /// при одновременной вставке привычки и получении уведомления
     private var isReloading = false
 
-    // Текущий список привычек в зависимости от выбранной вкладки
     private var currentHabits: [Habit] {
         selectedTab == .good ? goodHabits : badHabits
     }
@@ -153,8 +149,6 @@ final class HabitsViewController: UIViewController {
     }
 
     @objc private func reload() {
-        // Защита от повторного входа — если reload уже выполняется,
-        // откладываем на следующую итерацию RunLoop
         guard !isReloading else {
             DispatchQueue.main.async { [weak self] in self?.reload() }
             return
@@ -166,7 +160,6 @@ final class HabitsViewController: UIViewController {
         goodHabits = grouped.good
         badHabits  = grouped.bad
 
-        // Проверяем что collectionView инициализирован
         guard collectionView != nil else { return }
 
         collectionView.reloadData()
@@ -218,7 +211,6 @@ final class HabitsViewController: UIViewController {
     }
 
     private func markDayDone(_ habit: Habit, cell: HabitCell?) {
-        // Для полезных привычек — отмечаем сегодняшний день
         habit.resetStreak()
         try? DataManager.shared.context.save()
         UIImpactFeedbackGenerator(style: .light).impactOccurred()
@@ -227,7 +219,6 @@ final class HabitsViewController: UIViewController {
     }
 }
 
-// MARK: - UICollectionViewDataSource & Delegate
 
 extension HabitsViewController: UICollectionViewDataSource, UICollectionViewDelegate {
     func numberOfSections(in collectionView: UICollectionView) -> Int { 1 }
@@ -239,12 +230,10 @@ extension HabitsViewController: UICollectionViewDataSource, UICollectionViewDele
     func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
         let cell = collectionView.dequeueReusableCell(withReuseIdentifier: HabitCell.reuseID, for: indexPath) as! HabitCell
 
-        // Проверяем что индекс в пределах массива
         guard indexPath.item < currentHabits.count else { return cell }
         let habit = currentHabits[indexPath.item]
         cell.configure(with: habit)
 
-        // Разное действие для полезных и вредных привычек
         if habit.category == .good {
             cell.onRelapse = { [weak self, weak cell] in
                 self?.markDayDone(habit, cell: cell)

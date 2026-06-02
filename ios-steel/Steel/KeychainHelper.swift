@@ -9,13 +9,11 @@ enum KeychainHelper {
     private static let bgConfigKey = "steel.background.config"
     private static let bgImageDataKey = "steel.background.imageData"
 
-    // Full data backup keys
     private static let settingsBackupKey = "steel.backup.settings"
     private static let tasksBackupKey = "steel.backup.tasks"
     private static let habitsBackupKey = "steel.backup.habits"
     private static let avatarBackupKey = "steel.backup.avatar"
 
-    // User identity
     private static let userIDKey = "steel.user.uuid"
 
     static func bootstrap() {
@@ -23,7 +21,6 @@ enum KeychainHelper {
         restoreAllDataIfNeeded()
     }
 
-    // MARK: - User Identity (survives reinstall)
 
     static var userID: String {
         if let existing = keychain.get(userIDKey), !existing.isEmpty { return existing }
@@ -32,7 +29,6 @@ enum KeychainHelper {
         return newID
     }
 
-    /// Formatted as XXXX-XXXX-XXXX for display
     static var formattedUserID: String {
         let id = userID
         guard id.count == 12 else { return id }
@@ -47,7 +43,6 @@ enum KeychainHelper {
     }
 
     private static func generateUserID() -> String {
-        // No ambiguous chars: 0/O, 1/I/l excluded
         let chars = Array("ABCDEFGHJKLMNPQRSTUVWXYZ23456789")
         return String((0..<12).map { _ in chars.randomElement()! })
     }
@@ -68,7 +63,6 @@ enum KeychainHelper {
         keychain.set(key, forKey: geminiKeyName)
     }
 
-    // MARK: - Background Persistence (survives reinstall)
 
     static func saveBackgroundToKeychain(config: BackgroundConfig, imageData: Data?) {
         if let configData = try? JSONEncoder().encode(config) {
@@ -117,24 +111,18 @@ enum KeychainHelper {
         }
     }
 
-    // MARK: - Full Data Backup (survives reinstall)
 
-    /// Backup all app data to Keychain so it survives app deletion and reinstall.
-    /// Вызывается только из @MainActor-контекста (DataManager), поэтому потокобезопасно.
     static func backupAllData() {
-        // Backup settings
         if let settingsData = try? JSONEncoder().encode(DataManager.shared.settings) {
             keychain.set(settingsData, forKey: settingsBackupKey)
         }
 
-        // Backup tasks
         let tasks = DataManager.shared.fetchTasks()
         let taskDTOs = tasks.map { TaskDTO(from: $0) }
         if let tasksData = try? JSONEncoder().encode(taskDTOs) {
             keychain.set(tasksData, forKey: tasksBackupKey)
         }
 
-        // Backup habits
         let habits = DataManager.shared.fetchHabits()
         let habitDTOs = habits.map { HabitDTO(from: $0) }
         if let habitsData = try? JSONEncoder().encode(habitDTOs) {
@@ -142,27 +130,22 @@ enum KeychainHelper {
         }
     }
 
-    /// Save avatar image data to Keychain
     static func saveAvatarToKeychain(_ imageData: Data) {
         keychain.set(imageData, forKey: avatarBackupKey)
     }
 
-    /// Get saved avatar image data from Keychain
     static var savedAvatarData: Data? {
         keychain.getData(avatarBackupKey)
     }
 
-    /// Clear avatar from Keychain
     static func clearAvatarFromKeychain() {
         keychain.delete(avatarBackupKey)
     }
 
-    /// Restore all data from Keychain if SwiftData is empty (after reinstall)
     private static func restoreAllDataIfNeeded() {
         let existingTasks = DataManager.shared.fetchTasks()
         let existingHabits = DataManager.shared.fetchHabits()
 
-        // Only restore if data is empty (fresh install) and backup exists
         if existingTasks.isEmpty, let tasksData = keychain.getData(tasksBackupKey),
            let taskDTOs = try? JSONDecoder().decode([TaskDTO].self, from: tasksData) {
             for dto in taskDTOs {
@@ -177,12 +160,8 @@ enum KeychainHelper {
             }
         }
 
-        // Restore settings if backup exists — ALWAYS restore streak/series data
-        // This ensures streak survives reinstall regardless of current SwiftData state
         if let settingsData = keychain.getData(settingsBackupKey),
            let backupSettings = try? JSONDecoder().decode(AppSettings.self, from: settingsData) {
-            // Always restore streak, completed tasks, exercise counts, user profile
-            // This ensures series (streakDays) survives app deletion + reinstall
             DataManager.shared.updateSettings {
                 $0.totalCompletedTasks = backupSettings.totalCompletedTasks
                 $0.exerciseCounts = backupSettings.exerciseCounts
@@ -204,7 +183,6 @@ enum KeychainHelper {
     }
 }
 
-// MARK: - Data Transfer Objects for Keychain backup
 
 struct TaskDTO: Codable {
     let title: String
@@ -238,11 +216,9 @@ struct HabitDTO: Codable {
         self.bestStreak = habit.bestStreak
         self.relapseCount = habit.relapseCount
         self.streakStart = habit.streakStart
-        // Поддержка бэкапов, сделанных до введения категорий
         self.categoryRaw = (habit.categoryRaw?.isEmpty ?? true) ? HabitCategory.bad.rawValue : habit.categoryRaw!
     }
 
-    // Backward-compatible decoder: handles old backups without categoryRaw
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         title = try container.decode(String.self, forKey: .title)

@@ -3,9 +3,6 @@ import SnapKit
 import SPIndicator
 import Hero
 
-/// Подробный просмотр плана тренировок. Открывается модалкой поверх `PlanViewController`,
-/// показывает структурированные секции: шапку программы, недели с днями, питание,
-/// режим дня и восстановление. Каждая карточка — в стиле «жидкого стекла».
 final class PlanDetailViewController: UIViewController {
     private let plan: TrainingPlan
     private let parsed: ParsedPlan
@@ -73,21 +70,17 @@ final class PlanDetailViewController: UIViewController {
 
     @objc private func close() { dismiss(animated: true) }
 
-    // MARK: - Рендер
 
     private func render() {
-        // Очистка контейнера
         content.subviews.forEach { $0.removeFromSuperview() }
 
         var lastBottom: UIView = content
 
-        // Шапка: программа + цель + длительность + уровень
         let header = makeProgramHeader()
         content.addSubview(header)
         header.snp.makeConstraints { $0.top.leading.trailing.equalToSuperview() }
         lastBottom = header
 
-        // Цитата / описание
         if !parsed.program.goal.isEmpty {
             let goal = makeInfoCard(
                 title: "ЦЕЛЬ",
@@ -102,7 +95,6 @@ final class PlanDetailViewController: UIViewController {
             lastBottom = goal
         }
 
-        // Недели
         for (i, week) in parsed.weeks.enumerated() {
             let weekView = makeWeekCard(week)
             content.addSubview(weekView)
@@ -114,7 +106,6 @@ final class PlanDetailViewController: UIViewController {
             _ = i
         }
 
-        // Питание
         if !parsed.meals.isEmpty {
             let meals = makeMealsCard()
             content.addSubview(meals)
@@ -125,7 +116,6 @@ final class PlanDetailViewController: UIViewController {
             lastBottom = meals
         }
 
-        // Режим дня
         if !parsed.schedule.isEmpty {
             let schedule = makeTipsCard(
                 title: "РЕЖИМ ДНЯ",
@@ -140,7 +130,6 @@ final class PlanDetailViewController: UIViewController {
             lastBottom = schedule
         }
 
-        // Восстановление
         if !parsed.recovery.isEmpty {
             let recovery = makeTipsCard(
                 title: "ВОССТАНОВЛЕНИЕ",
@@ -158,7 +147,6 @@ final class PlanDetailViewController: UIViewController {
         }
     }
 
-    // MARK: - Карточки
 
     private func makeProgramHeader() -> UIView {
         let card = LiquidGlassView(cornerRadius: 24, intensity: .regular)
@@ -269,13 +257,11 @@ final class PlanDetailViewController: UIViewController {
         row.layer.borderWidth = 0.5
         row.layer.borderColor = UIColor.white.withAlphaComponent(0.12).cgColor
 
-        // Иконка
         let icon = UIImageView(image: UIImage(systemName: iconForDay(day)))
         icon.contentMode = .scaleAspectFit
         icon.preferredSymbolConfiguration = UIImage.SymbolConfiguration(pointSize: 16, weight: .semibold)
         icon.tintColor = colorForDay(day)
 
-        // День недели
         let weekday = UILabel()
         weekday.text = day.weekday.isEmpty ? "Д\(day.index)" : day.weekday
         weekday.font = UIFont.systemFont(ofSize: 11, weight: .heavy)
@@ -459,7 +445,6 @@ final class PlanDetailViewController: UIViewController {
         return row
     }
 
-    // MARK: - Вспомогательные
 
     private func iconForDay(_ day: ParsedPlan.Day) -> String {
         let t = day.type.lowercased()

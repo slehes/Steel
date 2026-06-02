@@ -34,7 +34,6 @@ final class HabitStreakDetailViewController: UIViewController {
         backgroundView.snp.makeConstraints { $0.edges.equalToSuperview() }
         backgroundView.apply(BackgroundManager.shared.config)
 
-        // Drag handle
         let handle = UIView()
         handle.backgroundColor = UIColor.separator
         handle.layer.cornerRadius = 2.5
@@ -71,8 +70,6 @@ final class HabitStreakDetailViewController: UIViewController {
         }
         buildMotivationLabel(in: content)
     }
-
-    // MARK: - Icon + Title
 
     private func buildIconSection(in stack: UIStackView) {
         let tint: UIColor = habit.category == .good ? .systemGreen : .systemRed
@@ -118,8 +115,6 @@ final class HabitStreakDetailViewController: UIViewController {
         stack.setCustomSpacing(20, after: badge)
     }
 
-    // MARK: - Main Streak Card
-
     private func buildMainCard(in stack: UIStackView) {
         let card = makeCard()
         let cardStack = UIStackView()
@@ -131,7 +126,6 @@ final class HabitStreakDetailViewController: UIViewController {
         card.contentView.addSubview(cardStack)
         cardStack.snp.makeConstraints { $0.edges.equalToSuperview() }
 
-        // Since label
         let sinceCaption = UILabel()
         sinceCaption.text = "Начало серии"
         sinceCaption.font = UIFont.systemFont(ofSize: 13, weight: .medium)
@@ -146,7 +140,6 @@ final class HabitStreakDetailViewController: UIViewController {
 
         cardStack.setCustomSpacing(20, after: dateLabel)
 
-        // Big days number
         let tint: UIColor = habit.category == .good ? .systemGreen : .systemRed
 
         let daysNumber = UILabel()
@@ -168,8 +161,6 @@ final class HabitStreakDetailViewController: UIViewController {
         stack.addArrangedSubview(card)
         card.snp.makeConstraints { $0.leading.trailing.equalToSuperview() }
     }
-
-    // MARK: - Stats Card
 
     private func buildStatsCard(in stack: UIStackView) {
         let card = makeCard()
@@ -208,8 +199,6 @@ final class HabitStreakDetailViewController: UIViewController {
         card.snp.makeConstraints { $0.leading.trailing.equalToSuperview() }
     }
 
-    // MARK: - Motivation
-
     private func buildMotivationLabel(in stack: UIStackView) {
         let days = habit.cleanDays
         let text: String
@@ -235,8 +224,6 @@ final class HabitStreakDetailViewController: UIViewController {
         label.numberOfLines = 0
         stack.addArrangedSubview(label)
     }
-
-    // MARK: - Helpers
 
     private func makeStatRow(icon: String, iconColor: UIColor, title: String, value: String) -> UIView {
         let iconView = UIImageView(image: UIImage(systemName: icon,

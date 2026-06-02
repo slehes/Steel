@@ -1,8 +1,6 @@
 import Foundation
 import SwiftData
 
-/// Категория привычки: либо формируем полезную привычку (что-то делаем),
-/// либо боремся с вредной (от чего-то отказываемся).
 enum HabitCategory: String, Codable, CaseIterable {
     case good   // Полезная — что внедряем (зарядка, чтение, вода)
     case bad    // Вредная — от чего отказываемся (курение, сахар, мастурбация)
@@ -86,9 +84,6 @@ final class Habit {
         self.sortIndex = sortIndex
     }
 
-    /// Категория привычки. По умолчанию — вредная (старые привычки создавались
-    /// как «от чего отказываемся»). Новые поля подгружаются через didSet-эквивалент
-    /// в аксессоре.
     var category: HabitCategory {
         get { HabitCategory(rawValue: categoryRaw ?? "bad") ?? .bad }
         set { categoryRaw = newValue.rawValue }
@@ -168,14 +163,12 @@ struct BackgroundConfig: Codable, Equatable {
     var fileName: String
     var dimmed: Bool
 
-    // Memberwise init
     init(kind: BackgroundKind, fileName: String, dimmed: Bool) {
         self.kind = kind
         self.fileName = fileName
         self.dimmed = dimmed
     }
 
-    // Backward-compatible decoder
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         kind = try container.decodeIfPresent(BackgroundKind.self, forKey: .kind) ?? .none
@@ -228,7 +221,6 @@ struct AppSettings: Codable {
     var yearGoals: [YearGoal]
     var birthdayDateString: String
 
-    // Explicit memberwise init (needed because custom Codable init removes auto-generated one)
     init(
         userName: String,
         streakDays: Int,
@@ -269,7 +261,6 @@ struct AppSettings: Codable {
         self.birthdayDateString = birthdayDateString
     }
 
-    // Backward-compatible decoder: handles missing keys from older app versions
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         userName = try container.decodeIfPresent(String.self, forKey: .userName) ?? "Воин"

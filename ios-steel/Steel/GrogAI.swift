@@ -200,7 +200,6 @@ enum GroqAI {
     """
 
     static func send(history: [GroqTurn]) async throws -> GroqResult {
-        // Inject user's current data as context
         let contextMessage = buildContextMessage()
         var turns: [[String: String]] = [["role": "system", "content": systemPrompt + "\n\nТЕКУЩИЕ ДАННЫЕ ПОЛЬЗОВАТЕЛЯ:\n" + contextMessage]]
         for turn in history {
@@ -239,7 +238,6 @@ enum GroqAI {
         return parse(content: content)
     }
 
-    /// Build context message with user's current data so AI can monitor them
     private static func buildContextMessage() -> String {
         let settings = DataManager.shared.settings
         let tasks = DataManager.shared.fetchTasks()
@@ -254,7 +252,6 @@ enum GroqAI {
         context += "- Дисциплина: \(settings.totalCompletedTasks) выполнено, серия \(settings.streakDays) дн.\n"
         context += "- Место тренировок: \(settings.userTrainingLocation.isEmpty ? "не указано" : (settings.userTrainingLocation == "home" ? "дома" : "зал"))\n"
 
-        // Include year goals so AI can tailor training
         if !settings.yearGoals.isEmpty {
             context += "\n🎯 ЦЕЛИ НА ГОД:\n"
             for goal in settings.yearGoals {

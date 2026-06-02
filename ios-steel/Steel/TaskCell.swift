@@ -48,7 +48,6 @@ final class TaskCell: UICollectionViewCell {
         detailLabel.textColor = .secondaryLabel
 
 
-
         let content = glass.contentView
         content.addSubview(iconView)
         content.addSubview(titleLabel)
@@ -107,15 +106,10 @@ final class TaskCell: UICollectionViewCell {
         detailLabel.text = task.isCompleted ? "Готово" : task.displayDetail
         glass.alpha = task.isCompleted ? 0.7 : 1
 
-        // Always animate the fill bar on first appear — smooth and slow
-        // (ProgressHeaderView calls configure with animated:true on task change)
-        // We track this via the icon transform state
     }
 
     func configureAnimated(with task: DailyTask, wasCompleted: Bool) {
-        // Always smooth — no fast snap anymore
         if !wasCompleted {
-            // Completing task
             UIView.animate(withDuration: 0.35, delay: 0, usingSpringWithDamping: 0.6, initialSpringVelocity: 0.3, options: .curveEaseOut) {
                 self.iconView.transform = CGAffineTransform(scaleX: 0.7, y: 0.7)
                 self.iconView.alpha = 0.6
@@ -148,7 +142,6 @@ final class TaskCell: UICollectionViewCell {
                 iconView.addSymbolEffect(.bounce)
             }
         } else {
-            // Uncompleting task
             UIView.animate(withDuration: 0.35, delay: 0, usingSpringWithDamping: 0.6, initialSpringVelocity: 0.3, options: .curveEaseOut) {
                 self.iconView.transform = CGAffineTransform(scaleX: 0.7, y: 0.7)
                 self.iconView.alpha = 0.6

@@ -111,7 +111,6 @@ final class HabitCell: UICollectionViewCell {
             fillWidth = $0.width.equalTo(0).constraint
         }
 
-        // Shimmer
         shimmerView.backgroundColor = UIColor.white.withAlphaComponent(0.25)
         shimmerView.isHidden = true
         fill.addSubview(shimmerView)
@@ -143,15 +142,12 @@ final class HabitCell: UICollectionViewCell {
         iconView.image = UIImage(systemName: habit.iconName)
         titleLabel.text = habit.title
 
-        // Цвет иконки-подложки в зависимости от категории
         let tint: UIColor = habit.category == .good ? .systemGreen : .systemRed
         iconBackdrop.backgroundColor = tint
 
-        // Бейдж категории
         categoryBadge.text = "  \(habit.category.title.uppercased())  "
         categoryBadge.backgroundColor = tint
 
-        // Кнопка и подпись счётчика зависят от категории
         if habit.category == .good {
             daysCaption.text = "дней подряд"
             var cfg = actionButton.configuration ?? UIButton.Configuration.gray()
@@ -170,19 +166,14 @@ final class HabitCell: UICollectionViewCell {
 
         daysLabel.text = "\(habit.cleanDays)"
 
-        // Прогресс-бар: минимум 30 для шкалы, чтобы даже при 0 лучших дней
-        // полоска правильно масштабировалась
         let best = max(habit.bestStreak, 30)
         let ratio = best > 0 ? min(1, CGFloat(habit.cleanDays) / CGFloat(best)) : 0
 
-        // Начинаем с нуля — устанавливаем начальное состояние
         fillWidth?.update(offset: 0)
         layoutIfNeeded()
 
-        // Устанавливаем целевое значение и анимируем
         fillWidth?.update(offset: track.bounds.width * ratio)
 
-        // Плавная медленная анимация заполнения
         UIView.animate(
             withDuration: 2.5,
             delay: 0,
@@ -197,7 +188,6 @@ final class HabitCell: UICollectionViewCell {
             }
         }
 
-        // Цвет заполнения в зависимости от прогресса и категории
         if habit.category == .good {
             fill.backgroundColor = ratio >= 1.0 ? .systemGreen : .systemBlue
         } else {

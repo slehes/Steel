@@ -54,18 +54,15 @@ final class ProgressHeaderView: UICollectionReusableView {
         label.text = "Прогресс  \(done)/\(total)"
         let ratio = total > 0 ? CGFloat(done) / CGFloat(total) : 0
 
-        // Color based on progress
         if ratio >= 1.0 {
             fill.backgroundColor = .systemGreen
         } else {
             fill.backgroundColor = .systemGreen
         }
 
-        // Always reset to zero first — establishes starting state
         fillWidth?.update(offset: 0)
         layoutIfNeeded()
 
-        // Now set to target — will animate in the same block below
         fillWidth?.update(offset: track.bounds.width * ratio)
 
         if animated {

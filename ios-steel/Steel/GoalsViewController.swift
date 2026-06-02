@@ -131,7 +131,6 @@ final class GoalsViewController: UIViewController {
         valueLabel.font = UIFont.systemFont(ofSize: 13, weight: .medium)
         valueLabel.textColor = .secondaryLabel
 
-        // Progress bar
         let track = UIView()
         track.backgroundColor = .systemGray5
         track.layer.cornerRadius = 4
@@ -147,7 +146,6 @@ final class GoalsViewController: UIViewController {
             fill.snp.makeConstraints { $0.width.equalTo(track.bounds.width * goal.progress).constraint }
         }
 
-        // Stepper for current value
         let minusBtn = UIButton(type: .system)
         minusBtn.setImage(UIImage(systemName: "minus.circle.fill"), for: .normal)
         minusBtn.tintColor = .secondaryLabel
@@ -211,7 +209,6 @@ final class GoalsViewController: UIViewController {
             $0.width.height.equalTo(24)
         }
 
-        // Animate fill bar
         DispatchQueue.main.async {
             fill.snp.remakeConstraints {
                 $0.leading.top.bottom.equalToSuperview()
@@ -232,7 +229,6 @@ final class GoalsViewController: UIViewController {
         }
         render()
 
-        // Send goal to AI trainer context
         let goal = DataManager.shared.settings.yearGoals[index]
         if current > 0 {
             DataManager.shared.addMessage(
