@@ -95,7 +95,7 @@ final class SettingsViewController: UIViewController {
             ("Провайдеры",     "Groq, Gemini",          "network",                   .systemTeal,   { [weak self] in self?.openProviders() }),
             ("Регион",         currentRegionSubtitle(), "globe.europe.africa.fill",  .systemBlue,   { [weak self] in self?.openRegionPicker() }),
             ("Серия",          "Пауза серии",           "bolt.fill",                 .systemGreen,  { [weak self] in self?.openStreakSettings() }),
-            ("Синхронизация",  "Облако по UUID",        "icloud.and.arrow.up.fill",  .systemCyan,   { [weak self] in self?.openSync() }),
+            ("Резервная копия", "Экспорт / Импорт",      "doc.on.clipboard.fill",     .systemCyan,   { [weak self] in self?.openSync() }),
         ]
 
         for row in rows {

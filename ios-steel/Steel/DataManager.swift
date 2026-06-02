@@ -88,29 +88,70 @@ final class DataManager {
         seedInitialDataIfNeeded()
     }
 
-    // Seeds starter habits and streak for a fresh install with no existing data.
+    private let seedVersionKey = "steel.seed.version"
+    private let currentSeedVersion = 2
+
     private func seedInitialDataIfNeeded() {
-        guard fetchHabits().isEmpty, settings.streakDays == 0 else { return }
+        let storedVersion = UserDefaults.standard.integer(forKey: seedVersionKey)
+        guard storedVersion < currentSeedVersion else { return }
 
-        let twoDaysAgo = Calendar.current.date(byAdding: .day, value: -2, to: Calendar.current.startOfDay(for: Date())) ?? Date()
-
-        let seeds: [(String, String, HabitCategory)] = [
-            ("Кофе",        "cup.and.saucer.fill",    .good),
-            ("2 л воды",    "drop.fill",               .good),
-            ("Мастурбация", "hand.raised.slash.fill",  .bad),
-        ]
-
-        for (index, seed) in seeds.enumerated() {
-            let habit = Habit(title: seed.0, iconName: seed.1, category: seed.2, sortIndex: index)
-            habit.streakStart = twoDaysAgo
-            context.insert(habit)
-        }
+        // Wipe previous data for clean reseed
+        fetchHabits().forEach { context.delete($0) }
+        fetchTasks().forEach { context.delete($0) }
         try? context.save()
 
-        updateSettings { $0.streakDays = 2 }
+        let cal = Calendar.current
+        func daysAgo(_ n: Int) -> Date {
+            cal.date(byAdding: .day, value: -n, to: cal.startOfDay(for: Date())) ?? Date()
+        }
+
+        // Вредные привычки — отказываемся
+        let badSeeds: [(String, String, Int)] = [
+            ("18+ контент",    "hand.raised.slash.fill",  7),
+            ("Алкоголь",       "wineglass.slash.fill",   25),
+            ("Телефон с утра", "iphone.slash",           12),
+            ("Грызть губы",    "mouth.fill",             19),
+        ]
+        for (i, s) in badSeeds.enumerated() {
+            let h = Habit(title: s.0, iconName: s.1, category: .bad, sortIndex: i)
+            h.streakStart = daysAgo(s.2)
+            context.insert(h)
+        }
+
+        // Полезные привычки — формируем
+        let goodSeeds: [(String, String, Int)] = [
+            ("Кофе",                 "cup.and.saucer.fill",  4),
+            ("2 л воды",             "drop.fill",            9),
+            ("Ранний подъём",        "sunrise.fill",         3),
+            ("Растяжка",             "figure.flexibility",  14),
+            ("No shopping",          "bag.badge.minus",      1),
+            ("Интернет после трень", "wifi.slash",           6),
+            ("Ледяная маска",        "snowflake",           11),
+            ("Дневник целей",        "book.closed.fill",     2),
+        ]
+        for (i, s) in goodSeeds.enumerated() {
+            let h = Habit(title: s.0, iconName: s.1, category: .good, sortIndex: i + badSeeds.count)
+            h.streakStart = daysAgo(s.2)
+            context.insert(h)
+        }
+
+        // Ежедневные задачи — зарядка
+        let taskSeeds: [(String, Int, String, String)] = [
+            ("Отжимания", 50, "раз", "figure.strengthtraining.traditional"),
+            ("Пресс",     50, "раз", "figure.core.training"),
+        ]
+        for (i, t) in taskSeeds.enumerated() {
+            let task = DailyTask(title: t.0, amount: t.1, unit: t.2, iconName: t.3, sortIndex: i)
+            context.insert(task)
+        }
+
+        try? context.save()
+        updateSettings { $0.streakDays = 15 }
+        UserDefaults.standard.set(currentSeedVersion, forKey: seedVersionKey)
 
         DispatchQueue.main.async {
             NotificationCenter.default.post(name: .steelHabitsChanged, object: nil)
+            NotificationCenter.default.post(name: .steelTasksChanged, object: nil)
             KeychainHelper.backupAllData()
         }
     }
