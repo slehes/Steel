@@ -47,7 +47,7 @@ final class TodayViewController: UIViewController {
 
     override func viewWillDisappear(_ animated: Bool) {
         super.viewWillDisappear(animated)
-        backgroundView.pauseVideo()
+        // Don't pause video — shared player continues across tabs
     }
 
     private func setupBackground() {
@@ -100,7 +100,10 @@ final class TodayViewController: UIViewController {
             sheet.prefersGrabberVisible = true
             sheet.preferredCornerRadius = 28
         }
-        present(nav, animated: true)
+        BackgroundVideoManager.shared.modalWillPresent()
+        present(nav, animated: true) {
+            BackgroundVideoManager.shared.modalDidDismiss()
+        }
     }
 
     @objc private func toggleExtraButtons(_ gesture: UILongPressGestureRecognizer) {
@@ -272,7 +275,11 @@ final class TodayViewController: UIViewController {
 
     @objc private func addTask() {
         let vc = AddTaskViewController()
-        presentSheet(UINavigationController(rootViewController: vc))
+        let nav = UINavigationController(rootViewController: vc)
+        BackgroundVideoManager.shared.modalWillPresent()
+        presentSheet(nav) {
+            BackgroundVideoManager.shared.modalDidDismiss()
+        }
     }
 
     @objc private func chooseBackground() {
@@ -294,13 +301,13 @@ final class TodayViewController: UIViewController {
         present(nav, animated: true)
     }
 
-    private func presentSheet(_ vc: UIViewController) {
+    private func presentSheet(_ vc: UIViewController, completion: (() -> Void)? = nil) {
         if let sheet = vc.sheetPresentationController {
             sheet.detents = [.medium(), .large()]
             sheet.prefersGrabberVisible = true
             sheet.preferredCornerRadius = 28
         }
-        present(vc, animated: true)
+        present(vc, animated: true, completion: completion)
     }
 
     @objc private func finishDay() {

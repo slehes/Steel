@@ -47,7 +47,6 @@ final class ProfileViewController: UIViewController {
 
     override func viewWillDisappear(_ animated: Bool) {
         super.viewWillDisappear(animated)
-        backgroundView.pauseVideo()
         hideVolumePopup()
     }
 
@@ -87,21 +86,23 @@ final class ProfileViewController: UIViewController {
             sheet.prefersGrabberVisible = true
             sheet.preferredCornerRadius = 28
         }
-        present(nav, animated: true)
+        BackgroundVideoManager.shared.modalWillPresent()
+        present(nav, animated: true) {
+            BackgroundVideoManager.shared.modalDidDismiss()
+        }
     }
 
     // MARK: - Sound Control
 
-    /// Update sound icon using intendedMuted (not transient player state during fade)
+    /// Update sound icon using intendedMuted from BackgroundVideoManager
     private func updateSoundButton() {
         let isVideo = backgroundView.currentKind == .video
         soundButtonItem.isVisible = isVideo
         guard isVideo else { return }
 
-        // Use intendedMuted instead of real-time player.isMuted to avoid
-        // showing wrong icon during fade animation
-        let muted = backgroundView.intendedMuted
-        let volume = backgroundView.volume
+        let mgr = BackgroundVideoManager.shared
+        let muted = mgr.intendedMuted
+        let volume = mgr.volume
 
         if muted {
             soundButtonView.setImage(UIImage(systemName: "speaker.slash.fill"), for: .normal)
@@ -116,7 +117,7 @@ final class ProfileViewController: UIViewController {
 
     @objc private func soundButtonTapped() {
         UIImpactFeedbackGenerator(style: .light).impactOccurred()
-        backgroundView.toggleMuted(animated: true)
+        BackgroundVideoManager.shared.toggleMuted(animated: true)
         updateSoundButton()
     }
 
@@ -136,12 +137,12 @@ final class ProfileViewController: UIViewController {
             let ratio = max(0, min(1, 1 - location.y / trackHeight))
             let newVolume = Float(ratio)
 
-            backgroundView.setPlayerVolume(newVolume)
+            BackgroundVideoManager.shared.setPlayerVolume(newVolume)
             popup.updateVolume(newVolume)
             updateSoundButton()
 
         case .ended, .cancelled:
-            backgroundView.saveVolumeSettings()
+            BackgroundVideoManager.shared.saveVolumeSettings()
             isAdjustingVolume = false
             scheduleVolumePopupDismiss()
 
@@ -156,14 +157,14 @@ final class ProfileViewController: UIViewController {
         guard let soundBtnView = soundButtonItem.customView else { return }
         let btnFrameInView = soundBtnView.convert(soundBtnView.bounds, to: view)
 
-        let popup = VolumePopupView(initialVolume: backgroundView.volume)
+        let popup = VolumePopupView(initialVolume: BackgroundVideoManager.shared.volume)
         popup.onVolumeChange = { [weak self] vol in
             guard let self else { return }
-            self.backgroundView.setPlayerVolume(vol)
+            BackgroundVideoManager.shared.setPlayerVolume(vol)
             self.updateSoundButton()
         }
-        popup.onVolumeChangeEnded = { [weak self] in
-            self?.backgroundView.saveVolumeSettings()
+        popup.onVolumeChangeEnded = {
+            BackgroundVideoManager.shared.saveVolumeSettings()
         }
         view.addSubview(popup)
         popup.snp.makeConstraints {

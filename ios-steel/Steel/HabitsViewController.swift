@@ -48,7 +48,7 @@ final class HabitsViewController: UIViewController {
 
     override func viewWillDisappear(_ animated: Bool) {
         super.viewWillDisappear(animated)
-        backgroundView.pauseVideo()
+        // Don't pause video — shared player continues across tabs
     }
 
     private func setupBackground() {
@@ -75,7 +75,10 @@ final class HabitsViewController: UIViewController {
             sheet.prefersGrabberVisible = true
             sheet.preferredCornerRadius = 28
         }
-        present(nav, animated: true)
+        BackgroundVideoManager.shared.modalWillPresent()
+        present(nav, animated: true) {
+            BackgroundVideoManager.shared.modalDidDismiss()
+        }
     }
 
     private func setupSegmentedControl() {
@@ -198,7 +201,10 @@ final class HabitsViewController: UIViewController {
             sheet.prefersGrabberVisible = true
             sheet.preferredCornerRadius = 28
         }
-        present(nav, animated: true)
+        BackgroundVideoManager.shared.modalWillPresent()
+        present(nav, animated: true) {
+            BackgroundVideoManager.shared.modalDidDismiss()
+        }
     }
 
     private func relapse(_ habit: Habit, cell: HabitCell?) {
