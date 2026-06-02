@@ -83,6 +83,7 @@ final class SettingsViewController: UIViewController {
             makeRow(icon: "bolt.fill",                color: .systemGreen,   title: "Серия",         subtitle: "Пауза серии",           action: { [weak self] in self?.openStreakSettings() }),
             makeRow(icon: "network",                  color: .systemTeal,    title: "Провайдеры",    subtitle: "Groq, Gemini",          action: { [weak self] in self?.openProviders() }),
             makeRow(icon: "doc.on.clipboard.fill",    color: .systemCyan,    title: "Резервная копия", subtitle: "Экспорт / Импорт",   action: { [weak self] in self?.openSync() }),
+            makeRow(icon: "paperplane.fill",          color: UIColor(red: 0.17, green: 0.56, blue: 0.90, alpha: 1), title: "Telegram", subtitle: TelegramManager.shared.isConfigured ? "Подключён" : "Не настроен", action: { [weak self] in self?.openTelegram() }),
         ])
 
         buildUUIDFooter()
@@ -275,6 +276,11 @@ final class SettingsViewController: UIViewController {
 
     private func openSync() {
         let vc = SyncViewController()
+        navigationController?.pushViewController(vc, animated: true)
+    }
+
+    private func openTelegram() {
+        let vc = TelegramSettingsViewController()
         navigationController?.pushViewController(vc, animated: true)
     }
 

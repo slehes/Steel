@@ -327,6 +327,13 @@ final class TodayViewController: UIViewController {
         } else {
             SPIndicator.present(title: "День закрыт", message: "Серия: \(streak)", preset: .done, haptic: .success)
         }
+
+        if TelegramManager.shared.isConfigured {
+            let fmt = DateFormatter()
+            fmt.dateFormat = "HH:mm"
+            let t = fmt.string(from: Date())
+            Task { await TelegramManager.shared.sendReport(timeLabel: t) }
+        }
     }
 }
 

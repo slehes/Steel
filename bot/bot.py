@@ -308,6 +308,18 @@ async def cmd_sync(msg: Message):
     )
 
 
+@router.message(Command("id"))
+async def cmd_id(msg: Message):
+    upsert_user(msg.chat.id, msg.from_user.username or "", msg.from_user.first_name or "")
+    await msg.answer(
+        f"{PERSON} <b>Ваш Chat ID:</b>\n\n"
+        f"<code>{msg.chat.id}</code>\n\n"
+        f"{INFO} Скопируйте этот ID и вставьте в приложении:\n"
+        f"Steel → Настройки → <b>Telegram</b>",
+        parse_mode=ParseMode.HTML
+    )
+
+
 @router.callback_query(F.data == "sync_help")
 async def cb_sync_help(cb: CallbackQuery):
     await cb.message.edit_text(
