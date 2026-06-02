@@ -21,6 +21,10 @@ final class PersonalBackgroundView: UIView {
     private var fadeTargetVolume: Float = 0
     private var fadeCompletion: (() -> Void)?
 
+    /// The intended mute state — set immediately on toggle, used for icon display.
+    /// During fade animation, the real player state is in transition, so we use this instead.
+    private(set) var intendedMuted: Bool = true
+
     override init(frame: CGRect) {
         super.init(frame: frame)
         setup()
@@ -98,6 +102,7 @@ final class PersonalBackgroundView: UIView {
         let savedVolume = DataManager.shared.settings.backgroundVideoVolume
         queue.isMuted = savedMuted
         queue.volume = savedMuted ? 0 : savedVolume
+        intendedMuted = savedMuted
 
         // Setup looper for infinite loop
         looper = AVPlayerLooper(player: queue, templateItem: item)
@@ -165,6 +170,9 @@ final class PersonalBackgroundView: UIView {
         guard let player else { return }
         let shouldMute = !player.isMuted
 
+        // Set intended state IMMEDIATELY so icon updates correctly
+        intendedMuted = shouldMute
+
         if shouldMute {
             // Fading out to mute
             let duration: TimeInterval = animated ? 0.4 : 0
@@ -200,6 +208,7 @@ final class PersonalBackgroundView: UIView {
         if clamped > 0 {
             player.isMuted = false
         }
+        intendedMuted = clamped == 0
     }
 
     /// Save current volume to settings (call when gesture ends)
@@ -215,6 +224,7 @@ final class PersonalBackgroundView: UIView {
     func setVolume(_ newVolume: Float, animated: Bool = true) {
         guard let player else { return }
         let clamped = max(0, min(1, newVolume))
+        intendedMuted = clamped == 0
 
         if animated {
             fadeVolume(to: clamped, duration: 0.3) { [weak self] in
