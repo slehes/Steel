@@ -8,9 +8,18 @@ final class PersonalBackgroundView: UIView {
     private var playerLayer: AVPlayerLayer?
     private var player: AVQueuePlayer?
     private var looper: AVPlayerLooper?
+    private var videoURL: URL?
 
     /// Current background kind (used by parent VCs to decide whether to show sound controls)
     private(set) var currentKind: BackgroundKind = .none
+
+    // Fade animation state
+    private var fadeDisplayLink: CADisplayLink?
+    private var fadeStartTime: TimeInterval = 0
+    private var fadeDuration: TimeInterval = 0.3
+    private var fadeStartVolume: Float = 0
+    private var fadeTargetVolume: Float = 0
+    private var fadeCompletion: (() -> Void)?
 
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -36,6 +45,14 @@ final class PersonalBackgroundView: UIView {
         addSubview(dimView)
         imageView.pinEdges(to: self)
         dimView.pinEdges(to: self)
+
+        // Observe video end as fallback for looping
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(playerItemDidReachEnd),
+            name: .AVPlayerItemDidPlayToEndTime,
+            object: nil
+        )
     }
 
     override func layoutSubviews() {
@@ -69,11 +86,22 @@ final class PersonalBackgroundView: UIView {
     }
 
     private func setupVideo(url: URL) {
+        // Configure audio session so video sound is audible
+        configureAudioSession()
+
+        self.videoURL = url
         let item = AVPlayerItem(url: url)
         let queue = AVQueuePlayer(playerItem: item)
-        queue.isMuted = DataManager.shared.settings.backgroundVideoMuted
-        queue.volume = DataManager.shared.settings.backgroundVideoVolume
+
+        // Apply saved sound settings
+        let savedMuted = DataManager.shared.settings.backgroundVideoMuted
+        let savedVolume = DataManager.shared.settings.backgroundVideoVolume
+        queue.isMuted = savedMuted
+        queue.volume = savedMuted ? 0 : savedVolume
+
+        // Setup looper for infinite loop
         looper = AVPlayerLooper(player: queue, templateItem: item)
+
         let layer = AVPlayerLayer(player: queue)
         layer.videoGravity = .resizeAspectFill
         layer.frame = bounds
@@ -83,12 +111,38 @@ final class PersonalBackgroundView: UIView {
         queue.play()
     }
 
+    private func configureAudioSession() {
+        do {
+            try AVAudioSession.sharedInstance().setCategory(
+                .playback,
+                mode: .default,
+                options: .mixWithOthers
+            )
+            try AVAudioSession.sharedInstance().setActive(true)
+        } catch {
+            print("⚠️ AVAudioSession error: \(error)")
+        }
+    }
+
+    /// Fallback: if AVPlayerLooper fails, restart video manually
+    @objc private func playerItemDidReachEnd(_ notification: Notification) {
+        guard let player,
+              let item = notification.object as? AVPlayerItem,
+              player.items().contains(item) || looper == nil else { return }
+
+        // If looper is nil or not working, restart manually
+        player.seek(to: .zero)
+        player.play()
+    }
+
     private func teardownVideo() {
+        cancelFade()
         player?.pause()
         playerLayer?.removeFromSuperlayer()
         playerLayer = nil
         player = nil
         looper = nil
+        videoURL = nil
     }
 
     func pauseVideo() { player?.pause() }
@@ -110,30 +164,54 @@ final class PersonalBackgroundView: UIView {
     func toggleMuted(animated: Bool = true) {
         guard let player else { return }
         let shouldMute = !player.isMuted
-        let targetVolume: Float = shouldMute ? 0 : DataManager.shared.settings.backgroundVideoVolume
 
-        if animated {
-            fadeVolume(to: targetVolume, duration: 0.4) { [weak self] in
-                self?.player?.isMuted = shouldMute
-                if !shouldMute {
-                    self?.player?.volume = DataManager.shared.settings.backgroundVideoVolume
-                }
+        if shouldMute {
+            // Fading out to mute
+            let duration: TimeInterval = animated ? 0.4 : 0
+            fadeVolume(to: 0, duration: duration) { [weak self] in
+                self?.player?.isMuted = true
                 DataManager.shared.updateSettings {
-                    $0.backgroundVideoMuted = shouldMute
+                    $0.backgroundVideoMuted = true
                 }
             }
         } else {
-            player.isMuted = shouldMute
-            if !shouldMute {
-                player.volume = DataManager.shared.settings.backgroundVideoVolume
-            }
-            DataManager.shared.updateSettings {
-                $0.backgroundVideoMuted = shouldMute
+            // Unmute and fade in
+            let targetVolume = DataManager.shared.settings.backgroundVideoVolume > 0
+                ? DataManager.shared.settings.backgroundVideoVolume
+                : 1.0
+            player.isMuted = false
+            player.volume = 0
+            let duration: TimeInterval = animated ? 0.4 : 0
+            fadeVolume(to: targetVolume, duration: duration) { [weak self] in
+                guard let self, let player = self.player else { return }
+                DataManager.shared.updateSettings {
+                    $0.backgroundVideoMuted = false
+                    $0.backgroundVideoVolume = player.volume
+                }
             }
         }
     }
 
-    /// Set volume with optional smooth fade
+    /// Set player volume directly (NO settings save — used during drag to avoid crashes)
+    func setPlayerVolume(_ newVolume: Float) {
+        guard let player else { return }
+        let clamped = max(0, min(1, newVolume))
+        player.volume = clamped
+        if clamped > 0 {
+            player.isMuted = false
+        }
+    }
+
+    /// Save current volume to settings (call when gesture ends)
+    func saveVolumeSettings() {
+        guard let player else { return }
+        DataManager.shared.updateSettings {
+            $0.backgroundVideoVolume = player.volume
+            $0.backgroundVideoMuted = player.volume == 0
+        }
+    }
+
+    /// Set volume with optional smooth fade (saves settings on completion)
     func setVolume(_ newVolume: Float, animated: Bool = true) {
         guard let player else { return }
         let clamped = max(0, min(1, newVolume))
@@ -142,9 +220,7 @@ final class PersonalBackgroundView: UIView {
             fadeVolume(to: clamped, duration: 0.3) { [weak self] in
                 guard let self, let player = self.player else { return }
                 player.volume = clamped
-                if clamped > 0 {
-                    player.isMuted = false
-                }
+                if clamped > 0 { player.isMuted = false }
                 DataManager.shared.updateSettings {
                     $0.backgroundVideoVolume = clamped
                     $0.backgroundVideoMuted = clamped == 0
@@ -152,9 +228,7 @@ final class PersonalBackgroundView: UIView {
             }
         } else {
             player.volume = clamped
-            if clamped > 0 {
-                player.isMuted = false
-            }
+            if clamped > 0 { player.isMuted = false }
             DataManager.shared.updateSettings {
                 $0.backgroundVideoVolume = clamped
                 $0.backgroundVideoMuted = clamped == 0
@@ -164,12 +238,14 @@ final class PersonalBackgroundView: UIView {
 
     /// Smoothly animate volume from current to target value
     private func fadeVolume(to target: Float, duration: TimeInterval, completion: (() -> Void)? = nil) {
+        // Cancel any ongoing fade
+        cancelFade()
+
         guard let player else {
             completion?()
             return
         }
 
-        let startVolume = player.volume
         let startMuted = player.isMuted
 
         // If currently muted, unmute first and start from 0
@@ -178,72 +254,56 @@ final class PersonalBackgroundView: UIView {
             player.volume = 0
         }
 
-        let effectiveStart = startMuted ? Float(0) : startVolume
+        let effectiveStart = startMuted ? Float(0) : player.volume
 
-        guard effectiveStart != target else {
+        guard abs(effectiveStart - target) > 0.001 else {
             completion?()
             return
         }
 
-        let startTime = CACurrentMediaTime()
+        fadeStartTime = CACurrentMediaTime()
+        fadeDuration = duration
+        fadeStartVolume = effectiveStart
+        fadeTargetVolume = target
+        fadeCompletion = completion
 
-        // Create a display link for smooth animation
-        let displayLink = CADisplayLink(target: self, selector: #selector(volumeFadeStep))
-        objc_setAssociatedObject(self, &AssociatedKeys.fadeCompletion, completion, .OBJC_ASSOCIATION_COPY_NONATOMIC)
-        objc_setAssociatedObject(self, &AssociatedKeys.fadeStartTime, startTime, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
-        objc_setAssociatedObject(self, &AssociatedKeys.fadeDuration, duration, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
-        objc_setAssociatedObject(self, &AssociatedKeys.fadeStartVolume, effectiveStart, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
-        objc_setAssociatedObject(self, &AssociatedKeys.fadeTargetVolume, target, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
+        let displayLink = CADisplayLink(target: self, selector: #selector(fadeStep))
         displayLink.add(to: .main, forMode: .common)
-        objc_setAssociatedObject(self, &AssociatedKeys.fadeDisplayLink, displayLink, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
+        self.fadeDisplayLink = displayLink
     }
 
-    @objc private func volumeFadeStep(_ link: CADisplayLink) {
+    @objc private func fadeStep(_ link: CADisplayLink) {
         guard let player else {
             link.invalidate()
+            fadeDisplayLink = nil
             return
         }
 
-        let startTime = objc_getAssociatedObject(self, &AssociatedKeys.fadeStartTime) as? TimeInterval ?? 0
-        let duration = objc_getAssociatedObject(self, &AssociatedKeys.fadeDuration) as? TimeInterval ?? 0.3
-        let startVol = objc_getAssociatedObject(self, &AssociatedKeys.fadeStartVolume) as? Float ?? 0
-        let targetVol = objc_getAssociatedObject(self, &AssociatedKeys.fadeTargetVolume) as? Float ?? 0
-
-        let elapsed = CACurrentMediaTime() - startTime
-        let progress = min(1, Float(elapsed / duration))
+        let elapsed = CACurrentMediaTime() - fadeStartTime
+        let progress = min(1, Float(elapsed / fadeDuration))
 
         // Ease-in-out curve
         let eased = progress < 0.5
             ? 2 * progress * progress
             : 1 - pow(-2 * progress + 2, 2) / 2
 
-        let currentVolume = startVol + (targetVol - startVol) * eased
+        let currentVolume = fadeStartVolume + (fadeTargetVolume - fadeStartVolume) * eased
         player.volume = max(0, min(1, currentVolume))
 
         if progress >= 1 {
             link.invalidate()
-            player.volume = targetVol
-            objc_setAssociatedObject(self, &AssociatedKeys.fadeDisplayLink, nil, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
-            let completion = objc_getAssociatedObject(self, &AssociatedKeys.fadeCompletion) as? (() -> Void)
+            fadeDisplayLink = nil
+            player.volume = fadeTargetVolume
+            let completion = fadeCompletion
+            fadeCompletion = nil
             completion?()
         }
     }
 
     /// Cancel any ongoing fade animation
     func cancelFade() {
-        if let link = objc_getAssociatedObject(self, &AssociatedKeys.fadeDisplayLink) as? CADisplayLink {
-            link.invalidate()
-            objc_setAssociatedObject(self, &AssociatedKeys.fadeDisplayLink, nil, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
-        }
+        fadeDisplayLink?.invalidate()
+        fadeDisplayLink = nil
+        fadeCompletion = nil
     }
-}
-
-// MARK: - Associated Keys for fade animation
-private struct AssociatedKeys {
-    nonisolated(unsafe) static var fadeCompletion: UInt8 = 0
-    nonisolated(unsafe) static var fadeStartTime: UInt8 = 0
-    nonisolated(unsafe) static var fadeDuration: UInt8 = 0
-    nonisolated(unsafe) static var fadeStartVolume: UInt8 = 0
-    nonisolated(unsafe) static var fadeTargetVolume: UInt8 = 0
-    nonisolated(unsafe) static var fadeDisplayLink: UInt8 = 0
 }
