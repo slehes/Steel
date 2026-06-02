@@ -49,11 +49,8 @@ final class ProfileViewController: UIViewController {
     }
 
     private func setupRightButton() {
-        let settingsButton = UIBarButtonItem(image: UIImage(systemName: "gearshape.fill"),
-                                             style: .plain, target: self, action: #selector(openSettings))
-        let notifButton    = UIBarButtonItem(image: UIImage(systemName: "line.3.horizontal"),
-                                             style: .plain, target: self, action: #selector(openNotifications))
-        navigationItem.rightBarButtonItem = settingsButton
+        let notifButton = UIBarButtonItem(image: UIImage(systemName: "line.3.horizontal"),
+                                          style: .plain, target: self, action: #selector(openNotifications))
         navigationItem.leftBarButtonItem  = notifButton
     }
 
