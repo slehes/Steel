@@ -164,15 +164,9 @@ final class TodayViewController: UIViewController {
         view.addSubview(actionBar)
         actionBar.snp.makeConstraints {
             $0.leading.trailing.equalToSuperview().inset(16)
-            $0.height.equalTo(124)
+            $0.height.equalTo(72)
             $0.bottom.equalTo(view.safeAreaLayoutGuide.snp.bottom).offset(-8)
         }
-
-        let coach = makeMiniButton(title: "ИИ Тренер", icon: "bolt.fill", action: #selector(openChat))
-        let plan = makeMiniButton(title: "Мой план", icon: "list.bullet.rectangle.portrait", action: #selector(openPlan))
-        let topRow = UIStackView(arrangedSubviews: [coach, plan])
-        topRow.distribution = .fillEqually
-        topRow.spacing = 10
 
         finishButton.setTitle("Завершить день", for: .normal)
         finishButton.titleLabel?.font = UIFont.preferredFont(forTextStyle: .headline)
@@ -181,17 +175,19 @@ final class TodayViewController: UIViewController {
         finishButton.layer.cornerRadius = 18
         finishButton.layer.cornerCurve = .continuous
         finishButton.addTarget(self, action: #selector(finishDay), for: .touchUpInside)
-        finishButton.setImage(UIImage(systemName: "checkmark.seal.fill"), for: .normal)
-        finishButton.tintColor = .systemBackground
-        finishButton.configuration = nil
-        finishButton.imageEdgeInsets = .init(top: 0, left: -6, bottom: 0, right: 6)
 
-        let stack = UIStackView(arrangedSubviews: [topRow, finishButton])
-        stack.axis = .vertical
-        stack.spacing = 10
-        actionBar.contentView.addSubview(stack)
-        stack.snp.makeConstraints { $0.edges.equalToSuperview().inset(14) }
-        finishButton.snp.makeConstraints { $0.height.equalTo(48) }
+        var config = UIButton.Configuration.plain()
+        config.image = UIImage(systemName: "checkmark.seal.fill")
+        config.title = "Завершить день"
+        config.imagePadding = 8
+        config.baseForegroundColor = .systemBackground
+        finishButton.configuration = config
+
+        actionBar.contentView.addSubview(finishButton)
+        finishButton.snp.makeConstraints {
+            $0.edges.equalToSuperview().inset(12)
+            $0.height.equalTo(48)
+        }
     }
 
     private func setupMotivation() {
@@ -235,7 +231,7 @@ final class TodayViewController: UIViewController {
     }
 
     private func updateActionBarPosition(animated: Bool) {
-        let offset: CGFloat = actionBarHidden ? 220 : -8
+        let offset: CGFloat = actionBarHidden ? 100 : -8
         actionBar.snp.updateConstraints {
             $0.bottom.equalTo(view.safeAreaLayoutGuide.snp.bottom).offset(offset)
         }

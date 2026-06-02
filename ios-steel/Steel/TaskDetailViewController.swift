@@ -14,6 +14,9 @@ final class TaskDetailViewController: UIViewController {
     private let doneButton = UIButton(type: .system)
     private let skipButton = UIButton(type: .system)
     private let closeButton = UIButton(type: .system)
+    private let minusButton = UIButton(type: .system)
+    private let plusButton = UIButton(type: .system)
+    private let amountLabel = UILabel()
 
     init(task: DailyTask, wasCompleted: Bool) {
         self.task = task
@@ -100,6 +103,41 @@ final class TaskDetailViewController: UIViewController {
             $0.centerX.equalToSuperview()
         }
 
+        // Amount control row (− / value / +)
+        let amountBg = UIView()
+        amountBg.backgroundColor = .secondarySystemBackground
+        amountBg.layer.cornerRadius = 16
+        amountBg.layer.cornerCurve = .continuous
+        content.addSubview(amountBg)
+        amountBg.snp.makeConstraints {
+            $0.top.equalTo(detailLabel.snp.bottom).offset(12)
+            $0.centerX.equalToSuperview()
+            $0.height.equalTo(44)
+        }
+
+        minusButton.setImage(UIImage(systemName: "minus.circle.fill"), for: .normal)
+        minusButton.tintColor = .systemRed
+        minusButton.addTarget(self, action: #selector(decrementAmount), for: .touchUpInside)
+        minusButton.snp.makeConstraints { $0.width.height.equalTo(36) }
+
+        amountLabel.text = "\(task.amount) \(task.unit)"
+        amountLabel.font = UIFont.systemFont(ofSize: 18, weight: .semibold)
+        amountLabel.textColor = .label
+        amountLabel.textAlignment = .center
+        amountLabel.snp.makeConstraints { $0.width.greaterThanOrEqualTo(80) }
+
+        plusButton.setImage(UIImage(systemName: "plus.circle.fill"), for: .normal)
+        plusButton.tintColor = .systemGreen
+        plusButton.addTarget(self, action: #selector(incrementAmount), for: .touchUpInside)
+        plusButton.snp.makeConstraints { $0.width.height.equalTo(36) }
+
+        let amountStack = UIStackView(arrangedSubviews: [minusButton, amountLabel, plusButton])
+        amountStack.axis = .horizontal
+        amountStack.spacing = 16
+        amountStack.alignment = .center
+        amountBg.addSubview(amountStack)
+        amountStack.snp.makeConstraints { $0.center.equalToSuperview() }
+
         descriptionLabel.text = tipForTask(task.title)
         descriptionLabel.font = UIFont.preferredFont(forTextStyle: .subheadline)
         descriptionLabel.textColor = .secondaryLabel
@@ -107,7 +145,7 @@ final class TaskDetailViewController: UIViewController {
         descriptionLabel.numberOfLines = 0
         content.addSubview(descriptionLabel)
         descriptionLabel.snp.makeConstraints {
-            $0.top.equalTo(detailLabel.snp.bottom).offset(12)
+            $0.top.equalTo(amountBg.snp.bottom).offset(12)
             $0.leading.trailing.equalToSuperview().inset(24)
         }
 
@@ -229,6 +267,25 @@ final class TaskDetailViewController: UIViewController {
             self.containerView.alpha = 1
             self.containerView.transform = .identity
         }
+    }
+
+    @objc private func incrementAmount() {
+        task.amount += 1
+        updateAmountUI()
+    }
+
+    @objc private func decrementAmount() {
+        guard task.amount > 1 else { return }
+        task.amount -= 1
+        updateAmountUI()
+    }
+
+    private func updateAmountUI() {
+        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+        detailLabel.text = task.displayDetail
+        amountLabel.text = "\(task.amount) \(task.unit)"
+        try? DataManager.shared.context.save()
+        NotificationCenter.default.post(name: .steelTasksChanged, object: nil)
     }
 
     @objc private func closeTapped() {
