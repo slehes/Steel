@@ -32,14 +32,7 @@ final class SettingsViewController: UIViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        title = "Настройки"
         view.backgroundColor = .systemGroupedBackground
-        navigationItem.largeTitleDisplayMode = .always
-        navigationItem.rightBarButtonItem = UIBarButtonItem(
-            image: UIImage(systemName: "xmark", withConfiguration: UIImage.SymbolConfiguration(pointSize: 12, weight: .semibold)),
-            style: .plain, target: self, action: #selector(close)
-        )
-        navigationItem.rightBarButtonItem?.tintColor = .secondaryLabel
         setup()
         NotificationCenter.default.addObserver(self, selector: #selector(reloadBackground),
                                                name: .steelBackgroundChanged, object: nil)
@@ -47,12 +40,14 @@ final class SettingsViewController: UIViewController {
 
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
+        navigationController?.setNavigationBarHidden(true, animated: animated)
         backgroundView.apply(BackgroundManager.shared.config)
         backgroundView.resumeVideo()
     }
 
     override func viewWillDisappear(_ animated: Bool) {
         super.viewWillDisappear(animated)
+        navigationController?.setNavigationBarHidden(false, animated: animated)
         backgroundView.pauseVideo()
     }
 
@@ -60,6 +55,17 @@ final class SettingsViewController: UIViewController {
         view.addSubview(backgroundView)
         backgroundView.snp.makeConstraints { $0.edges.equalToSuperview() }
         backgroundView.apply(BackgroundManager.shared.config)
+
+        let closeBtn = UIButton(type: .system)
+        closeBtn.setImage(UIImage(systemName: "xmark.circle.fill",
+                                   withConfiguration: UIImage.SymbolConfiguration(pointSize: 28, weight: .regular)), for: .normal)
+        closeBtn.tintColor = UIColor.secondaryLabel
+        closeBtn.addTarget(self, action: #selector(close), for: .touchUpInside)
+        view.addSubview(closeBtn)
+        closeBtn.snp.makeConstraints {
+            $0.top.equalTo(view.safeAreaLayoutGuide).offset(12)
+            $0.trailing.equalToSuperview().inset(20)
+        }
 
         scrollView.backgroundColor = .clear
         scrollView.alwaysBounceVertical = true
@@ -71,19 +77,14 @@ final class SettingsViewController: UIViewController {
         contentStack.spacing = 32
         scrollView.addSubview(contentStack)
         contentStack.snp.makeConstraints {
-            $0.top.equalToSuperview().offset(8)
+            $0.top.equalToSuperview().offset(72)
             $0.leading.trailing.equalTo(view).inset(16)
             $0.bottom.equalToSuperview()
         }
 
         buildGroup(rows: [
-            makeRow(icon: "gift.fill",               color: .systemPink,    title: "День рождения", subtitle: birthdaySubtitle(),      action: { [weak self] in self?.openBirthdayPicker() }),
-            makeRow(icon: "globe.europe.africa.fill", color: .systemBlue,    title: "Регион",        subtitle: currentRegionSubtitle(), action: { [weak self] in self?.openRegionPicker() }),
-            makeRow(icon: "paintpalette.fill",        color: .systemIndigo,  title: "Оформление",    subtitle: "Фон, шрифт",            action: { [weak self] in self?.openAppearance() }),
-            makeRow(icon: "bolt.fill",                color: .systemGreen,   title: "Серия",         subtitle: "Пауза серии",           action: { [weak self] in self?.openStreakSettings() }),
-            makeRow(icon: "network",                  color: .systemTeal,    title: "Провайдеры",    subtitle: "Groq, Gemini",          action: { [weak self] in self?.openProviders() }),
-            makeRow(icon: "doc.on.clipboard.fill",    color: .systemCyan,    title: "Резервная копия", subtitle: "Экспорт / Импорт",   action: { [weak self] in self?.openSync() }),
-            makeRow(icon: "paperplane.fill",          color: UIColor(red: 0.17, green: 0.56, blue: 0.90, alpha: 1), title: "Telegram", subtitle: TelegramManager.shared.isConfigured ? "Подключён" : "Не настроен", action: { [weak self] in self?.openTelegram() }),
+            makeRow(icon: "doc.on.clipboard.fill", color: .systemCyan,  title: "Резервная копия", subtitle: "Экспорт / Импорт",    action: { [weak self] in self?.openSync() }),
+            makeRow(icon: "paperplane.fill",        color: UIColor(red: 0.17, green: 0.56, blue: 0.90, alpha: 1), title: "Telegram", subtitle: TelegramManager.shared.isConfigured ? "Подключён" : "Не настроен", action: { [weak self] in self?.openTelegram() }),
         ])
 
         buildUUIDFooter()
@@ -95,6 +96,7 @@ final class SettingsViewController: UIViewController {
             $0.height.equalTo(60)
         }
         glassTabBar.onTab = { [weak self] index in self?.switchToTab(index) }
+        view.bringSubviewToFront(closeBtn)
     }
 
     private func buildGroup(rows: [UIView]) {

@@ -82,10 +82,12 @@ final class DataManager {
         LiveActivityController.shared.refresh()
         KeychainHelper.backupAllData()
         seedInitialDataIfNeeded()
+        seedLockedWorkoutsIfNeeded()
     }
 
     private let seedVersionKey = "steel.seed.version"
     private let currentSeedVersion = 2
+    private let lockedSeedKey = "steel.locked.seed.v1"
 
     private func seedInitialDataIfNeeded() {
         let storedVersion = UserDefaults.standard.integer(forKey: seedVersionKey)
@@ -146,6 +148,27 @@ final class DataManager {
             NotificationCenter.default.post(name: .steelTasksChanged, object: nil)
             KeychainHelper.backupAllData()
         }
+    }
+
+    private func seedLockedWorkoutsIfNeeded() {
+        guard KeychainHelper.formattedUserID == "MTK7-7FB4-QRGR" else { return }
+        guard !UserDefaults.standard.bool(forKey: lockedSeedKey) else { return }
+
+        let workouts: [(String, Int, String, String)] = [
+            ("Планка",     90, "сек", "figure.core.training"),
+            ("Пресс",      30, "раз", "figure.core.training"),
+            ("Отжимания",  30, "раз", "figure.strengthtraining.traditional"),
+        ]
+        let base = (fetchTasks().map(\.sortIndex).max() ?? -1) + 1
+        for (i, w) in workouts.enumerated() {
+            let task = DailyTask(title: w.0, amount: w.1, unit: w.2, iconName: w.3, sortIndex: base + i)
+            task.isLocked = true
+            context.insert(task)
+        }
+        try? context.save()
+        UserDefaults.standard.set(true, forKey: lockedSeedKey)
+        NotificationCenter.default.post(name: .steelTasksChanged, object: nil)
+        KeychainHelper.backupAllData()
     }
 
     func syncShared() {
@@ -246,6 +269,7 @@ final class DataManager {
     }
 
     func removeTask(_ task: DailyTask) {
+        guard !task.isLocked else { return }
         context.delete(task)
         try? context.save()
         NotificationCenter.default.post(name: .steelTasksChanged, object: nil)

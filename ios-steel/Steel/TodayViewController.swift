@@ -376,12 +376,35 @@ extension TodayViewController: UICollectionViewDataSource, UICollectionViewDeleg
 
     func collectionView(_ collectionView: UICollectionView, contextMenuConfigurationForItemAt indexPath: IndexPath, point: CGPoint) -> UIContextMenuConfiguration? {
         let task = tasks[indexPath.item]
-        return UIContextMenuConfiguration(identifier: nil, previewProvider: nil) { _ in
+        guard !task.isLocked else { return nil }
+        return UIContextMenuConfiguration(identifier: nil, previewProvider: nil) { [weak self] _ in
+            guard let self else { return UIMenu(children: []) }
+            let edit = UIAction(title: "Изменить", image: UIImage(systemName: "pencil")) { _ in
+                self.presentEditTask(task)
+            }
             let delete = UIAction(title: "Удалить", image: UIImage(systemName: "trash"), attributes: .destructive) { _ in
                 DataManager.shared.removeTask(task)
             }
-            return UIMenu(children: [delete])
+            return UIMenu(children: [edit, delete])
         }
+    }
+
+    private func presentEditTask(_ task: DailyTask) {
+        let vc = EditNameIconViewController(name: task.title, icon: task.iconName) { [weak self] newName, newIcon in
+            task.title = newName
+            task.iconName = newIcon
+            try? DataManager.shared.context.save()
+            NotificationCenter.default.post(name: .steelTasksChanged, object: nil)
+            SPIndicator.present(title: "Сохранено", preset: .done, haptic: .success)
+            self?.reload()
+        }
+        let nav = UINavigationController(rootViewController: vc)
+        if let sheet = nav.sheetPresentationController {
+            sheet.detents = [.medium(), .large()]
+            sheet.prefersGrabberVisible = true
+            sheet.preferredCornerRadius = 28
+        }
+        present(nav, animated: true)
     }
 
     @objc private func openGoals() {

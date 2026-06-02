@@ -44,6 +44,7 @@ final class DailyTask {
     var isCompleted: Bool
     var sortIndex: Int
     var totalCompletions: Int
+    var isLocked: Bool
 
     init(title: String, amount: Int, unit: String, iconName: String, sortIndex: Int) {
         self.id = UUID()
@@ -54,6 +55,7 @@ final class DailyTask {
         self.isCompleted = false
         self.sortIndex = sortIndex
         self.totalCompletions = 0
+        self.isLocked = false
     }
 
     var displayDetail: String {

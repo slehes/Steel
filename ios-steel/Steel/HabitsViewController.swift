@@ -265,9 +265,12 @@ extension HabitsViewController: UICollectionViewDataSource, UICollectionViewDele
     func collectionView(_ collectionView: UICollectionView, contextMenuConfigurationForItemAt indexPath: IndexPath, point: CGPoint) -> UIContextMenuConfiguration? {
         guard indexPath.item < currentHabits.count else { return nil }
         let habit = currentHabits[indexPath.item]
-        return UIContextMenuConfiguration(identifier: nil, previewProvider: nil) { _ in
-            let reset = UIAction(title: "Сбросить", image: UIImage(systemName: "arrow.counterclockwise")) { [weak self] _ in
-                guard let self else { return }
+        return UIContextMenuConfiguration(identifier: nil, previewProvider: nil) { [weak self] _ in
+            guard let self else { return UIMenu(children: []) }
+            let edit = UIAction(title: "Изменить", image: UIImage(systemName: "pencil")) { _ in
+                self.presentEditHabit(habit)
+            }
+            let reset = UIAction(title: "Сбросить", image: UIImage(systemName: "arrow.counterclockwise")) { _ in
                 let cell = collectionView.cellForItem(at: indexPath) as? HabitCell
                 if habit.category == .good {
                     self.markDayDone(habit, cell: cell)
@@ -275,11 +278,29 @@ extension HabitsViewController: UICollectionViewDataSource, UICollectionViewDele
                     self.relapse(habit, cell: cell)
                 }
             }
-            let delete = UIAction(title: "Удалить", image: UIImage(systemName: "trash"), attributes: .destructive) { [weak self] _ in
+            let delete = UIAction(title: "Удалить", image: UIImage(systemName: "trash"), attributes: .destructive) { _ in
                 DataManager.shared.removeHabit(habit)
-                self?.reload()
+                self.reload()
             }
-            return UIMenu(children: [reset, delete])
+            return UIMenu(children: [edit, reset, delete])
         }
+    }
+
+    private func presentEditHabit(_ habit: Habit) {
+        let vc = EditNameIconViewController(name: habit.title, icon: habit.iconName) { [weak self] newName, newIcon in
+            habit.title = newName
+            habit.iconName = newIcon
+            try? DataManager.shared.context.save()
+            NotificationCenter.default.post(name: .steelHabitsChanged, object: nil)
+            SPIndicator.present(title: "Сохранено", preset: .done, haptic: .success)
+            self?.reload()
+        }
+        let nav = UINavigationController(rootViewController: vc)
+        if let sheet = nav.sheetPresentationController {
+            sheet.detents = [.medium(), .large()]
+            sheet.prefersGrabberVisible = true
+            sheet.preferredCornerRadius = 28
+        }
+        present(nav, animated: true)
     }
 }
