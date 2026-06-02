@@ -1,5 +1,6 @@
 import Foundation
 import UIKit
+import SwiftData
 import SnapKit
 import SPIndicator
 
@@ -266,7 +267,6 @@ final class SyncViewController: UIViewController {
         sep.snp.makeConstraints { $0.height.equalTo(0.5) }
 
         let fieldContainer = UIView()
-        fieldContainer.isLayoutMarginsRelativeArrangement = true
 
         let textField = UITextField()
         textField.placeholder = "ID проекта (напр. my-app-12345)"
@@ -289,7 +289,6 @@ final class SyncViewController: UIViewController {
         hint.font = UIFont.systemFont(ofSize: 11)
         hint.textColor = .secondaryLabel
         hint.numberOfLines = 0
-        hint.isLayoutMarginsRelativeArrangement = true
 
         let hintRow = UIStackView(arrangedSubviews: [hint])
         hintRow.isLayoutMarginsRelativeArrangement = true
