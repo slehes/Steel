@@ -90,11 +90,12 @@ final class SettingsViewController: UIViewController {
 
     private func setupCategoriesSection() {
         let rows: [(title: String, subtitle: String, icon: String, iconBg: UIColor, action: () -> Void)] = [
-            ("День рождения", birthdaySubtitle(),    "gift.fill",                 .systemPink,   { [weak self] in self?.openBirthdayPicker() }),
-            ("Оформление",    "Фон, шрифт",          "paintpalette.fill",         .systemIndigo, { [weak self] in self?.openAppearance() }),
-            ("Провайдеры",    "Groq, Gemini",         "network",                   .systemTeal,   { [weak self] in self?.openProviders() }),
-            ("Регион",        currentRegionSubtitle(), "globe.europe.africa.fill", .systemBlue,   { [weak self] in self?.openRegionPicker() }),
-            ("Серия",         "Пауза серии",          "bolt.fill",                 .systemGreen,  { [weak self] in self?.openStreakSettings() }),
+            ("День рождения",  birthdaySubtitle(),     "gift.fill",                 .systemPink,   { [weak self] in self?.openBirthdayPicker() }),
+            ("Оформление",     "Фон, шрифт",           "paintpalette.fill",         .systemIndigo, { [weak self] in self?.openAppearance() }),
+            ("Провайдеры",     "Groq, Gemini",          "network",                   .systemTeal,   { [weak self] in self?.openProviders() }),
+            ("Регион",         currentRegionSubtitle(), "globe.europe.africa.fill",  .systemBlue,   { [weak self] in self?.openRegionPicker() }),
+            ("Серия",          "Пауза серии",           "bolt.fill",                 .systemGreen,  { [weak self] in self?.openStreakSettings() }),
+            ("Синхронизация",  "Облако по UUID",        "icloud.and.arrow.up.fill",  .systemCyan,   { [weak self] in self?.openSync() }),
         ]
 
         for row in rows {
@@ -111,6 +112,39 @@ final class SettingsViewController: UIViewController {
             rowView.snp.makeConstraints { $0.edges.equalToSuperview() }
             contentStack.addArrangedSubview(glass)
         }
+
+        buildUUIDFooter()
+    }
+
+    private func buildUUIDFooter() {
+        let containerStack = UIStackView()
+        containerStack.axis = .vertical
+        containerStack.spacing = 4
+        containerStack.alignment = .center
+
+        let uuidLabel = UILabel()
+        uuidLabel.text = KeychainHelper.formattedUserID
+        uuidLabel.font = UIFont.monospacedSystemFont(ofSize: 13, weight: .regular)
+        uuidLabel.textColor = .tertiaryLabel
+        uuidLabel.textAlignment = .center
+        uuidLabel.isUserInteractionEnabled = true
+        uuidLabel.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(copyUUID)))
+
+        let hintLabel = UILabel()
+        hintLabel.text = "Нажмите на ID, чтобы скопировать"
+        hintLabel.font = UIFont.systemFont(ofSize: 11)
+        hintLabel.textColor = UIColor.tertiaryLabel.withAlphaComponent(0.7)
+        hintLabel.textAlignment = .center
+
+        containerStack.addArrangedSubview(uuidLabel)
+        containerStack.addArrangedSubview(hintLabel)
+        contentStack.addArrangedSubview(containerStack)
+    }
+
+    @objc private func copyUUID() {
+        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+        UIPasteboard.general.string = KeychainHelper.formattedUserID
+        SPIndicator.present(title: "ID скопирован", preset: .done, haptic: .success)
     }
 
     private func birthdaySubtitle() -> String {
@@ -196,6 +230,11 @@ final class SettingsViewController: UIViewController {
 
     private func openStreakSettings() {
         let vc = StreakSettingsViewController()
+        navigationController?.pushViewController(vc, animated: true)
+    }
+
+    private func openSync() {
+        let vc = SyncViewController()
         navigationController?.pushViewController(vc, animated: true)
     }
 

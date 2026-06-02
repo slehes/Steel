@@ -257,6 +257,22 @@ extension HabitsViewController: UICollectionViewDataSource, UICollectionViewDele
         return cell
     }
 
+    func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
+        guard indexPath.item < currentHabits.count else { return }
+        let habit = currentHabits[indexPath.item]
+        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+        let vc = HabitStreakDetailViewController(habit: habit)
+        let nav = UINavigationController(rootViewController: vc)
+        nav.setNavigationBarHidden(true, animated: false)
+        nav.modalPresentationStyle = .pageSheet
+        if let sheet = nav.sheetPresentationController {
+            sheet.detents = [.medium(), .large()]
+            sheet.prefersGrabberVisible = false
+            sheet.preferredCornerRadius = 28
+        }
+        present(nav, animated: true)
+    }
+
     func collectionView(_ collectionView: UICollectionView, contextMenuConfigurationForItemAt indexPath: IndexPath, point: CGPoint) -> UIContextMenuConfiguration? {
         guard indexPath.item < currentHabits.count else { return nil }
         let habit = currentHabits[indexPath.item]

@@ -84,8 +84,35 @@ final class DataManager {
         rolloverIfNewDay()
         syncShared()
         LiveActivityController.shared.refresh()
-        // Auto-backup on launch
         KeychainHelper.backupAllData()
+        seedInitialDataIfNeeded()
+    }
+
+    // Seeds starter habits and streak for a fresh install with no existing data.
+    private func seedInitialDataIfNeeded() {
+        guard fetchHabits().isEmpty, settings.streakDays == 0 else { return }
+
+        let twoDaysAgo = Calendar.current.date(byAdding: .day, value: -2, to: Calendar.current.startOfDay(for: Date())) ?? Date()
+
+        let seeds: [(String, String, HabitCategory)] = [
+            ("Кофе",        "cup.and.saucer.fill",    .good),
+            ("2 л воды",    "drop.fill",               .good),
+            ("Мастурбация", "hand.raised.slash.fill",  .bad),
+        ]
+
+        for (index, seed) in seeds.enumerated() {
+            let habit = Habit(title: seed.0, iconName: seed.1, category: seed.2, sortIndex: index)
+            habit.streakStart = twoDaysAgo
+            context.insert(habit)
+        }
+        try? context.save()
+
+        updateSettings { $0.streakDays = 2 }
+
+        DispatchQueue.main.async {
+            NotificationCenter.default.post(name: .steelHabitsChanged, object: nil)
+            KeychainHelper.backupAllData()
+        }
     }
 
     func syncShared() {

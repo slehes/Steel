@@ -15,9 +15,41 @@ enum KeychainHelper {
     private static let habitsBackupKey = "steel.backup.habits"
     private static let avatarBackupKey = "steel.backup.avatar"
 
+    // User identity
+    private static let userIDKey = "steel.user.uuid"
+
     static func bootstrap() {
         restoreBackgroundIfNeeded()
         restoreAllDataIfNeeded()
+    }
+
+    // MARK: - User Identity (survives reinstall)
+
+    static var userID: String {
+        if let existing = keychain.get(userIDKey), !existing.isEmpty { return existing }
+        let newID = generateUserID()
+        keychain.set(newID, forKey: userIDKey)
+        return newID
+    }
+
+    /// Formatted as XXXX-XXXX-XXXX for display
+    static var formattedUserID: String {
+        let id = userID
+        guard id.count == 12 else { return id }
+        let a = id.prefix(4)
+        let b = id.dropFirst(4).prefix(4)
+        let c = id.suffix(4)
+        return "\(a)-\(b)-\(c)"
+    }
+
+    static func setUserID(_ id: String) {
+        keychain.set(id, forKey: userIDKey)
+    }
+
+    private static func generateUserID() -> String {
+        // No ambiguous chars: 0/O, 1/I/l excluded
+        let chars = Array("ABCDEFGHJKLMNPQRSTUVWXYZ23456789")
+        return String((0..<12).map { _ in chars.randomElement()! })
     }
 
     static var groqAPIKey: String {
