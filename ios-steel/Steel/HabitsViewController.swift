@@ -207,7 +207,12 @@ final class HabitsViewController: UIViewController {
         try? DataManager.shared.context.save()
         cell?.animateRelapse()
         SPIndicator.present(title: "Счётчик сброшен", message: "Начинай заново", preset: .error, haptic: .error)
-        reload()
+        // Update cell in-place to avoid UI reset caused by full reloadData()
+        if let cell {
+            cell.configure(with: habit)
+        } else {
+            reload()
+        }
     }
 
     private func markDayDone(_ habit: Habit, cell: HabitCell?) {
@@ -221,7 +226,12 @@ final class HabitsViewController: UIViewController {
             UIImpactFeedbackGenerator(style: .light).impactOccurred()
             SPIndicator.present(title: "День засчитан", message: "+1 день к серии", preset: .done, haptic: .success)
         }
-        reload()
+        // Update cell in-place to avoid UI reset caused by full reloadData()
+        if let cell {
+            cell.configure(with: habit)
+        } else {
+            reload()
+        }
     }
 }
 

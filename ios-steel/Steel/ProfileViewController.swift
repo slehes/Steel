@@ -15,13 +15,18 @@ final class ProfileViewController: UIViewController {
     private let statsStack = UIStackView()
     private var reminderPickers: [UIDatePicker] = []
 
+    // Sound controls
+    private var soundButton: UIBarButtonItem!
+    private var volumePopupView: VolumePopupView?
+    private var volumePopupDismissTimer: Timer?
+
     override func viewDidLoad() {
         super.viewDidLoad()
         view.backgroundColor = .systemGroupedBackground
         title = "Профиль"
         navigationItem.largeTitleDisplayMode = .always
         setupBackground()
-        setupRightButton()
+        setupNavigationButtons()
         setup()
         NotificationCenter.default.addObserver(self, selector: #selector(refresh), name: .steelSettingsChanged, object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(refresh), name: .steelTasksChanged, object: nil)
@@ -35,11 +40,13 @@ final class ProfileViewController: UIViewController {
         backgroundView.resumeVideo()
         loadAvatar()
         refresh()
+        updateSoundButton()
     }
 
     override func viewWillDisappear(_ animated: Bool) {
         super.viewWillDisappear(animated)
         backgroundView.pauseVideo()
+        hideVolumePopup()
     }
 
     private func setupBackground() {
@@ -48,10 +55,25 @@ final class ProfileViewController: UIViewController {
         backgroundView.apply(BackgroundManager.shared.config)
     }
 
-    private func setupRightButton() {
+    private func setupNavigationButtons() {
         let notifButton = UIBarButtonItem(image: UIImage(systemName: "line.3.horizontal"),
                                           style: .plain, target: self, action: #selector(openNotifications))
+
+        // Sound button — tap to toggle mute, long press to adjust volume
+        let soundBtn = UIButton(type: .system)
+        soundBtn.setImage(UIImage(systemName: "speaker.slash.fill"), for: .normal)
+        soundBtn.tintColor = .label
+        soundBtn.frame = CGRect(x: 0, y: 0, width: 36, height: 36)
+        soundBtn.addTarget(self, action: #selector(soundButtonTapped), for: .touchUpInside)
+
+        let longPress = UILongPressGestureRecognizer(target: self, action: #selector(soundButtonLongPressed(_:)))
+        longPress.minimumPressDuration = 0.3
+        soundBtn.addGestureRecognizer(longPress)
+
+        soundButton = UIBarButtonItem(customView: soundBtn)
+
         navigationItem.leftBarButtonItem  = notifButton
+        navigationItem.rightBarButtonItem = soundButton
     }
 
     @objc private func openNotifications() {
@@ -65,6 +87,97 @@ final class ProfileViewController: UIViewController {
         }
         present(nav, animated: true)
     }
+
+    // MARK: - Sound Control
+
+    private func updateSoundButton() {
+        let isVideo = backgroundView.currentKind == .video
+        soundButton.isVisible = isVideo
+
+        guard isVideo else { return }
+
+        let muted = backgroundView.isMuted
+        let volume = backgroundView.volume
+        let btn = soundButton.customView as? UIButton
+
+        if muted || volume == 0 {
+            btn?.setImage(UIImage(systemName: "speaker.slash.fill"), for: .normal)
+        } else if volume < 0.33 {
+            btn?.setImage(UIImage(systemName: "speaker.wave.1.fill"), for: .normal)
+        } else if volume < 0.66 {
+            btn?.setImage(UIImage(systemName: "speaker.wave.2.fill"), for: .normal)
+        } else {
+            btn?.setImage(UIImage(systemName: "speaker.wave.3.fill"), for: .normal)
+        }
+    }
+
+    @objc private func soundButtonTapped() {
+        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+        backgroundView.toggleMuted(animated: true)
+        updateSoundButton()
+    }
+
+    @objc private func soundButtonLongPressed(_ gesture: UILongPressGestureRecognizer) {
+        switch gesture.state {
+        case .began:
+            UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+            showVolumePopup()
+        case .changed:
+            // Update volume based on finger position in popup
+            guard let popup = volumePopupView else { return }
+            let location = gesture.location(in: popup)
+            let ratio = max(0, min(1, 1 - location.y / popup.bounds.height))
+            let newVolume = Float(ratio)
+            backgroundView.setVolume(newVolume, animated: false)
+            popup.updateVolume(newVolume)
+            updateSoundButton()
+        case .ended, .cancelled:
+            // Auto-dismiss after a short delay
+            scheduleVolumePopupDismiss()
+        default:
+            break
+        }
+    }
+
+    private func showVolumePopup() {
+        hideVolumePopup()
+
+        guard let soundBtnView = soundButton.customView else { return }
+        let btnFrameInView = soundBtnView.convert(soundBtnView.bounds, to: view)
+
+        let popup = VolumePopupView(initialVolume: backgroundView.volume)
+        popup.onVolumeChange = { [weak self] vol in
+            self?.backgroundView.setVolume(vol, animated: false)
+            self?.updateSoundButton()
+        }
+        view.addSubview(popup)
+        popup.snp.makeConstraints {
+            $0.trailing.equalToSuperview().inset(8)
+            $0.top.equalTo(btnFrameInView.minY + btnFrameInView.height + 4)
+            $0.width.equalTo(52)
+            $0.height.equalTo(200)
+        }
+        volumePopupView = popup
+
+        // Auto-dismiss timer
+        scheduleVolumePopupDismiss()
+    }
+
+    private func hideVolumePopup() {
+        volumePopupView?.removeFromSuperview()
+        volumePopupView = nil
+        volumePopupDismissTimer?.invalidate()
+        volumePopupDismissTimer = nil
+    }
+
+    private func scheduleVolumePopupDismiss() {
+        volumePopupDismissTimer?.invalidate()
+        volumePopupDismissTimer = Timer.scheduledTimer(withTimeInterval: 2.0, repeats: false) { [weak self] _ in
+            self?.hideVolumePopup()
+        }
+    }
+
+    // MARK: - Setup
 
     private func setup() {
         view.addSubview(scrollView)
@@ -274,7 +387,7 @@ final class ProfileViewController: UIViewController {
         let dateStr = "\(bDay) \(monthName) \(bYear)"
 
         if days == 0 {
-            birthdayLabel.text = "🎉 Сегодня твой день рождения! (\(dateStr))"
+            birthdayLabel.text = "Сегодня твой день рождения! (\(dateStr))"
         } else {
             birthdayLabel.text = "осталось \(days) дн. (\(dateStr))"
         }
@@ -288,18 +401,9 @@ final class ProfileViewController: UIViewController {
         refreshBirthdayLabel(birthdayString: settings.birthdayDateString)
 
         statsStack.arrangedSubviews.forEach { $0.removeFromSuperview() }
-        let progress = DataManager.shared.taskProgress
-        let habits = DataManager.shared.fetchHabits()
-        let bestHabitStreak = habits.map(\.bestStreak).max() ?? 0
-        let avgPerDay = settings.streakDays > 0
-            ? settings.totalCompletedTasks / settings.streakDays
-            : 0
         let rows = [
             ("Выполнено дней", "\(settings.streakDays)"),
-            ("Заданий сегодня", "\(progress.done)/\(progress.total)"),
             ("Всего выполнено", "\(settings.totalCompletedTasks)"),
-            ("В среднем в день", "~\(avgPerDay)"),
-            ("Лучший рекорд", "\(bestHabitStreak) дн."),
             ("Частое упражнение", settings.mostFrequentExercise),
         ]
         for (i, row) in rows.enumerated() {
@@ -309,6 +413,7 @@ final class ProfileViewController: UIViewController {
 
     @objc private func reloadBackground() {
         backgroundView.apply(BackgroundManager.shared.config)
+        updateSoundButton()
     }
 
 
@@ -384,6 +489,143 @@ final class ProfileViewController: UIViewController {
         DataManager.shared.updateSettings { $0.reminderHours = hours }
         NotificationManager.shared.rescheduleAll()
     }
+}
+
+// MARK: - Volume Popup View
+
+private final class VolumePopupView: UIView {
+    private let trackView = UIView()
+    private let fillView = UIView()
+    private let thumbView = UIView()
+    private let percentLabel = UILabel()
+    private var fillHeight: Constraint?
+
+    var onVolumeChange: ((Float) -> Void)?
+
+    init(initialVolume: Float) {
+        super.init(frame: .zero)
+        setup(initialVolume: initialVolume)
+    }
+
+    required init?(coder: NSCoder) { fatalError() }
+
+    private func setup(initialVolume: Float) {
+        backgroundColor = UIColor.secondarySystemBackground.withAlphaComponent(0.85)
+        layer.cornerRadius = 14
+        layer.cornerCurve = .continuous
+        clipsToBounds = true
+        layer.borderWidth = 0.5
+        layer.borderColor = UIColor.white.withAlphaComponent(0.15).cgColor
+
+        // Track (background)
+        trackView.backgroundColor = UIColor.systemFill
+        trackView.layer.cornerRadius = 6
+        addSubview(trackView)
+        trackView.snp.makeConstraints {
+            $0.leading.trailing.equalToSuperview().inset(14)
+            $0.top.equalToSuperview().inset(28)
+            $0.bottom.equalToSuperview().inset(36)
+        }
+
+        // Fill (filled portion from bottom)
+        fillView.backgroundColor = .systemBlue
+        fillView.layer.cornerRadius = 6
+        trackView.addSubview(fillView)
+        fillView.snp.makeConstraints {
+            $0.leading.trailing.bottom.equalToSuperview()
+            fillHeight = $0.height.equalTo(0).constraint
+        }
+
+        // Thumb indicator
+        thumbView.backgroundColor = .white
+        thumbView.layer.cornerRadius = 8
+        thumbView.layer.shadowColor = UIColor.black.cgColor
+        thumbView.layer.shadowOpacity = 0.3
+        thumbView.layer.shadowOffset = CGSize(width: 0, height: 1)
+        thumbView.layer.shadowRadius = 2
+        addSubview(thumbView)
+        thumbView.snp.makeConstraints {
+            $0.centerX.equalToSuperview()
+            $0.size.equalTo(16)
+        }
+
+        // Percentage label
+        percentLabel.font = UIFont.systemFont(ofSize: 11, weight: .bold)
+        percentLabel.textColor = .label
+        percentLabel.textAlignment = .center
+        addSubview(percentLabel)
+        percentLabel.snp.makeConstraints {
+            $0.centerX.equalToSuperview()
+            $0.bottom.equalToSuperview().inset(10)
+        }
+
+        updateVolume(initialVolume)
+
+        // Pan gesture for dragging
+        let pan = UIPanGestureRecognizer(target: self, action: #selector(handlePan(_:)))
+        addGestureRecognizer(pan)
+
+        // Tap gesture for direct position
+        let tap = UITapGestureRecognizer(target: self, action: #selector(handleTap(_:)))
+        addGestureRecognizer(tap)
+    }
+
+    func updateVolume(_ volume: Float) {
+        let clamped = max(0, min(1, volume))
+        DispatchQueue.main.async { [weak self] in
+            guard let self else { return }
+            let trackHeight = self.trackView.bounds.height
+            self.fillHeight?.update(offset: trackHeight * CGFloat(clamped))
+            self.layoutIfNeeded()
+
+            // Position thumb at top of fill
+            let thumbY = self.trackView.frame.minY + trackHeight * (1 - CGFloat(clamped)) - 8
+            self.thumbView.snp.updateConstraints {
+                $0.centerY.equalTo(thumbY)
+            }
+
+            self.percentLabel.text = "\(Int(clamped * 100))%"
+        }
+    }
+
+    @objc private func handlePan(_ gesture: UIPanGestureRecognizer) {
+        let location = gesture.location(in: trackView)
+        let ratio = max(0, min(1, 1 - location.y / trackView.bounds.height))
+        let newVolume = Float(ratio)
+        updateVolume(newVolume)
+        onVolumeChange?(newVolume)
+    }
+
+    @objc private func handleTap(_ gesture: UITapGestureRecognizer) {
+        let location = gesture.location(in: trackView)
+        let ratio = max(0, min(1, 1 - location.y / trackView.bounds.height))
+        let newVolume = Float(ratio)
+        updateVolume(newVolume)
+        onVolumeChange?(newVolume)
+    }
+}
+
+// MARK: - UIBarButtonItem visibility
+
+extension UIBarButtonItem {
+    var isVisible: Bool {
+        get { !isHidden }
+        set { isHidden = !newValue }
+    }
+
+    var isHidden: Bool {
+        get { objc_getAssociatedObject(self, &AssociatedKeys.isHidden) as? Bool ?? false }
+        set {
+            objc_setAssociatedObject(self, &AssociatedKeys.isHidden, newValue, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
+            tintColor = newValue ? .clear : nil
+            isEnabled = !newValue
+            (customView as? UIButton)?.isUserInteractionEnabled = !newValue
+        }
+    }
+}
+
+private struct AssociatedKeys {
+    nonisolated(unsafe) static var isHidden: UInt8 = 0
 }
 
 extension ProfileViewController: UITextFieldDelegate {

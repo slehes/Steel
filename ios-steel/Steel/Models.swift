@@ -258,6 +258,8 @@ struct AppSettings: Codable {
     var userTrainingLocation: String
     var yearGoals: [YearGoal]
     var birthdayDateString: String
+    var backgroundVideoMuted: Bool
+    var backgroundVideoVolume: Float
 
     init(
         userName: String,
@@ -277,7 +279,9 @@ struct AppSettings: Codable {
         regionTimeZone: String,
         userTrainingLocation: String,
         yearGoals: [YearGoal],
-        birthdayDateString: String = ""
+        birthdayDateString: String = "",
+        backgroundVideoMuted: Bool = true,
+        backgroundVideoVolume: Float = 1.0
     ) {
         self.userName = userName
         self.streakDays = streakDays
@@ -297,6 +301,8 @@ struct AppSettings: Codable {
         self.userTrainingLocation = userTrainingLocation
         self.yearGoals = yearGoals
         self.birthdayDateString = birthdayDateString
+        self.backgroundVideoMuted = backgroundVideoMuted
+        self.backgroundVideoVolume = backgroundVideoVolume
     }
 
     init(from decoder: Decoder) throws {
@@ -319,6 +325,8 @@ struct AppSettings: Codable {
         userTrainingLocation = try container.decodeIfPresent(String.self, forKey: .userTrainingLocation) ?? ""
         yearGoals = try container.decodeIfPresent([YearGoal].self, forKey: .yearGoals) ?? []
         birthdayDateString = try container.decodeIfPresent(String.self, forKey: .birthdayDateString) ?? ""
+        backgroundVideoMuted = try container.decodeIfPresent(Bool.self, forKey: .backgroundVideoMuted) ?? true
+        backgroundVideoVolume = try container.decodeIfPresent(Float.self, forKey: .backgroundVideoVolume) ?? 1.0
     }
 
     static let `default` = AppSettings(
@@ -338,7 +346,9 @@ struct AppSettings: Codable {
         regionCity: "Москва",
         regionTimeZone: "Europe/Moscow",
         userTrainingLocation: "",
-        yearGoals: []
+        yearGoals: [],
+        backgroundVideoMuted: true,
+        backgroundVideoVolume: 1.0
     )
 
     var mostFrequentExercise: String {
