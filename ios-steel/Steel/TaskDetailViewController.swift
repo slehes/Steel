@@ -1,5 +1,6 @@
 import UIKit
 import SnapKit
+import SwiftData
 
 final class TaskDetailViewController: UIViewController {
     private let task: DailyTask
