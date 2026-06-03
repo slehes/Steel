@@ -131,10 +131,10 @@ final class ProfileViewController: UIViewController {
 
         case .changed:
             guard let popup = volumePopupView else { return }
-            let location = gesture.location(in: popup.trackView)
-            let trackWidth = popup.trackView.bounds.width
-            guard trackWidth > 0 else { return }
-            let ratio = max(0, min(1, location.x / trackWidth))
+            let location = gesture.location(in: popup)
+            let width = popup.bounds.width
+            guard width > 0 else { return }
+            let ratio = max(0, min(1, location.x / width))
             let newVolume = Float(ratio)
 
             BackgroundVideoManager.shared.setPlayerVolume(newVolume)
@@ -171,7 +171,7 @@ final class ProfileViewController: UIViewController {
             $0.trailing.equalToSuperview().inset(6)
             $0.top.equalTo(btnFrameInView.minY + btnFrameInView.height + 6)
             $0.width.equalTo(240)
-            $0.height.equalTo(36)
+            $0.height.equalTo(44)
         }
         popup.alpha = 0
         popup.transform = CGAffineTransform(scaleX: 0.8, y: 0.8)
@@ -524,14 +524,11 @@ final class ProfileViewController: UIViewController {
     }
 }
 
-// MARK: - Volume Popup View (Horizontal Slider — No Container)
+// MARK: - Volume Popup View (Gray track + oval thumb)
 
 private final class VolumePopupView: UIView {
-    private let fillGradientLayer = CAGradientLayer()
     private let thumbView = UIView()
-    private var fillWidth: Constraint?
-    private(set) var trackView = UIView()
-    private var fillView = UIView()
+    private let trackView = UIView()
 
     var onVolumeChange: ((Float) -> Void)?
     var onVolumeChangeEnded: (() -> Void)?
@@ -549,8 +546,9 @@ private final class VolumePopupView: UIView {
     private func setup() {
         backgroundColor = .clear
         isUserInteractionEnabled = true
+        clipsToBounds = false
 
-        // Track — thin horizontal bar, no container
+        // Track — simple gray bar
         trackView.backgroundColor = UIColor.label.withAlphaComponent(0.12)
         trackView.layer.cornerRadius = 2.5
         trackView.isUserInteractionEnabled = false
@@ -561,28 +559,7 @@ private final class VolumePopupView: UIView {
             $0.height.equalTo(5)
         }
 
-        // Fill (colored portion from left)
-        fillView.backgroundColor = .clear
-        fillView.layer.cornerRadius = 2.5
-        fillView.clipsToBounds = true
-        fillView.isUserInteractionEnabled = false
-        trackView.addSubview(fillView)
-        fillView.snp.makeConstraints {
-            $0.leading.top.bottom.equalToSuperview()
-            fillWidth = $0.width.equalTo(0).constraint
-        }
-
-        // Gradient for the fill
-        fillGradientLayer.colors = [
-            UIColor.systemBlue.cgColor,
-            UIColor.systemTeal.cgColor
-        ]
-        fillGradientLayer.startPoint = CGPoint(x: 0, y: 0.5)
-        fillGradientLayer.endPoint = CGPoint(x: 1, y: 0.5)
-        fillGradientLayer.cornerRadius = 2.5
-        fillView.layer.insertSublayer(fillGradientLayer, at: 0)
-
-        // Thumb — white oval/pill (wider than tall, like the original)
+        // Thumb — white oval (pill shape)
         thumbView.backgroundColor = .white
         thumbView.layer.cornerRadius = 10
         thumbView.layer.shadowColor = UIColor.black.cgColor
@@ -597,13 +574,18 @@ private final class VolumePopupView: UIView {
             $0.height.equalTo(20)
         }
 
-        // Gestures on the entire popup area
+        // Pan gesture — works across entire view
         let pan = UIPanGestureRecognizer(target: self, action: #selector(handlePan(_:)))
-        pan.cancelsTouchesInView = false
         addGestureRecognizer(pan)
+
+        // Tap gesture — tap to set volume at position
         let tap = UITapGestureRecognizer(target: self, action: #selector(handleTap(_:)))
-        tap.cancelsTouchesInView = false
         addGestureRecognizer(tap)
+    }
+
+    override func hitTest(_ point: CGPoint, with event: UIEvent?) -> UIView? {
+        // Accept touches in the full area (even outside track/thumb)
+        return bounds.contains(point) ? self : nil
     }
 
     func setInitialVolume() {
@@ -613,18 +595,11 @@ private final class VolumePopupView: UIView {
 
     func updateVolume(_ volume: Float) {
         let clamped = max(0, min(1, volume))
-        let trackWidth = trackView.bounds.width
-        guard trackWidth > 0 else { return }
+        let totalWidth = bounds.width
+        guard totalWidth > 0 else { return }
 
-        let fillWidthValue = trackWidth * CGFloat(clamped)
-        fillWidth?.update(offset: fillWidthValue)
-        layoutIfNeeded()
-
-        // Update gradient frame
-        fillGradientLayer.frame = fillView.bounds
-
-        // Position thumb at the right edge of the fill
-        let thumbX = fillWidthValue
+        // Thumb position along the width
+        let thumbX = totalWidth * CGFloat(clamped)
         thumbView.snp.remakeConstraints {
             $0.centerY.equalToSuperview()
             $0.centerX.equalTo(thumbX)
@@ -634,9 +609,9 @@ private final class VolumePopupView: UIView {
     }
 
     @objc private func handlePan(_ gesture: UIPanGestureRecognizer) {
-        let location = gesture.location(in: trackView)
-        let width = trackView.bounds.width
+        let width = bounds.width
         guard width > 0 else { return }
+        let location = gesture.location(in: self)
         let ratio = max(0, min(1, location.x / width))
         let newVolume = Float(ratio)
         updateVolume(newVolume)
@@ -648,9 +623,9 @@ private final class VolumePopupView: UIView {
     }
 
     @objc private func handleTap(_ gesture: UITapGestureRecognizer) {
-        let location = gesture.location(in: trackView)
-        let width = trackView.bounds.width
+        let width = bounds.width
         guard width > 0 else { return }
+        let location = gesture.location(in: self)
         let ratio = max(0, min(1, location.x / width))
         let newVolume = Float(ratio)
         updateVolume(newVolume)
