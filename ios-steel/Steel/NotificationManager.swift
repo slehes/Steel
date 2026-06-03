@@ -21,20 +21,24 @@ final class NotificationManager {
         let incompleteTasks = tasks.filter { !$0.isCompleted }
         let allDone = !tasks.isEmpty && incompleteTasks.isEmpty
 
-        let incompleteMessage = "У вас еще не все тренировки выполнены"
-
         if hours.count > 0 {
-            let messages = allDone ? ["День закрыт. Отдыхай — завтра новый бой."] : [incompleteMessage]
+            let messages = allDone
+                ? ["День закрыт! Возвращайся завтра за новой серией."]
+                : ["Возвращайся заниматься! Тренировки ждут.", "Пора тренироваться! Не сдавайся.", "Давай, пора заняться делом!"]
             scheduleReminder(hour: hours[0], identifier: "steel.reminder.morning", messages: messages)
         }
 
         if hours.count > 1 {
-            let messages = allDone ? ["День закрыт. Отдыхай — завтра новый бой."] : [incompleteMessage]
+            let messages = allDone
+                ? ["День закрыт! Мини-отдых заслужен.", "Всё выполнено — отдыхай, но не расслабляйся!"]
+                : ["Мини-отдых? Не забудь про тренировки!", "Перерыв — это хорошо, но тренировки ждут.", "Ещё не всё сделано — возвращайся!"]
             scheduleReminder(hour: hours[1], identifier: "steel.reminder.evening", messages: messages)
         }
 
         if hours.count > 2 {
-            let messages = allDone ? ["Красавчик. Серия сохранена. Спокойной ночи."] : [incompleteMessage]
+            let messages = allDone
+                ? ["Красавчик! Серия сохранена. Спокойной ночи.", "Всё готово на сегодня. Отдыхай — завтра новый бой."]
+                : ["Пора отдыхать, но тренировки не выполнены!", "Ночь близко — закрой день тренировками!", "Не сдавайся! Завтра будет сложнее начать заново."]
             scheduleReminder(hour: hours[2], identifier: "steel.reminder.night", messages: messages)
         }
     }
