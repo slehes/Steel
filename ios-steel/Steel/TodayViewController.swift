@@ -59,10 +59,11 @@ final class TodayViewController: UIViewController {
     private func setupRightButtons() {
         configureNavButton(goalsButtonView, icon: "target",                      action: #selector(openGoals))
         configureNavButton(bgButtonView,    icon: "photo.on.rectangle.angled",   action: #selector(chooseBackground))
-        configureNavButton(hideButtonView,  icon: "chevron.down",                action: #selector(toggleActionBarButton))
+        // Chevron arrow is hidden — not visible in the container
+        hideButtonView.isHidden = true
 
         extraGlassContainer.backgroundColor = UIColor.secondarySystemBackground.withAlphaComponent(0.28)
-        let btnStack = UIStackView(arrangedSubviews: [goalsButtonView, bgButtonView, hideButtonView])
+        let btnStack = UIStackView(arrangedSubviews: [goalsButtonView, bgButtonView])
         btnStack.spacing = 2
         extraGlassContainer.contentView.addSubview(btnStack)
         btnStack.snp.makeConstraints { $0.edges.equalToSuperview().inset(UIEdgeInsets(top: 2, left: 6, bottom: 2, right: 6)) }
