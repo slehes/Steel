@@ -7,7 +7,15 @@ import AVFoundation
 @MainActor
 final class BackgroundVideoManager {
     static let shared = BackgroundVideoManager()
-    private init() {}
+    private init() {
+        // Resume video when app returns from background
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(appDidBecomeActive),
+            name: UIApplication.didBecomeActiveNotification,
+            object: nil
+        )
+    }
 
     private var player: AVQueuePlayer?
     private var looper: AVPlayerLooper?
@@ -105,6 +113,13 @@ final class BackgroundVideoManager {
               player.items().contains(item) || looper == nil else { return }
         player.seek(to: .zero)
         player.play()
+    }
+
+    /// Resume playback when app returns from background
+    @objc private func appDidBecomeActive() {
+        guard player != nil, currentFileName != nil else { return }
+        configureAudioSession()
+        player?.play()
     }
 
     // MARK: - Player Access

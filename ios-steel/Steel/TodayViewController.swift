@@ -110,17 +110,33 @@ final class TodayViewController: UIViewController {
         guard gesture.state == .began else { return }
         extraButtonsHidden.toggle()
 
-        let targetAlpha: CGFloat = extraButtonsHidden ? 0 : 1
         let feedback: UIImpactFeedbackGenerator.FeedbackStyle = extraButtonsHidden ? .heavy : .medium
 
-        UIView.animate(
-            withDuration: 0.55,
-            delay: 0,
-            usingSpringWithDamping: 0.85,
-            initialSpringVelocity: 0,
-            options: .curveEaseOut
-        ) {
-            self.extraGlassContainer.alpha = targetAlpha
+        if extraButtonsHidden {
+            // Collapse: shrink + fade out the glass container smoothly
+            UIView.animate(
+                withDuration: 0.4,
+                delay: 0,
+                usingSpringWithDamping: 0.8,
+                initialSpringVelocity: 0.2,
+                options: .curveEaseIn
+            ) {
+                self.extraGlassContainer.transform = CGAffineTransform(scaleX: 0.01, y: 0.01)
+                self.extraGlassContainer.alpha = 0
+            }
+        } else {
+            // Expand: start tiny, then spring back to full size + fade in
+            self.extraGlassContainer.transform = CGAffineTransform(scaleX: 0.01, y: 0.01)
+            UIView.animate(
+                withDuration: 0.5,
+                delay: 0,
+                usingSpringWithDamping: 0.7,
+                initialSpringVelocity: 0.3,
+                options: .curveEaseOut
+            ) {
+                self.extraGlassContainer.transform = .identity
+                self.extraGlassContainer.alpha = 1
+            }
         }
         UIImpactFeedbackGenerator(style: feedback).impactOccurred()
     }
@@ -244,10 +260,10 @@ final class TodayViewController: UIViewController {
 
         if animated {
             UIView.animate(
-                withDuration: 0.6,
+                withDuration: 0.3,
                 delay: 0,
-                usingSpringWithDamping: 0.75,
-                initialSpringVelocity: 0.15,
+                usingSpringWithDamping: 0.8,
+                initialSpringVelocity: 0.2,
                 options: .curveEaseOut
             ) {
                 self.view.layoutIfNeeded()

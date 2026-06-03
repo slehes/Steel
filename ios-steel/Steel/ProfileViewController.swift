@@ -134,11 +134,10 @@ final class ProfileViewController: UIViewController {
             let location = gesture.location(in: popup)
             let width = popup.bounds.width
             guard width > 0 else { return }
-            let ratio = max(0, min(1, location.x / width))
-            let newVolume = Float(ratio)
+            let ratio = max(0, min(1, Float(location.x / width)))
 
-            BackgroundVideoManager.shared.setPlayerVolume(newVolume)
-            popup.updateVolume(newVolume)
+            BackgroundVideoManager.shared.setPlayerVolume(ratio)
+            popup.updateVolume(ratio)
             updateSoundButton()
 
         case .ended, .cancelled:
@@ -154,29 +153,36 @@ final class ProfileViewController: UIViewController {
     private func showVolumePopup() {
         hideVolumePopup()
 
-        guard let soundBtnView = soundButtonItem.customView else { return }
-        let btnFrameInView = soundBtnView.convert(soundBtnView.bounds, to: view)
+        guard let soundBtnView = soundButtonItem.customView,
+              let window = view.window else { return }
+
+        let btnFrameInWindow = soundBtnView.convert(soundBtnView.bounds, to: window)
 
         let popup = VolumePopupView(initialVolume: BackgroundVideoManager.shared.volume)
         popup.onVolumeChange = { [weak self] vol in
             guard let self else { return }
+            self.volumePopupDismissTimer?.invalidate()
+            self.volumePopupDismissTimer = nil
             BackgroundVideoManager.shared.setPlayerVolume(vol)
             self.updateSoundButton()
         }
-        popup.onVolumeChangeEnded = {
+        popup.onVolumeChangeEnded = { [weak self] in
             BackgroundVideoManager.shared.saveVolumeSettings()
+            self?.scheduleVolumePopupDismiss()
         }
-        view.addSubview(popup)
+
+        // Add to window for reliable touch handling (avoids scroll view gesture conflicts)
+        window.addSubview(popup)
         popup.snp.makeConstraints {
             $0.trailing.equalToSuperview().inset(6)
-            $0.top.equalTo(btnFrameInView.minY + btnFrameInView.height + 6)
+            $0.top.equalTo(btnFrameInWindow.minY + btnFrameInWindow.height + 6)
             $0.width.equalTo(240)
-            $0.height.equalTo(44)
+            $0.height.equalTo(48)
         }
         popup.alpha = 0
         popup.transform = CGAffineTransform(scaleX: 0.8, y: 0.8)
 
-        view.layoutIfNeeded()
+        window.layoutIfNeeded()
         popup.layoutIfNeeded()
         popup.setInitialVolume()
 
@@ -524,112 +530,76 @@ final class ProfileViewController: UIViewController {
     }
 }
 
-// MARK: - Volume Popup View (Gray track + oval thumb)
+// MARK: - Volume Popup View (Liquid glass container + UISlider)
 
 private final class VolumePopupView: UIView {
-    private let thumbView = UIView()
-    private let trackView = UIView()
+    private let slider = UISlider()
+    private let glassContainer = LiquidGlassView(cornerRadius: 16, intensity: .thin)
 
     var onVolumeChange: ((Float) -> Void)?
     var onVolumeChangeEnded: (() -> Void)?
 
-    private var initialVolume: Float
-
     init(initialVolume: Float) {
-        self.initialVolume = initialVolume
         super.init(frame: .zero)
-        setup()
+        setup(initialVolume: initialVolume)
     }
 
     required init?(coder: NSCoder) { fatalError() }
 
-    private func setup() {
+    private func setup(initialVolume: Float) {
         backgroundColor = .clear
         isUserInteractionEnabled = true
         clipsToBounds = false
 
-        // Track — simple gray bar
-        trackView.backgroundColor = UIColor.label.withAlphaComponent(0.12)
-        trackView.layer.cornerRadius = 2.5
-        trackView.isUserInteractionEnabled = false
-        addSubview(trackView)
-        trackView.snp.makeConstraints {
-            $0.leading.trailing.equalToSuperview()
-            $0.centerY.equalToSuperview()
-            $0.height.equalTo(5)
+        // Glass container — big rounded rectangle with liquid glass
+        glassContainer.backgroundColor = UIColor.secondarySystemBackground.withAlphaComponent(0.28)
+        addSubview(glassContainer)
+        glassContainer.snp.makeConstraints { $0.edges.equalToSuperview() }
+
+        // Slider — native touch handling, no gesture conflicts
+        slider.value = initialVolume
+        slider.minimumValue = 0
+        slider.maximumValue = 1
+        slider.isContinuous = true
+        slider.addTarget(self, action: #selector(sliderValueChanged), for: .valueChanged)
+        slider.addTarget(self, action: #selector(sliderTouchEnded), for: [.touchUpInside, .touchUpOutside, .touchCancel])
+
+        // Transparent track — no visible track bar, only the oval thumb
+        let clearImage = UIGraphicsImageRenderer(size: CGSize(width: 1, height: 1)).image { _ in }
+            .resizableImage(withCapInsets: .zero, resizingMode: .tile)
+        slider.setMinimumTrackImage(clearImage, for: .normal)
+        slider.setMaximumTrackImage(clearImage, for: .normal)
+
+        // Custom thumb — white oval (pill shape)
+        let thumbSize = CGSize(width: 28, height: 20)
+        let thumbImage = UIGraphicsImageRenderer(size: thumbSize).image { _ in
+            UIColor.white.setFill()
+            UIBezierPath(roundedRect: CGRect(origin: .zero, size: thumbSize), cornerRadius: 10).fill()
         }
+        slider.setThumbImage(thumbImage, for: .normal)
+        slider.setThumbImage(thumbImage, for: .highlighted)
 
-        // Thumb — white oval (pill shape)
-        thumbView.backgroundColor = .white
-        thumbView.layer.cornerRadius = 10
-        thumbView.layer.shadowColor = UIColor.black.cgColor
-        thumbView.layer.shadowOpacity = 0.18
-        thumbView.layer.shadowOffset = CGSize(width: 0, height: 1)
-        thumbView.layer.shadowRadius = 3
-        thumbView.isUserInteractionEnabled = false
-        addSubview(thumbView)
-        thumbView.snp.makeConstraints {
+        glassContainer.contentView.addSubview(slider)
+        slider.snp.makeConstraints {
+            $0.leading.trailing.equalToSuperview().inset(16)
             $0.centerY.equalToSuperview()
-            $0.width.equalTo(28)
-            $0.height.equalTo(20)
+            $0.height.equalTo(30)
         }
-
-        // Pan gesture — works across entire view
-        let pan = UIPanGestureRecognizer(target: self, action: #selector(handlePan(_:)))
-        addGestureRecognizer(pan)
-
-        // Tap gesture — tap to set volume at position
-        let tap = UITapGestureRecognizer(target: self, action: #selector(handleTap(_:)))
-        addGestureRecognizer(tap)
-    }
-
-    override func hitTest(_ point: CGPoint, with event: UIEvent?) -> UIView? {
-        // Accept touches in the full area (even outside track/thumb)
-        return bounds.contains(point) ? self : nil
     }
 
     func setInitialVolume() {
         layoutIfNeeded()
-        updateVolume(initialVolume)
     }
 
     func updateVolume(_ volume: Float) {
-        let clamped = max(0, min(1, volume))
-        let totalWidth = bounds.width
-        guard totalWidth > 0 else { return }
-
-        // Thumb position along the width
-        let thumbX = totalWidth * CGFloat(clamped)
-        thumbView.snp.remakeConstraints {
-            $0.centerY.equalToSuperview()
-            $0.centerX.equalTo(thumbX)
-            $0.width.equalTo(28)
-            $0.height.equalTo(20)
-        }
+        slider.setValue(max(0, min(1, volume)), animated: true)
     }
 
-    @objc private func handlePan(_ gesture: UIPanGestureRecognizer) {
-        let width = bounds.width
-        guard width > 0 else { return }
-        let location = gesture.location(in: self)
-        let ratio = max(0, min(1, location.x / width))
-        let newVolume = Float(ratio)
-        updateVolume(newVolume)
-        onVolumeChange?(newVolume)
-
-        if gesture.state == .ended || gesture.state == .cancelled {
-            onVolumeChangeEnded?()
-        }
+    @objc private func sliderValueChanged() {
+        onVolumeChange?(slider.value)
     }
 
-    @objc private func handleTap(_ gesture: UITapGestureRecognizer) {
-        let width = bounds.width
-        guard width > 0 else { return }
-        let location = gesture.location(in: self)
-        let ratio = max(0, min(1, location.x / width))
-        let newVolume = Float(ratio)
-        updateVolume(newVolume)
-        onVolumeChange?(newVolume)
+    @objc private func sliderTouchEnded() {
         onVolumeChangeEnded?()
     }
 }
