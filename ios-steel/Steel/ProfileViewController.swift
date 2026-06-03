@@ -131,8 +131,8 @@ final class ProfileViewController: UIViewController {
 
         case .changed:
             guard let popup = volumePopupView else { return }
-            let location = gesture.location(in: popup)
-            let trackWidth = popup.bounds.width
+            let location = gesture.location(in: popup.trackView)
+            let trackWidth = popup.trackView.bounds.width
             guard trackWidth > 0 else { return }
             let ratio = max(0, min(1, location.x / trackWidth))
             let newVolume = Float(ratio)
@@ -170,8 +170,8 @@ final class ProfileViewController: UIViewController {
         popup.snp.makeConstraints {
             $0.trailing.equalToSuperview().inset(6)
             $0.top.equalTo(btnFrameInView.minY + btnFrameInView.height + 6)
-            $0.width.equalTo(220)
-            $0.height.equalTo(40)
+            $0.width.equalTo(240)
+            $0.height.equalTo(36)
         }
         popup.alpha = 0
         popup.transform = CGAffineTransform(scaleX: 0.8, y: 0.8)
@@ -524,14 +524,13 @@ final class ProfileViewController: UIViewController {
     }
 }
 
-// MARK: - Volume Popup View (Horizontal Liquid Glass Slider)
+// MARK: - Volume Popup View (Horizontal Slider — No Container)
 
 private final class VolumePopupView: UIView {
-    private let glassContainer = LiquidGlassView(cornerRadius: 20, intensity: .regular)
     private let fillGradientLayer = CAGradientLayer()
     private let thumbView = UIView()
     private var fillWidth: Constraint?
-    private var trackView = UIView()
+    private(set) var trackView = UIView()
     private var fillView = UIView()
 
     var onVolumeChange: ((Float) -> Void)?
@@ -548,64 +547,67 @@ private final class VolumePopupView: UIView {
     required init?(coder: NSCoder) { fatalError() }
 
     private func setup() {
-        // Liquid glass background — the slider IS the glass pill
-        addSubview(glassContainer)
-        glassContainer.snp.makeConstraints { $0.edges.equalToSuperview() }
+        backgroundColor = .clear
+        isUserInteractionEnabled = true
 
-        let content = glassContainer.contentView
-
-        // Track (background groove) — thin horizontal bar
-        trackView.backgroundColor = UIColor.label.withAlphaComponent(0.08)
-        trackView.layer.cornerRadius = 3
-        content.addSubview(trackView)
+        // Track — thin horizontal bar, no container
+        trackView.backgroundColor = UIColor.label.withAlphaComponent(0.12)
+        trackView.layer.cornerRadius = 2.5
+        trackView.isUserInteractionEnabled = false
+        addSubview(trackView)
         trackView.snp.makeConstraints {
-            $0.leading.trailing.equalToSuperview().inset(14)
+            $0.leading.trailing.equalToSuperview()
             $0.centerY.equalToSuperview()
-            $0.height.equalTo(6)
+            $0.height.equalTo(5)
         }
 
         // Fill (colored portion from left)
         fillView.backgroundColor = .clear
-        fillView.layer.cornerRadius = 3
+        fillView.layer.cornerRadius = 2.5
         fillView.clipsToBounds = true
+        fillView.isUserInteractionEnabled = false
         trackView.addSubview(fillView)
         fillView.snp.makeConstraints {
             $0.leading.top.bottom.equalToSuperview()
             fillWidth = $0.width.equalTo(0).constraint
         }
 
-        // Gradient for the fill — left to right
+        // Gradient for the fill
         fillGradientLayer.colors = [
             UIColor.systemBlue.cgColor,
             UIColor.systemTeal.cgColor
         ]
         fillGradientLayer.startPoint = CGPoint(x: 0, y: 0.5)
         fillGradientLayer.endPoint = CGPoint(x: 1, y: 0.5)
-        fillGradientLayer.cornerRadius = 3
+        fillGradientLayer.cornerRadius = 2.5
         fillView.layer.insertSublayer(fillGradientLayer, at: 0)
 
-        // Thumb — white pill shape
+        // Thumb — white oval/pill (wider than tall, like the original)
         thumbView.backgroundColor = .white
-        thumbView.layer.cornerRadius = 9
+        thumbView.layer.cornerRadius = 10
         thumbView.layer.shadowColor = UIColor.black.cgColor
-        thumbView.layer.shadowOpacity = 0.2
+        thumbView.layer.shadowOpacity = 0.18
         thumbView.layer.shadowOffset = CGSize(width: 0, height: 1)
         thumbView.layer.shadowRadius = 3
-        content.addSubview(thumbView)
+        thumbView.isUserInteractionEnabled = false
+        addSubview(thumbView)
         thumbView.snp.makeConstraints {
             $0.centerY.equalToSuperview()
-            $0.size.equalTo(18)
+            $0.width.equalTo(28)
+            $0.height.equalTo(20)
         }
 
-        // Gestures
+        // Gestures on the entire popup area
         let pan = UIPanGestureRecognizer(target: self, action: #selector(handlePan(_:)))
+        pan.cancelsTouchesInView = false
         addGestureRecognizer(pan)
         let tap = UITapGestureRecognizer(target: self, action: #selector(handleTap(_:)))
+        tap.cancelsTouchesInView = false
         addGestureRecognizer(tap)
     }
 
-    /// Call after layout to set initial volume
     func setInitialVolume() {
+        layoutIfNeeded()
         updateVolume(initialVolume)
     }
 
@@ -622,17 +624,18 @@ private final class VolumePopupView: UIView {
         fillGradientLayer.frame = fillView.bounds
 
         // Position thumb at the right edge of the fill
-        let thumbX = trackView.frame.minX + fillWidthValue
+        let thumbX = fillWidthValue
         thumbView.snp.remakeConstraints {
             $0.centerY.equalToSuperview()
             $0.centerX.equalTo(thumbX)
-            $0.size.equalTo(18)
+            $0.width.equalTo(28)
+            $0.height.equalTo(20)
         }
     }
 
     @objc private func handlePan(_ gesture: UIPanGestureRecognizer) {
-        let location = gesture.location(in: self)
-        let width = bounds.width
+        let location = gesture.location(in: trackView)
+        let width = trackView.bounds.width
         guard width > 0 else { return }
         let ratio = max(0, min(1, location.x / width))
         let newVolume = Float(ratio)
@@ -645,8 +648,8 @@ private final class VolumePopupView: UIView {
     }
 
     @objc private func handleTap(_ gesture: UITapGestureRecognizer) {
-        let location = gesture.location(in: self)
-        let width = bounds.width
+        let location = gesture.location(in: trackView)
+        let width = trackView.bounds.width
         guard width > 0 else { return }
         let ratio = max(0, min(1, location.x / width))
         let newVolume = Float(ratio)
